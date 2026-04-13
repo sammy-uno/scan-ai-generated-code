@@ -1,1 +1,1 @@
-"# scan-ai-generated-code" 
+"scan-ai-generated-code" 
