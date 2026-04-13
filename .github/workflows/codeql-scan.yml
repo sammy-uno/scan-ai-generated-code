@@ -1,0 +1,31 @@
+name: "Server-side CodeQL Scanner"
+
+on:
+  workflow_dispatch: # Allows manual run from the Actions tab
+
+jobs:
+  analyze:
+    name: Analyze PRs
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write # Required to upload results to the Security tab
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: 'javascript, python, java, csharp' # Add/remove as needed
+
+      - name: Run Orchestration Script
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auth for 'gh' commands
+        run: python ./scripts/ai-scanner.py
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
