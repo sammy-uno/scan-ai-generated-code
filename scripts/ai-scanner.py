@@ -8,6 +8,8 @@ def run_command(command, cwd=None):
 
 def main():
     # 1. Search for PRs using pre-installed 'gh' CLI
+
+    print("Starting the pull requests ..")
     search_res = run_command('gh search prs --head "copilot/" --state open --json number,repository')
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
