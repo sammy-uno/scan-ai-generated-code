@@ -1,31 +1,38 @@
 name: "Server-side CodeQL Scanner"
 
 on:
-  workflow_dispatch: # Allows manual run from the Actions tab
+  workflow_dispatch:
 
 jobs:
   analyze:
-    name: Analyze PRs
     runs-on: ubuntu-latest
     permissions:
-      actions: read
       contents: read
-      security-events: write # Required to upload results to the Security tab
       pull-requests: read
+      security-events: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Orchestrator
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run PR Orchestration and Detect Languages
+        id: detect # We give this step an ID to reference its output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python ./scripts/pr_scanner.py
+
       - name: Initialize CodeQL
+        # This step only runs if languages were actually detected
+        if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/init@v3
         with:
-          languages: 'javascript, python, java, csharp' # Add/remove as needed
-
-      - name: Run Orchestration Script
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auth for 'gh' commands
-        run: python ./scripts/ai-scanner.py
+          languages: ${{ steps.detect.outputs.detected_langs }}
 
       - name: Perform CodeQL Analysis
+        if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
