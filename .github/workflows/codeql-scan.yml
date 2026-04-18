@@ -24,7 +24,7 @@ jobs:
         id: detect # We give this step an ID to reference its output
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python ./scripts/pr_scanner.py
+        run: python ./scripts/ai-scanner.py
 
       - name: Initialize CodeQL
         # This step only runs if languages were actually detected
