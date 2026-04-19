@@ -7,47 +7,52 @@ def run_command(command):
     return result
 
 def main():
-    # 1. Broad Global Search for AI agents and branch patterns
-    # We remove the strict language:java here to find more candidates
-    agents = [
-        "author:app/github-copilot", 
-        "author:app/sweep", 
-        "author:app/coderabbitai", 
-        "author:app/pixee",
-        "head:copilot/",
-        "head:sweep/"
-    ]
-    
-    agent_query = " OR ".join(agents)
-    # Search for PRs by AI agents that are public and open
-    search_query = f'({agent_query}) is:pr state:open is:public'
-    search_cmd = f'gh search prs "{search_query}" --json number,repository --limit 50'
-    
-    search_res = run_command(search_cmd)
-    
-    if not search_res.stdout or search_res.stdout.strip() == "[]":
-        print("No public AI-agent PRs found at all.")
+    # 1. Broad keyword search for PRs likely from AI agents
+    # Keywords often found in AI-generated PR titles, branches, or bodies
+    keywords = ["copilot", "sweep", "coderabbit", "pixee", "qodo"]
+    all_prs = []
+
+    for kw in keywords:
+        print(f"Searching for keyword: {kw}")
+        # Search globally for open public PRs with this keyword
+        cmd = f'gh search prs "{kw}" --state open --is-public --limit 30 --json number,repository,author'
+        res = run_command(cmd)
+        if res.stdout:
+            try:
+                all_prs.extend(json.loads(res.stdout))
+            except json.JSONDecodeError:
+                continue
+
+    if not all_prs:
+        print("No public PR candidates found.")
         set_output("")
         return
 
-    prs = json.loads(search_res.stdout)
+    # Use a set to avoid processing the same PR multiple times
+    seen_prs = set()
     all_langs = set()
 
-    # 2. Filter for Java manually by checking repo composition
-    for pr in prs:
+    # 2. Filter for Java and actual AI bots
+    for pr in all_prs:
         num = str(pr.get("number"))
-        repo_full_name = pr.get("repository", {}).get("nameWithOwner")
+        repo = pr.get("repository", {}).get("nameWithOwner")
+        author = pr.get("author", {}).get("login", "").lower()
         
-        # Verify if the repository contains Java
-        lang_res = run_command(f'gh repo view {repo_full_name} --json languages --jq ".languages[].node.name"')
+        pr_id = f"{repo}#{num}"
+        if pr_id in seen_prs:
+            continue
+        seen_prs.add(pr_id)
+
+        # Check for Java in the repository
+        lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name"')
         raw_langs = lang_res.stdout.lower().strip().split('\n')
 
         if any("java" in l for l in raw_langs):
-            print(f"Found Java-eligible AI PR: {repo_full_name} (PR #{num})")
+            print(f"Match found: {repo} (PR #{num}) by {author}")
             all_langs.add("java")
-            # Checkout this specific PR for scanning
-            run_command(f"gh pr checkout {num} --repo {repo_full_name}")
-            break # Stop at the first valid Java PR to scan
+            # Checkout the PR for scanning
+            run_command(f"gh pr checkout {num} --repo {repo}")
+            break # CodeQL will scan this checked-out state
 
     lang_string = ",".join(all_langs)
     set_output(lang_string)
