@@ -23,6 +23,7 @@ jobs:
       - name: Stage Test PR
         id: detect
         env:
+          # This maps your PAT to the variable the GitHub CLI expects
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
@@ -31,6 +32,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
+          # Static extraction for Java without build steps
           build-mode: none 
 
       - name: Perform CodeQL Analysis
