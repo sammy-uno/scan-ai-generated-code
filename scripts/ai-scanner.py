@@ -7,34 +7,49 @@ def run_command(command):
     return result
 
 def main():
-    # 1. Search globally for open public PRs authored by Copilot or AI agents
-    # Use 'author:app/github-copilot' or 'author:@copilot' for official AI PRs
-    search_query = 'author:app/github-copilot is:pr state:open is:public language:java'
-    search_cmd = f'gh search prs "{search_query}" --json number,repository'
+    # Get current user to exclude self
+    user_res = run_command('gh api user --jq .login')
+    current_user = user_res.stdout.strip()
+
+    # MULTI-AGENT SEARCH:
+    # includes Copilot, Sweep, Coderabbit, Pixee, and common branch patterns
+    agents = [
+        "author:app/github-copilot", 
+        "author:app/sweep", 
+        "author:app/coderabbitai", 
+        "author:app/pixee",
+        "head:copilot/",
+        "head:sweep/"
+    ]
     
+    # Construct a broad "OR" query
+    agent_query = " OR ".join(agents)
+    search_query = f'({agent_query}) language:java -author:{current_user} is:pr state:open is:public'
+    
+    # We use gh search prs which handles the complex OR logic well
+    search_cmd = f'gh search prs "{search_query}" --json number,repository'
     search_res = run_command(search_cmd)
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
-        print("No public AI-generated Java PRs found.")
+        print("No public AI-agent Java PRs found.")
         set_output("")
         return
 
     prs = json.loads(search_res.stdout)
     all_langs = set()
 
-    # To scan multiple PRs in one workflow, we checkout the most recent valid one
     for pr in prs:
         num = str(pr.get("number"))
         repo_full_name = pr.get("repository", {}).get("nameWithOwner")
         
-        # Double-check language classification via API
+        # Verify it really has Java files in the repo view
         lang_res = run_command(f'gh repo view {repo_full_name} --json languages --jq ".languages[].node.name"')
         raw_langs = lang_res.stdout.lower().strip().split('\n')
 
-        if "java" in raw_langs:
-            print(f"Found AI-generated Java PR: {repo_full_name} (PR #{num})")
+        if any("java" in l for l in raw_langs):
+            print(f"Scanning AI PR #{num} in {repo_full_name}")
             all_langs.add("java")
-            # This checkout will be the one analyzed by CodeQL
+            # Checkout the PR to prepare for CodeQL scan
             run_command(f"gh pr checkout {num} --repo {repo_full_name}")
 
     lang_string = ",".join(all_langs)
