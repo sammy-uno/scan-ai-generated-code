@@ -7,7 +7,7 @@ on:
 
 jobs:
   analyze:
-    name: PR Security Scan
+    name: No-Build Security Scan
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -26,24 +26,21 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Run Orchestration and Language Detection
+      - name: Run Orchestration
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python ./scripts/ai-scanner.py
-
-      - name: Debug Output
-        run: echo "The detected languages are '${{ steps.detect.outputs.detected_langs }}'"
 
       - name: Initialize CodeQL
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
+          # Enables static scan without requiring Maven/Gradle/etc.
+          build-mode: none 
 
-      - name: Autobuild
-        if: steps.detect.outputs.detected_langs != ''
-        uses: github/codeql-action/autobuild@v3
+      # NO AUTOBUILD STEP NEEDED HERE
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
