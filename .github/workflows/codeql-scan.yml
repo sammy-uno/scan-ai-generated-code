@@ -1,4 +1,5 @@
-nname: "AI CodeQL Scanner"
+name: "AI CodeQL Scanner"
+
 on:
   pull_request:
     branches: [ main, master ]
@@ -16,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: [actions/checkout@v4](https://docs.github.com/articles/getting-started-with-github-actions)
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 
 
@@ -33,24 +34,20 @@ jobs:
 
       - name: Initialize CodeQL
         if: steps.detect.outputs.detected_langs != ''
-        uses: [github/codeql-action/init@v3](https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions)
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Removed build-mode: none to allow compilation tracking
+          # build-mode: none is removed as it's often incompatible with Kotlin or multi-language Java repos
 
-      # This step is CRITICAL for Java/Kotlin to be visible to CodeQL
       - name: Autobuild
         if: steps.detect.outputs.detected_langs != ''
-        uses: [github/codeql-action/autobuild@v3](https://github.com/github/codeql-action)
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ steps.detect.outputs.detected_langs }}"
-
-      - name: Perform CodeQL Analysis
-        if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ steps.detect.outputs.detected_langs }}"
