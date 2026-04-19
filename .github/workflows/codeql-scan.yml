@@ -1,4 +1,4 @@
-name: "Global AI Agent Java Scanner"
+name: "Global AI Agent Scanner"
 
 on:
   workflow_dispatch: 
@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Search AI PRs
+      - name: Run AI Agent Search
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,11 +33,10 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Static extraction for Java without build steps
           build-mode: none 
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ steps.detect.outputs.detected_langs }}"
+          category: "/language:java"
