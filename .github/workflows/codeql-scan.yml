@@ -15,7 +15,6 @@ jobs:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v4
         with:
-          # Crucial: Fetch full history so we can switch back to our own commit later
           fetch-depth: 0 
 
       - name: Set up Python
@@ -34,21 +33,23 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
+          # Scan Java without requiring a build/compiler
           build-mode: none 
 
-      # NEW STEP: Reset local Git HEAD to your repository's actual commit
-      # This fixes the "commit not found" error during upload
-      - name: Reset Git State for Upload
+      # CRITICAL: We move the Git pointer to YOUR repo's SHA 
+      # so the upload works, but we don't 'checkout' so the 
+      # RocketMQ Java files remain on the disk for scanning.
+      - name: Reset Git Metadata for Upload
         if: steps.detect.outputs.detected_langs != ''
         run: |
-          git checkout ${{ github.sha }}
-          # We keep the external source files but restore the .git index
+          git update-ref HEAD ${{ github.sha }}
+          echo "Git HEAD updated to ${{ github.sha }} to enable upload."
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
-          # Redundant but safe: explicitly tell GH which commit to use
+          # Ensure results are associated with your branch
           ref: ${{ github.ref }}
           sha: ${{ github.sha }}
