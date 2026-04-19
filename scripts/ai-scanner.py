@@ -1,60 +1,43 @@
-name: "PR-Only CodeQL Scan"
+import subprocess
+import json
+import os
 
-on:
-  pull_request:
-    # Triggers on PR creation or when new commits are pushed to the PR branch
-    branches: [ main, master ]
-    # Optional: ignore changes that don't need security scanning
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
+def run_command(command):
+    result = subprocess.run(command, capture_output=True, text=True, shell=True)
+    return result
 
-jobs:
-  analyze:
-    name: Analyze Changed Code
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write # Required to upload alerts to the PR 'Checks' tab
-      pull-requests: read
+def main():
+    # 1. Search for PRs
+    search_res = run_command('gh search prs --head "copilot/" --state open --json number,repository')
+    
+    if not search_res.stdout or search_res.stdout.strip() == "[]":
+        print("No matching PRs found.")
+        return
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          # Fetches all history so git diff can compare the PR to the base branch
-          fetch-depth: 0 
+    pr = json.loads(search_res.stdout)[0]
+    num = str(pr.get("number"))
+    repo = pr.get("repository", {}).get("nameWithOwner")
+    
+    # 2. Detect Languages in the repo
+    # This returns a list like ["Python", "JavaScript"]
+    lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name"')
+    detected_langs = lang_res.stdout.lower().strip().split('\n')
 
-      - name: Detect Languages with Changes
-        id: detect
-        run: |
-          # Compare the current PR branch (HEAD) against the target branch (base_ref)
-          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
-          
-          DETECTED=""
-          # Only add languages if their specific extensions appear in the diff
-          grep -q "\.py$" changed_files.txt && DETECTED+="python,"
-          grep -q "\.js$\|\.ts$\|\.jsx$\|\.tsx$" changed_files.txt && DETECTED+="javascript,"
-          grep -q "\.java$\|\.kt$" changed_files.txt && DETECTED+="java,"
-          grep -q "\.cs$" changed_files.txt && DETECTED+="csharp,"
-          
-          # Remove trailing comma and save to outputs
-          FINAL_LANGS=$(echo ${DETECTED%?})
-          echo "langs=$FINAL_LANGS" >> $GITHUB_OUTPUT
-          echo "Found changed files for: $FINAL_LANGS"
+    # Map GH names to CodeQL names
+    mapping = {"python": "python", "javascript": "javascript", "typescript": "javascript", "java": "java", "c#": "csharp", "go": "go"}
+    to_scan = [mapping[l] for l in detected_langs if l in mapping]
+    
+    # Remove duplicates and join for GitHub Actions
+    lang_string = ",".join(set(to_scan))
+    
+    # 3. Output to GitHub Actions Environment
+    if "GITHUB_OUTPUT" in os.environ:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"detected_langs={lang_string}\n")
+    
+    # 4. Checkout the PR
+    print(f"Checking out PR #{num} from {repo}...")
+    run_command(f"gh pr checkout {num}")
 
-      - name: Initialize CodeQL
-        # Only initialize if at least one supported language was found in the diff
-        if: steps.detect.outputs.langs != ''
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ steps.detect.outputs.langs }}
-          # Incremental analysis reports only new alerts in the PR diff
-          build-mode: none 
-
-      - name: Perform CodeQL Analysis
-        if: steps.detect.outputs.langs != ''
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{ steps.detect.outputs.langs }}"
+if __name__ == "__main__":
+    main()
