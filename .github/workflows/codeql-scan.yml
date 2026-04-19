@@ -1,13 +1,11 @@
-name: "AI CodeQL Scanner"
+name: "Public AI PR Scanner"
 
 on:
-  pull_request:
-    branches: [ "**" ]
-  workflow_dispatch: 
+  workflow_dispatch: # Recommended for global manual runs
 
 jobs:
   analyze:
-    name: No-Build Security Scan
+    name: No-Build AI Code Scan
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -16,17 +14,15 @@ jobs:
       pull-requests: read
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Tooling Repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Run Orchestration
+      - name: Search and Checkout AI PR
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,10 +33,8 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Enables static scan without requiring Maven/Gradle/etc.
+          # Static extraction for Java without build steps
           build-mode: none 
-
-      # NO AUTOBUILD STEP NEEDED HERE
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
