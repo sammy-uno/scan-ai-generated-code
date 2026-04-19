@@ -26,7 +26,7 @@ jobs:
           # Use your PAT secret here for public repo access
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
-
+        
       - name: Initialize CodeQL
         if: steps.detect.outputs.detected_langs != ''
         uses: [github/codeql-action/init@v3](https://github.com)
