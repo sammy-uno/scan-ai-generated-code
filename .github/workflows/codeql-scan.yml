@@ -1,4 +1,4 @@
-name: "Global AI Agent Scanner"
+name: "Global AI Agent Java Scanner"
 
 on:
   workflow_dispatch: 
@@ -8,10 +8,8 @@ jobs:
     name: No-Build AI Scan
     runs-on: ubuntu-latest
     permissions:
-      actions: read
-      contents: read
       security-events: write 
-      pull-requests: read
+      contents: read
 
     steps:
       - name: Checkout Tooling Repo
@@ -22,10 +20,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Run AI Agent Search
+      - name: Run Global Search
         id: detect
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use your PAT secret here for global search permissions
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
       - name: Initialize CodeQL
@@ -33,6 +32,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
+          # Scan Java statically to avoid complex build configurations
           build-mode: none 
 
       - name: Perform CodeQL Analysis
