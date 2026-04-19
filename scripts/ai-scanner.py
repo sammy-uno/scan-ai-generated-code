@@ -1,44 +1,36 @@
 import subprocess
-import json
 import os
 
 def run_command(command):
-    # shell=True is critical for cross-platform quote handling
+    # shell=True ensures parsing works correctly on all platforms
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
     return result
 
 def main():
-    # Strategy: Use broad keywords found in AI-generated PR titles or bodies
-    # This avoids the 'head:' prefix which often fails in global search
-    keywords = ["copilot", "sweepai", "coderabbit"]
-    found_any = False
+    # HARDCODED TEST DATA
+    # Repository: apache/rocketmq
+    # Pull Request Number: 9175
+    repo = "apache/rocketmq"
+    pr_num = "9175"
 
-    for kw in keywords:
-        print(f"Global keyword search: {kw}")
-        # Search for open public PRs with the keyword and Java language
-        cmd = f'gh search prs "{kw} language:java" --state open --visibility public --limit 10 --json number,repository'
-        res = run_command(cmd)
-        
-        if res.stdout and res.stdout.strip() != "[]":
-            try:
-                prs = json.loads(res.stdout)
-                for pr in prs:
-                    num = str(pr.get("number"))
-                    repo = pr.get("repository", {}).get("nameWithOwner")
-                    
-                    print(f"MATCH: {repo} (PR #{num}) found. Checking out...")
-                    # Checkout using explicit repo to avoid workspace mismatch
-                    checkout_res = run_command(f"gh pr checkout {num} --repo {repo}")
-                    
-                    if checkout_res.returncode == 0:
-                        set_output("java")
-                        found_any = True
-                        return # Exit once a valid Java PR is staged
-            except Exception as e:
-                print(f"Error parsing results: {e}")
+    print(f"Targeting specific test PR: {repo}#{pr_num}")
+    
+    # 1. Checkout the specific public PR
+    # This replaces the need for 'gh search' during this test phase
+    checkout_res = run_command(f"gh pr checkout {pr_num} --repo {repo}")
+    
+    if checkout_res.returncode != 0:
+        print(f"Checkout failed: {checkout_res.stderr}")
+        set_output("")
+        return
 
-    if not found_any:
-        print("Search returned zero matches. Check PAT and global rate limits.")
+    # 2. Confirm the checked-out PR contains Java
+    lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name"')
+    if "Java" in lang_res.stdout:
+        print(f"Verified Java in {repo}. Staging for CodeQL...")
+        set_output("java-kotlin")
+    else:
+        print("Java not detected in this repository.")
         set_output("")
 
 def set_output(value):
