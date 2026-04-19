@@ -1,7 +1,7 @@
 name: "Direct Java PR Scanner"
 
 on:
-  workflow_dispatch: # Manually trigger this test
+  workflow_dispatch: 
 
 jobs:
   analyze:
@@ -23,20 +23,18 @@ jobs:
       - name: Stage Test PR
         id: detect
         env:
-          # Use your PAT secret here for public repo access
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
-        
+
       - name: Initialize CodeQL
         if: steps.detect.outputs.detected_langs != ''
-        uses: [github/codeql-action/init@v3](https://github.com)
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Essential for scanning third-party Java without Maven/Gradle setup
           build-mode: none 
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
-        uses: [github/codeql-action/analyze@v3](https://github.com)
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
