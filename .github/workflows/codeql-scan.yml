@@ -23,7 +23,7 @@ jobs:
       - name: Run Global Search
         id: detect
         env:
-          # Use your PAT secret here for global search permissions
+          # This MUST be a PAT with public_repo scope
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
@@ -31,12 +31,10 @@ jobs:
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ steps.detect.outputs.detected_langs }}
-          # Scan Java statically to avoid complex build configurations
+          languages: java-kotlin
+          # Crucial for scanning third-party repos without build files
           build-mode: none 
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:java"
