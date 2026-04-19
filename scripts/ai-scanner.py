@@ -19,20 +19,20 @@ def main():
     repo = pr.get("repository", {}).get("nameWithOwner")
     
     # 2. Detect Languages in the repo
-    # This returns a list like ["Python", "JavaScript"]
     lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name"')
     detected_langs = lang_res.stdout.lower().strip().split('\n')
 
-    # Map GH names to CodeQL names
-    mapping = {"python": "python", "javascript": "javascript", "typescript": "javascript", "java": "java", "c#": "csharp", "go": "go"}
+    # UPDATED: Mapping strictly for Java/Kotlin
+    # This prevents the Exit Code 32 error by not scanning languages without source code
+    mapping = {"java": "java-kotlin"}
     to_scan = [mapping[l] for l in detected_langs if l in mapping]
     
-    # Remove duplicates and join for GitHub Actions
     lang_string = ",".join(set(to_scan))
     
     # 3. Output to GitHub Actions Environment
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            # If no Java is detected, this output will be empty
             f.write(f"detected_langs={lang_string}\n")
     
     # 4. Checkout the PR
