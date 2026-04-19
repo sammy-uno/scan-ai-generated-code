@@ -23,7 +23,7 @@ jobs:
       - name: Stage Test PR
         id: detect
         env:
-          # This maps your PAT to the variable the GitHub CLI expects
+          # Use your PAT secret for public repo access
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
@@ -40,3 +40,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
+          # FORCE CodeQL to upload results to YOUR repo's current state
+          # This avoids the "commit not found" error
+          ref: ${{ github.ref }}
+          sha: ${{ github.sha }}
