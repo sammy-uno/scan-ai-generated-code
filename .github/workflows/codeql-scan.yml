@@ -1,11 +1,11 @@
-name: "Global AI Java Scanner"
+name: "Direct Java PR Scanner"
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch: # Manually trigger this test
 
 jobs:
   analyze:
-    name: No-Build AI Scan
+    name: No-Build Java Scan
     runs-on: ubuntu-latest
     permissions:
       security-events: write 
@@ -20,21 +20,23 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Global AI Search
+      - name: Stage Test PR
         id: detect
         env:
-          # REQUIRED: Secret PAT with 'public_repo' scope
+          # Use your PAT secret here for public repo access
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
       - name: Initialize CodeQL
         if: steps.detect.outputs.detected_langs != ''
-        uses: github/codeql-action/init@v3
+        uses: [github/codeql-action/init@v3](https://github.com)
         with:
-          languages: java-kotlin
-          # Optimized for diverse repos without build files
+          languages: ${{ steps.detect.outputs.detected_langs }}
+          # Essential for scanning third-party Java without Maven/Gradle setup
           build-mode: none 
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
-        uses: github/codeql-action/analyze@v3
+        uses: [github/codeql-action/analyze@v3](https://github.com)
+        with:
+          category: "/language:java"
