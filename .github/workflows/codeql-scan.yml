@@ -1,13 +1,11 @@
-name: "Global AI Agent Scanner"
+name: "Global AI Agent Java Scanner"
 
 on:
   workflow_dispatch: 
-  schedule:
-    - cron: '0 0 * * *' # Optional: Run daily to find new AI PRs
 
 jobs:
   analyze:
-    name: Multi-Agent Java Scan
+    name: No-Build AI Scan
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -24,7 +22,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Orchestrate Agent Search
+      - name: Search AI PRs
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -35,6 +33,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
+          # Static extraction for Java without build steps
           build-mode: none 
 
       - name: Perform CodeQL Analysis
