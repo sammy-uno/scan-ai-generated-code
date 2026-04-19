@@ -7,14 +7,10 @@ def run_command(command):
     return result
 
 def main():
-    # 1. Search PRs
+    # 1. Global search for public PRs with branch "copilot/"
     search_cmd = 'gh search prs --head "copilot/" --state open --json number,repository'
     search_res = run_command(search_cmd)
     
-    # DEBUG: See what the search actually found
-    print(f"SEARCH STDOUT: {search_res.stdout}")
-    print(f"SEARCH STDERR: {search_res.stderr}")
-
     if not search_res.stdout or search_res.stdout.strip() == "[]":
         set_output("")
         return
@@ -26,17 +22,17 @@ def main():
         num = str(pr.get("number"))
         repo_full_name = pr.get("repository", {}).get("nameWithOwner")
         
-        # 2. Get languages BEFORE checking out to verify detection
+        # 2. Check languages via GitHub API
         lang_res = run_command(f'gh repo view {repo_full_name} --json languages --jq ".languages[].node.name"')
-        raw_langs = lang_res.stdout.strip().split('\n')
-        print(f"Repo {repo_full_name} contains: {raw_langs}")
+        raw_langs = lang_res.stdout.lower().strip().split('\n')
 
-        mapping = {"java": "java-kotlin"}
-        for l in raw_langs:
-            clean_l = l.lower().strip()
-            if clean_l in mapping:
-                all_langs.add(mapping[clean_l])
+        # Static analysis without build works best for Java
+        if any("java" in l for l in raw_langs):
+            all_langs.add("java")
+            # Checkout the last matching PR to scan
+            run_command(f"gh pr checkout {num} --repo {repo_full_name}")
 
+    # 3. Finalize output
     lang_string = ",".join(all_langs)
     set_output(lang_string)
 
