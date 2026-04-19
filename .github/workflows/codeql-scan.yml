@@ -33,23 +33,26 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Scan Java without requiring a build/compiler
           build-mode: none 
 
-      # CRITICAL: We move the Git pointer to YOUR repo's SHA 
-      # so the upload works, but we don't 'checkout' so the 
-      # RocketMQ Java files remain on the disk for scanning.
       - name: Reset Git Metadata for Upload
         if: steps.detect.outputs.detected_langs != ''
         run: |
           git update-ref HEAD ${{ github.sha }}
-          echo "Git HEAD updated to ${{ github.sha }} to enable upload."
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:java"
-          # Ensure results are associated with your branch
+          # Groups findings in the Security tab under this PR name
+          category: "/pr:${{ steps.detect.outputs.pr_name }}"
           ref: ${{ github.ref }}
           sha: ${{ github.sha }}
+
+      # Automatically creates a summary in the GitHub Actions UI
+      - name: Create Workflow Summary
+        if: always() && steps.detect.outputs.pr_name != ''
+        run: |
+          echo "## 🛡️ Scan Summary for ${{ steps.detect.outputs.full_title }}" >> $GITHUB_STEP_SUMMARY
+          echo "Results have been uploaded to the **Security** tab under the category: \`/pr:${{ steps.detect.outputs.pr_name }}\`." >> $GITHUB_STEP_SUMMARY
+          echo "Checked out code from: \`apache/rocketmq\`" >> $GITHUB_STEP_SUMMARY
