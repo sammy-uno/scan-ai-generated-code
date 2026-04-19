@@ -7,12 +7,8 @@ def run_command(command):
     return result
 
 def main():
-    # Get current user to exclude self
-    user_res = run_command('gh api user --jq .login')
-    current_user = user_res.stdout.strip()
-
-    # MULTI-AGENT SEARCH:
-    # includes Copilot, Sweep, Coderabbit, Pixee, and common branch patterns
+    # 1. Broad Global Search for AI agents and branch patterns
+    # We remove the strict language:java here to find more candidates
     agents = [
         "author:app/github-copilot", 
         "author:app/sweep", 
@@ -22,35 +18,36 @@ def main():
         "head:sweep/"
     ]
     
-    # Construct a broad "OR" query
     agent_query = " OR ".join(agents)
-    search_query = f'({agent_query}) language:java -author:{current_user} is:pr state:open is:public'
+    # Search for PRs by AI agents that are public and open
+    search_query = f'({agent_query}) is:pr state:open is:public'
+    search_cmd = f'gh search prs "{search_query}" --json number,repository --limit 50'
     
-    # We use gh search prs which handles the complex OR logic well
-    search_cmd = f'gh search prs "{search_query}" --json number,repository'
     search_res = run_command(search_cmd)
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
-        print("No public AI-agent Java PRs found.")
+        print("No public AI-agent PRs found at all.")
         set_output("")
         return
 
     prs = json.loads(search_res.stdout)
     all_langs = set()
 
+    # 2. Filter for Java manually by checking repo composition
     for pr in prs:
         num = str(pr.get("number"))
         repo_full_name = pr.get("repository", {}).get("nameWithOwner")
         
-        # Verify it really has Java files in the repo view
+        # Verify if the repository contains Java
         lang_res = run_command(f'gh repo view {repo_full_name} --json languages --jq ".languages[].node.name"')
         raw_langs = lang_res.stdout.lower().strip().split('\n')
 
         if any("java" in l for l in raw_langs):
-            print(f"Scanning AI PR #{num} in {repo_full_name}")
+            print(f"Found Java-eligible AI PR: {repo_full_name} (PR #{num})")
             all_langs.add("java")
-            # Checkout the PR to prepare for CodeQL scan
+            # Checkout this specific PR for scanning
             run_command(f"gh pr checkout {num} --repo {repo_full_name}")
+            break # Stop at the first valid Java PR to scan
 
     lang_string = ",".join(all_langs)
     set_output(lang_string)
