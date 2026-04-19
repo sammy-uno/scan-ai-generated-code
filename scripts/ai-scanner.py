@@ -7,11 +7,22 @@ def run_command(command):
     return result
 
 def main():
-    # 1. Global search for public PRs with branch "copilot/"
-    search_cmd = 'gh search prs --head "copilot/" --state open --json number,repository'
+    # Get current user to exclude own PRs
+    user_res = run_command('gh api user --jq .login')
+    current_user = user_res.stdout.strip()
+
+    # SEARCH QUALIFIERS:
+    # head:copilot/ -> branch starts with copilot/
+    # language:java -> repo must be primarily Java
+    # -author:{user} -> exclude PRs created by you
+    # is:public -> search only public PRs
+    search_query = f'head:copilot/ language:java -author:{current_user} is:pr state:open is:public'
+    search_cmd = f'gh search prs "{search_query}" --json number,repository'
+    
     search_res = run_command(search_cmd)
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
+        print("No matching Java PRs found from other authors.")
         set_output("")
         return
 
@@ -22,17 +33,14 @@ def main():
         num = str(pr.get("number"))
         repo_full_name = pr.get("repository", {}).get("nameWithOwner")
         
-        # 2. Check languages via GitHub API
+        # Verify it really has Java files in the repo view
         lang_res = run_command(f'gh repo view {repo_full_name} --json languages --jq ".languages[].node.name"')
         raw_langs = lang_res.stdout.lower().strip().split('\n')
 
-        # Static analysis without build works best for Java
-        if any("java" in l for l in raw_langs):
+        if "java" in raw_langs:
             all_langs.add("java")
-            # Checkout the last matching PR to scan
             run_command(f"gh pr checkout {num} --repo {repo_full_name}")
 
-    # 3. Finalize output
     lang_string = ",".join(all_langs)
     set_output(lang_string)
 
