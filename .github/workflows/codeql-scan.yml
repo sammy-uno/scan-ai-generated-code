@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v4
+        with:
+          # Crucial: Fetch full history so we can switch back to our own commit later
+          fetch-depth: 0 
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -23,7 +26,6 @@ jobs:
       - name: Stage Test PR
         id: detect
         env:
-          # Use your PAT secret for public repo access
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
@@ -32,15 +34,21 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Static extraction for Java without build steps
           build-mode: none 
+
+      # NEW STEP: Reset local Git HEAD to your repository's actual commit
+      # This fixes the "commit not found" error during upload
+      - name: Reset Git State for Upload
+        if: steps.detect.outputs.detected_langs != ''
+        run: |
+          git checkout ${{ github.sha }}
+          # We keep the external source files but restore the .git index
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java"
-          # FORCE CodeQL to upload results to YOUR repo's current state
-          # This avoids the "commit not found" error
+          # Redundant but safe: explicitly tell GH which commit to use
           ref: ${{ github.ref }}
           sha: ${{ github.sha }}
