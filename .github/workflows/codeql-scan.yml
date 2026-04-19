@@ -1,9 +1,8 @@
-name: "AI CodeQL Scanner"
-
+nname: "AI CodeQL Scanner"
 on:
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # Allows manual triggering if needed
+  workflow_dispatch: 
 
 jobs:
   analyze:
@@ -12,14 +11,13 @@ jobs:
     permissions:
       actions: read
       contents: read
-      security-events: write # Required to post results to the Security/PR tab
+      security-events: write 
       pull-requests: read
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: [actions/checkout@v4](https://docs.github.com/articles/getting-started-with-github-actions)
         with:
-          # Fetches all history so the script can compare the PR to the base branch
           fetch-depth: 0 
 
       - name: Set up Python
@@ -31,17 +29,25 @@ jobs:
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # This calls your renamed script
         run: python ./scripts/ai-scanner.py
 
       - name: Initialize CodeQL
-        # Only initializes if the script found relevant changed files
         if: steps.detect.outputs.detected_langs != ''
-        uses: github/codeql-action/init@v3
+        uses: [github/codeql-action/init@v3](https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions)
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # Ensures we focus on the code changes
-          build-mode: none 
+          # Removed build-mode: none to allow compilation tracking
+
+      # This step is CRITICAL for Java/Kotlin to be visible to CodeQL
+      - name: Autobuild
+        if: steps.detect.outputs.detected_langs != ''
+        uses: [github/codeql-action/autobuild@v3](https://github.com/github/codeql-action)
+
+      - name: Perform CodeQL Analysis
+        if: steps.detect.outputs.detected_langs != ''
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ steps.detect.outputs.detected_langs }}"
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
