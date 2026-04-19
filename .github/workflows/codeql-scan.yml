@@ -1,4 +1,4 @@
-name: "Global AI Agent Java Scanner"
+name: "Global AI Java Scanner"
 
 on:
   workflow_dispatch: 
@@ -20,10 +20,10 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Run Global Search
+      - name: Global AI Search
         id: detect
         env:
-          # This MUST be a PAT with public_repo scope
+          # REQUIRED: Secret PAT with 'public_repo' scope
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: python ./scripts/ai-scanner.py
 
@@ -32,7 +32,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: java-kotlin
-          # Crucial for scanning third-party repos without build files
+          # Optimized for diverse repos without build files
           build-mode: none 
 
       - name: Perform CodeQL Analysis
