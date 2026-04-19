@@ -37,7 +37,6 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          # build-mode: none is removed as it's often incompatible with Kotlin or multi-language Java repos
 
       - name: Autobuild
         if: steps.detect.outputs.detected_langs != ''
@@ -45,9 +44,6 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{ steps.detect.outputs.detected_langs }}"
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ steps.detect.outputs.detected_langs }}"
