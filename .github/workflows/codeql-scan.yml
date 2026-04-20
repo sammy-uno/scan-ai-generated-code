@@ -37,22 +37,22 @@ jobs:
 
       - name: Reset Git Metadata for Upload
         if: steps.detect.outputs.detected_langs != ''
-        run: |
-          git update-ref HEAD ${{ github.sha }}
+        run: git update-ref HEAD ${{ github.sha }}
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
-          # Groups findings in the Security tab under this PR name
           category: "/pr:${{ steps.detect.outputs.pr_name }}"
           ref: ${{ github.ref }}
           sha: ${{ github.sha }}
+          # This saves the results to a local file we can parse
+          output: results.sarif
 
-      # Automatically creates a summary in the GitHub Actions UI
       - name: Create Workflow Summary
         if: always() && steps.detect.outputs.pr_name != ''
         run: |
           echo "## 🛡️ Scan Summary for ${{ steps.detect.outputs.full_title }}" >> $GITHUB_STEP_SUMMARY
-          echo "Results have been uploaded to the **Security** tab under the category: \`/pr:${{ steps.detect.outputs.pr_name }}\`." >> $GITHUB_STEP_SUMMARY
           echo "Checked out code from: \`apache/rocketmq\`" >> $GITHUB_STEP_SUMMARY
+          # Run the new parsing script to add the table of vulnerabilities
+          python ./scripts/parse-results.py
