@@ -52,7 +52,9 @@ jobs:
       - name: Create Workflow Summary
         if: always() && steps.detect.outputs.pr_name != ''
         run: |
+          echo "### Directory Contents"
+          pwd
+          ls -R ./scripts/
           echo "## 🛡️ Scan Summary for ${{ steps.detect.outputs.full_title }}" >> $GITHUB_STEP_SUMMARY
           echo "Checked out code from: \`apache/rocketmq\`" >> $GITHUB_STEP_SUMMARY
-          # Run the new parsing script to add the table of vulnerabilities
           python ./scripts/parse-results.py
