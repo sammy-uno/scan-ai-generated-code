@@ -1,11 +1,11 @@
-name: "Direct Java PR Scanner"
+name: "Targeted AI PR Scanner"
 
 on:
   workflow_dispatch: 
 
 jobs:
   analyze:
-    name: No-Build Java Scan
+    name: Targeted Java Scan
     runs-on: ubuntu-latest
     permissions:
       security-events: write 
@@ -22,18 +22,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Stage Test PR
+      - name: Stage PR and Create Config
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: |
-          # 1. Back up your scripts to a temp directory outside the workspace
           cp -r scripts /tmp/scripts_backup
-          
-          # 2. Run the detection/checkout script
           python scripts/ai-scanner.py
-          
-          # 3. Restore the scripts into the new checked-out directory
           cp -r /tmp/scripts_backup scripts
 
       - name: Initialize CodeQL
@@ -41,12 +36,13 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          build-mode: none 
+          build-mode: none
+          # Point to the dynamic config file created by ai-scanner.py
+          config-file: ./codeql-config.yml
 
-      - name: Reset Git Metadata for Upload
+      - name: Reset Git Metadata
         if: steps.detect.outputs.detected_langs != ''
-        run: |
-          git update-ref HEAD ${{ github.sha }}
+        run: git update-ref HEAD ${{ github.sha }}
 
       - name: Perform CodeQL Analysis
         if: steps.detect.outputs.detected_langs != ''
@@ -55,13 +51,8 @@ jobs:
           category: "/pr:${{ steps.detect.outputs.pr_name }}"
           ref: ${{ github.ref }}
           sha: ${{ github.sha }}
-          # This creates the results.sarif file for our parser
           output: results.sarif
 
       - name: Create Workflow Summary
         if: always() && steps.detect.outputs.pr_name != ''
-        run: |
-          echo "## 🛡️ Scan Summary for ${{ steps.detect.outputs.full_title }}" >> $GITHUB_STEP_SUMMARY
-          echo "Checked out code from: \`apache/rocketmq\`" >> $GITHUB_STEP_SUMMARY
-          # Run the parsing script that was restored in the 'Stage Test PR' step
-          python scripts/parse-results.py
+        run: python scripts/parse-results.py
