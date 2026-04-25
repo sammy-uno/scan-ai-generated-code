@@ -54,7 +54,7 @@ jobs:
         run: |
           echo "### Directory Contents"
           pwd
-          ls -R ./scripts/
+          ls -R scripts/
           echo "## 🛡️ Scan Summary for ${{ steps.detect.outputs.full_title }}" >> $GITHUB_STEP_SUMMARY
           echo "Checked out code from: \`apache/rocketmq\`" >> $GITHUB_STEP_SUMMARY
-          python ./scripts/parse-results.py
+          python scripts/parse-results.py
