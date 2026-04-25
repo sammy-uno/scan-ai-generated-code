@@ -17,7 +17,6 @@ def main():
     files_res = run_command(f"gh pr view {pr_num} --repo {repo} --json files --jq '.files[].path'")
     changed_files = files_res.stdout.strip().split('\n')
 
-    # Filter for Java files and create config content
     java_files = [f for f in changed_files if f.endswith(('.java', '.kt'))]
     
     config_content = "paths:\n"
@@ -25,13 +24,12 @@ def main():
         for f in java_files:
             config_content += f"  - {f}\n"
     else:
-        # If no Java files, include nothing to avoid scanning whole repo
         config_content += "  - 'non-existent-path-to-filter-all'\n"
 
     with open("codeql-config.yml", "w") as f:
         f.write(config_content)
     
-    # 3. Get PR Title for naming
+    # 3. Get PR Title
     title_res = run_command(f'gh pr view {pr_num} --repo {repo} --json title --jq ".title"')
     pr_title = title_res.stdout.strip()
     safe_title = "".join(c for c in pr_title if c.isalnum() or c in ("-", "_"))
@@ -41,6 +39,7 @@ def main():
             f.write(f"detected_langs=java-kotlin\n")
             f.write(f"pr_name={safe_title}\n")
             f.write(f"full_title={pr_title}\n")
+            f.write(f"repo_name={repo}\n")
 
 if __name__ == "__main__":
     main()
