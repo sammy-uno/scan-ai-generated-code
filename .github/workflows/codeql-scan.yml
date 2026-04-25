@@ -1,11 +1,11 @@
-name: "Targeted AI PR Scanner"
+name: "General AI Java PR Scanner"
 
 on:
   workflow_dispatch: 
 
 jobs:
   analyze:
-    name: Targeted Java Scan
+    name: No-Build Java Scan
     runs-on: ubuntu-latest
     permissions:
       security-events: write 
@@ -22,13 +22,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Stage PR and Create Config
+      - name: Stage AI PR
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: |
           cp -r scripts /tmp/scripts_backup
           python scripts/ai-scanner.py
+          # Restore scripts so parse-results.py is available later
           cp -r /tmp/scripts_backup scripts
 
       - name: Initialize CodeQL
@@ -36,10 +37,10 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ steps.detect.outputs.detected_langs }}
-          build-mode: none
+          build-mode: none 
           config-file: ./codeql-config.yml
 
-      - name: Reset Git Metadata
+      - name: Reset Git Metadata for Upload
         if: steps.detect.outputs.detected_langs != ''
         run: git update-ref HEAD ${{ github.sha }}
 
