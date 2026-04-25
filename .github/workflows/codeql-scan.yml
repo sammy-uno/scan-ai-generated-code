@@ -22,14 +22,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Stage AI PR
+      - name: Orchestrate AI PR Scan
         id: detect
         env:
+          # Required for cross-repo search permissions
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: |
           cp -r scripts /tmp/scripts_backup
           python scripts/ai-scanner.py
-          # Restore scripts so parse-results.py is available later
           cp -r /tmp/scripts_backup scripts
 
       - name: Initialize CodeQL
@@ -40,7 +40,7 @@ jobs:
           build-mode: none 
           config-file: ./codeql-config.yml
 
-      - name: Reset Git Metadata for Upload
+      - name: Reset Git Metadata
         if: steps.detect.outputs.detected_langs != ''
         run: git update-ref HEAD ${{ github.sha }}
 
