@@ -1,4 +1,4 @@
-ame: "General AI Java PR Scanner"
+name: "General AI Java PR Scanner"
 
 on:
   workflow_dispatch: 
