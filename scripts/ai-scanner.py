@@ -10,39 +10,26 @@ def run_command(command):
         print(f"DEBUG ERROR: Command failed: {command}\nStderr: {result.stderr}", file=sys.stderr)
     return result
 
-def get_changed_paths(repo, pr_num):
-    """Returns a list of top-level directories changed in the PR."""
-    # Fetch filenames changed in the PR
-    cmd = f'gh pr diff {pr_num} --repo {repo} --name-only'
-    res = run_command(cmd)
-    if res.returncode != 0:
-        return ["."] # Fallback to root if diff fails
-    
-    files = res.stdout.strip().split('\n')
-    # Get unique top-level directories (e.g. 'drools-core/src/...' -> 'drools-core')
-    # We use a set to avoid duplicates
-    paths = set()
-    for f in files:
-        if '/' in f:
-            paths.add(f.split('/')[0])
-        else:
-            paths.add(".") # File is in the root
-            
-    return list(paths)
-
 def main():
-    print("DEBUG: Starting ai-scanner.py script...", file=sys.stderr)
+    print("DEBUG: Searching for AI-authored PRs on popular repos (>10 stars)...", file=sys.stderr)
+    
     codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
     
+    # 1. Search for PRs with the Claude trailer on repos with >10 stars
     search_query = 'Co-Authored-By: Claude'
-    search_cmd = f'gh search prs "{search_query}" --state open --limit 5 --json number,repository,title'
+    # Adding --stars qualifier to the gh search command
+    search_cmd = f'gh search prs "{search_query}" --state open --stars ">10" --limit 50 --json number,repository,title'
+    
     search_res = run_command(search_cmd)
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
+        print("DEBUG: No PRs found matching the search criteria.", file=sys.stderr)
         print('matrix_data={"include":[]}')
         return
 
     prs = json.loads(search_res.stdout)
+    print(f"DEBUG: Found {len(prs)} PRs on popular repositories. Building matrix...", file=sys.stderr)
+    
     matrix_include = []
 
     for pr in prs:
@@ -50,10 +37,7 @@ def main():
         repo = pr.get("repository", {}).get("nameWithOwner")
         title = pr.get("title", "Untitled")
         
-        # New: Get the specific folders changed in this PR
-        changed_folders = get_changed_paths(repo, num)
-        print(f"DEBUG: PR {repo}#{num} found changes in: {changed_folders}", file=sys.stderr)
-
+        # 2. Filter by language to ensure CodeQL compatibility
         lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
         if lang_res.returncode != 0: continue
 
@@ -66,11 +50,10 @@ def main():
                 "repo_name": repo,
                 "language": lang,
                 "pr_title": title,
-                "category_name": f"{repo.split('/')[-1]}-{num}-{lang}",
-                # New: Pass paths as a newline-separated string for CodeQL
-                "scan_paths": "\n".join(changed_folders)
+                "category_name": f"{repo.split('/')[-1]}-{num}-{lang}"
             })
 
+    # Final Matrix Output for GitHub Actions
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
