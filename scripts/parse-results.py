@@ -10,6 +10,7 @@ def main():
         data = json.load(f)
 
     runs = data.get('runs', [])
+    # Access the list of findings
     results = runs[0].get('results', []) if runs else []
     
     summary_md = f"\n### 🛡️ Analysis Results: {len(results)} Issues Found\n"
@@ -21,10 +22,15 @@ def main():
 
         for res in results:
             rule_id = res.get('ruleId', 'N/A')
+            # Extract first line of the message
             msg = res.get('message', {}).get('text', 'No description').split('\n')[0]
-            icon = icons.get(res.get('level', 'warning'), "🟡 Medium")
+            level = res.get('level', 'warning')
+            icon = icons.get(level, "🟡 Medium")
+            
+            # Get file path
             locs = res.get('locations', [{}])
             path = locs[0].get('physicalLocation', {}).get('artifactLocation', {}).get('uri', 'Unknown')
+            
             summary_md += f"| {icon} | `{rule_id}` | `{path}` | {msg} |\n"
 
     if 'GITHUB_STEP_SUMMARY' in os.environ:
