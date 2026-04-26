@@ -17,42 +17,33 @@ def main():
     search_cmd = f'gh search prs {query} --limit 30 --json number,repository,title'
     search_res = run_command(search_cmd)
     
+    prs = json.loads(search_res.stdout)
     matrix_include = []
 
-    if search_res.stdout and search_res.stdout.strip() != "[]":
-        prs = json.loads(search_res.stdout)
-        for pr in prs:
-            num = str(pr.get("number"))
-            repo = pr.get("repository", {}).get("nameWithOwner")
-            
-            if not is_code_scanning_enabled(repo):
-                continue
-            
-            lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
-            repo_langs = lang_res.stdout.strip().split('\n')
-            target_langs = [l for l in repo_langs if l in codeql_supported]
-            
-            for lang in target_langs:
-                matrix_include.append({
-                    "pr_num": num,
-                    "repo_name": repo,
-                    "language": lang,
-                    "pr_title": pr.get("title", "Untitled"),
-                    "category_name": f"{repo.split('/')[-1]}-{num}-{lang}"
-                })
+    for pr in prs:
+        num = str(pr.get("number"))
+        repo = pr.get("repository", {}).get("nameWithOwner")
+        
+        if not is_code_scanning_enabled(repo):
+            continue
+        
+        lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
+        repo_langs = lang_res.stdout.strip().split('\n')
+        target_langs = [l for l in repo_langs if l in codeql_supported]
+        
+        for lang in target_langs:
+            matrix_include.append({
+                "pr_num": num,
+                "repo_name": repo,
+                "language": lang,
+                "pr_title": pr.get("title", "Untitled"),
+                "category_name": f"{repo.split('/')[-1]}-{num}-{lang}"
+            })
 
-    # Always output a valid JSON structure for the matrix
-    output_obj = {"include": matrix_include}
-    output_json = json.dumps(output_obj)
-
+    output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-            f.write(f"matrix_data={output_json}\n")
-    
-    # NEW: Write to Summary if empty
-    if not matrix_include and "GITHUB_STEP_SUMMARY" in os.environ:
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
-            f.write("### ℹ️ Discovery Summary\nNo matching AI-authored PRs were found with Code Scanning enabled.")
+            f.write(f"matrix_data={output}\n")
 
 if __name__ == "__main__":
     main()
