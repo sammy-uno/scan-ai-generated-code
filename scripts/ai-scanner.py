@@ -3,23 +3,31 @@ import json
 import os
 
 def run_command(command):
-    # shell=True is essential for parsing nested quotes in CLI strings
+    # shell=True handles complex CLI queries correctly
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
     return result
 
 def is_code_scanning_enabled(repo):
     """
-    Checks if Code Scanning is enabled by attempting to list alerts.
-    If disabled, GitHub returns a 403 or non-zero status code.
+    Checks if Code Scanning is available for the repository.
+    Returns True if we can query the default setup or alerts endpoint.
     """
-    cmd = f'gh api repos/{repo}/code-scanning/alerts?per_page=1 --silent'
-    res = run_command(cmd)
-    return res.returncode == 0
+    # Attempt 1: Check Default Setup configuration
+    cmd_setup = f'gh api repos/{repo}/code-scanning/default-setup --silent'
+    res_setup = run_command(cmd_setup)
+    if res_setup.returncode == 0:
+        return True
+        
+    # Attempt 2: Check Alerts endpoint (Success if 200, even if list is empty [])
+    # If this returns 403, GitHub Advanced Security is likely disabled for private repos.
+    cmd_alerts = f'gh api repos/{repo}/code-scanning/alerts?per_page=1 --silent'
+    res_alerts = run_command(cmd_alerts)
+    return res_alerts.returncode == 0
 
 def main():
     codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
     
-    # Using a robust search string to ensure variations in trailers are caught
+    # Robust search query to catch AI attribution
     search_query = 'Co-Authored-By: Claude'
     search_cmd = f'gh search prs "{search_query}" --state open --limit 5 --json number,repository,title'
     search_res = run_command(search_cmd)
@@ -32,12 +40,13 @@ def main():
             num = str(pr.get("number"))
             repo = pr.get("repository", {}).get("nameWithOwner")
             
-            # Skip if we cannot upload security results
+            # Use the more resilient check
             if not is_code_scanning_enabled(repo):
-                print(f"Skipping {repo}: Code Scanning not active.")
+                # Output detail to logs for troubleshooting
+                print(f"Skipping {repo}: Code Scanning check failed (API returned non-200).")
                 continue
             
-            # Detect languages in the repo
+            # Detect languages supported by CodeQL
             lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
             repo_langs = lang_res.stdout.strip().split('\n')
             target_langs = [l for l in repo_langs if l in codeql_supported]
@@ -51,7 +60,7 @@ def main():
                     "category_name": f"{repo.split('/')[-1]}-{num}-{lang}"
                 })
 
-    # Always output a valid JSON structure
+    # Always output a valid JSON structure for the matrix
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
