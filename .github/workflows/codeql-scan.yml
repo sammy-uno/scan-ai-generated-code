@@ -26,12 +26,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
+          # Ensure sub-processes like 'gh' see the token
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
+    # Only run if discovery found matching PRs
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -55,17 +57,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # 1. Back up scripts to a safe place outside the workspace
+          # 1. Back up scripts to /tmp to prevent deletion during checkout
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
           
-          # 2. Clean everything in the workspace
+          # 2. Clear workspace to ensure a clean slate for the target PR
           rm -rf ./*
           
-          # 3. Checkout the target PR
+          # 3. Checkout the target PR from the external repo
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # 4. Restore the scripts folder so the next steps can use it
+          # 4. Restore scripts back into the workspace for analysis
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
           
@@ -76,7 +78,8 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp') && 'autobuild' || 'none' }}
+          # Fix: Added 'go' to autobuild list. Interpreted languages use 'none'.
+          build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp' || matrix.language == 'go') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
 
@@ -88,23 +91,24 @@ jobs:
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
+          # Prevent 404/403 errors by not uploading to target repo's Security tab
           upload: false 
 
       - name: Create Summary
         if: always()
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
           
-          # Align the file name for the script
+          # Rename language-specific SARIF (e.g. go.sarif) to results.sarif for the script
           if [ -d "sarif-results" ]; then
             mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
           fi
 
           if [ -f "results.sarif" ]; then
-            # The script is now safely restored in scripts/
             python scripts/parse-results.py
           else
-            echo "❌ No SARIF results found." >> $GITHUB_STEP_SUMMARY
+            echo "❌ No SARIF results generated for this scan." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
@@ -113,3 +117,4 @@ jobs:
         with:
           name: sarif-${{ matrix.category_name }}
           path: results.sarif
+          if-no-files-found: warn
