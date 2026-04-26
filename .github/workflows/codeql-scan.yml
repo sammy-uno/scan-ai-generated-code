@@ -1,4 +1,4 @@
-name: "General AI Java PR Scanner"
+name: "General AI Multi-Language Scanner"
 
 on:
   workflow_dispatch: 
@@ -10,14 +10,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - name: Checkout Tooling Repo
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
+      - uses: actions/checkout@v4
       - name: Discover PRs
         id: detect
         env:
@@ -25,7 +18,7 @@ jobs:
         run: python scripts/ai-scanner.py
 
   analyze:
-    name: Scan ${{ matrix.repo_name }}
+    name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
     if: ${{ fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
@@ -33,15 +26,9 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
-    permissions:
-      security-events: write 
-      contents: read
-
     steps:
-      - name: Checkout Tooling Repo
-        uses: actions/checkout@v4
-
-      - name: Setup Java
+      - uses: actions/checkout@v4
+      - name: Setup Runner Environment
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -52,22 +39,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # 1. Clean workspace but KEEP .git (for CLI) and scripts (for parsing)
           find . -maxdepth 1 ! -name '.git' ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
-          
-          # 2. Checkout target PR code
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          
-          # 3. Capture metadata for CodeQL upload
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: java-kotlin
-          build-mode: none
-          source-root: .
+          languages: ${{ matrix.language }}
+          # Use autobuild for compiled languages, none for interpreted
+          build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp') && 'autobuild' || 'none' }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -77,9 +59,9 @@ jobs:
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
 
-      - name: Create Job Summary
+      - name: Create Summary
         if: always()
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
           python scripts/parse-results.py
