@@ -20,8 +20,8 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    # The condition below prevents the "at least one vector" error
-    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include[0] != null }}
+    # Required to ensure the matrix data is ready before evaluation
+    if: ${{ needs.discover.outputs.matrix != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
