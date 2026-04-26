@@ -10,7 +10,14 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Tooling Repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Discover PRs
         id: detect
         env:
@@ -20,18 +27,25 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    if: ${{ needs.discover.outputs.matrix != '' }}
+    # Skip if matrix is empty to avoid "at least one vector" error
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
-    # Added timeout to prevent hung processes
     timeout-minutes: 5
     strategy:
       fail-fast: false
       max-parallel: 5
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
+    permissions:
+      security-events: write 
+      contents: read
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout Tooling Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -41,6 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
+          # Keep .git and scripts, delete everything else to isolate scan
           find . -maxdepth 1 ! -name '.git' ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -50,6 +65,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
+          # Autobuild for compiled languages, none for interpreted
           build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
