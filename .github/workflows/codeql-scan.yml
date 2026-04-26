@@ -28,8 +28,7 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Runner Environment
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -48,8 +47,9 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          # Use autobuild for compiled languages, none for interpreted
           build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp') && 'autobuild' || 'none' }}
+          source-root: .
+          token: ${{ secrets.GLOBAL_SCAN_PAT }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -58,6 +58,7 @@ jobs:
           output: results.sarif
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
+          token: ${{ secrets.GLOBAL_SCAN_PAT }}
 
       - name: Create Summary
         if: always()
