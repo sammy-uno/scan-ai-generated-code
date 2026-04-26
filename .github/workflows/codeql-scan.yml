@@ -1,7 +1,12 @@
-name: "General AI Multi-Language Scanner"
+ame: "General AI Multi-Language Scanner"
 
 on:
   workflow_dispatch: 
+
+# Explicitly grant permissions for CodeQL to upload results
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   discover:
@@ -18,33 +23,22 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Check Auth Status
-        env:
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-        run: |
-          echo "### 🔐 GitHub CLI Auth Status" >> $GITHUB_STEP_SUMMARY
-          # Check which account and scopes are active
-          gh auth status >> $GITHUB_STEP_SUMMARY 2>&1 || true
-          # Verify raw API scopes for the provided token
-          echo -e "\n**Token Scopes Verified via API:**" >> $GITHUB_STEP_SUMMARY
-          gh api -i /user | grep -i x-oauth-scopes >> $GITHUB_STEP_SUMMARY || true
-
       - name: Discover PRs
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Use export to ensure the 'gh' CLI inside the python script sees the token
+          # Export ensures the sub-shell in ai-scanner.py sees the token
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    # Only run if the matrix found actual work to do
+    # Only run if the discovery script found PRs to process
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       max-parallel: 5
@@ -65,9 +59,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Preserve .git and scripts/ for CLI and execution
+          # Clean workspace but keep our scripts and .git for the CLI
           find . -maxdepth 1 ! -name '.git' ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
+          
+          # Switch to the target PR branch
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
@@ -75,7 +72,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          # Only use autobuild for specific compiled languages
+          # Use autobuild for compiled languages; none for interpreted
           build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -94,4 +91,10 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
-          python scripts/parse-results.py
+          
+          # Run the parser script to format sarif results into the job summary
+          if [ -f "results.sarif" ]; then
+            python scripts/parse-results.py
+          else
+            echo "No results.sarif file found." >> $GITHUB_STEP_SUMMARY
+          fi
