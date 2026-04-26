@@ -1,4 +1,4 @@
-name: "General AI Java PR Scanner"
+ame: "General AI Java PR Scanner"
 
 on:
   workflow_dispatch: 
@@ -41,13 +41,24 @@ jobs:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v4
 
-      - name: Checkout Target PR
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17' # Required for CodeQL Java extraction
+
+      - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
+          # 1. Clear everything EXCEPT the scripts folder so CodeQL doesn't get confused
+          find . -maxdepth 1 ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
+          
+          # 2. Checkout the target code
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          # Capture the actual commit SHA and Ref for the upload process
+          
+          # 3. Capture metadata for the upload step
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
@@ -55,14 +66,16 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: java-kotlin
-          build-mode: none 
+          build-mode: none
+          # Ensure CodeQL looks at the current directory where the PR was checked out
+          source-root: .
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: results.sarif
-          # Explicitly target the remote PR commit
+          # Override metadata to target the remote repo/PR
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
 
@@ -71,4 +84,5 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           echo "**Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
+          # Script is still available because we excluded 'scripts' from deletion
           python scripts/parse-results.py
