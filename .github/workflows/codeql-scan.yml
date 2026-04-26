@@ -20,11 +20,12 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    # Required to ensure the matrix data is ready before evaluation
     if: ${{ needs.discover.outputs.matrix != '' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Limit concurrency to 5 parallel jobs
+      max-parallel: 5
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
     steps:
