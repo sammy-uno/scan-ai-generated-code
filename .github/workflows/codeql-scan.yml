@@ -22,9 +22,10 @@ jobs:
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' }}
     runs-on: ubuntu-latest
+    # Added timeout to prevent hung processes
+    timeout-minutes: 5
     strategy:
       fail-fast: false
-      # Limit concurrency to 5 parallel jobs
       max-parallel: 5
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
