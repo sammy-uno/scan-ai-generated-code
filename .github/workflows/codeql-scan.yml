@@ -3,6 +3,10 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
+# These permissions allow reading contents but skip the forbidden 'security-events' write
+permissions:
+  contents: read
+
 jobs:
   discover:
     name: Find AI PRs
@@ -23,14 +27,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Use export so the python subprocess inherits the token
+          # Use export so the python subprocess inherits the token for 'gh search'
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include[0] != null }}
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -53,7 +57,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Clean environment but keep scripts
+          # Preserve our scripts directory but clean the rest for the target PR
           find . -maxdepth 1 ! -name '.git' ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -71,28 +75,34 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/pr:${{ matrix.category_name }}"
-          output: results.sarif
+          # Explicitly save results to a known folder in the workspace
+          output: sarif-results
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # PREVENTS 404: Disables upload to target repo security tab
+          # Skip upload to target repo to avoid 404/403 permission errors
           upload: false 
-
-      - name: Save SARIF as Workflow Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sarif-results-${{ matrix.category_name }}
-          path: results.sarif
-          if-no-files-found: warn
 
       - name: Create Summary
         if: always()
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Move the dynamic language file (e.g. ruby.sarif) to a static results.sarif
+          if [ -d "sarif-results" ]; then
+            mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+          fi
+
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "❌ No SARIF results found to parse." >> $GITHUB_STEP_SUMMARY
+            echo "❌ No SARIF results found at $(pwd)/results.sarif" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Save SARIF as Workflow Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-${{ matrix.category_name }}
+          path: results.sarif
