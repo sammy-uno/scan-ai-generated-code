@@ -7,7 +7,7 @@ def run_command(command):
     return result
 
 def main():
-    # Identify CodeQL-supported languages
+    # Supported by CodeQL
     codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
     
     query = '"Co-Authored-By: Claude" --state open --visibility public'
@@ -22,11 +22,10 @@ def main():
             num = str(pr.get("number"))
             repo = pr.get("repository", {}).get("nameWithOwner")
             
-            # Fetch all languages used in this repo
+            # Identify languages in this repo
             lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
             repo_langs = lang_res.stdout.strip().split('\n')
             
-            # Identify which of these are supported by CodeQL
             target_langs = [l for l in repo_langs if l in codeql_supported]
             
             if target_langs:
@@ -43,3 +42,6 @@ def main():
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"matrix_data={output}\n")
+
+if __name__ == "__main__":
+    main()
