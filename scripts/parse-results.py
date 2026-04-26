@@ -3,7 +3,6 @@ import os
 
 def main():
     sarif_file = 'results.sarif'
-    
     if not os.path.exists(sarif_file):
         return
 
@@ -13,7 +12,6 @@ def main():
     runs = data.get('runs', [])
     results = runs[0].get('results', []) if runs else []
     
-    # Each job appends its findings to the shared summary
     summary_md = f"\n### 🛡️ Analysis Results: {len(results)} Issues Found\n"
     if not results:
         summary_md += "_No security issues detected in modified files._\n"
@@ -25,7 +23,8 @@ def main():
             rule_id = res.get('ruleId', 'N/A')
             msg = res.get('message', {}).get('text', 'No description').split('\n')[0]
             icon = icons.get(res.get('level', 'warning'), "🟡 Medium")
-            path = res.get('locations', [{}])[0].get('physicalLocation', {}).get('artifactLocation', {}).get('uri', 'Unknown')
+            locs = res.get('locations', [{}])
+            path = locs[0].get('physicalLocation', {}).get('artifactLocation', {}).get('uri', 'Unknown')
             summary_md += f"| {icon} | `{rule_id}` | `{path}` | {msg} |\n"
 
     if 'GITHUB_STEP_SUMMARY' in os.environ:
