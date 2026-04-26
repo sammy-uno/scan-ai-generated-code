@@ -7,7 +7,6 @@ def run_command(command):
     return result
 
 def is_code_scanning_enabled(repo):
-    # Check access to alerts endpoint; 403/non-zero return means it's disabled
     cmd = f'gh api repos/{repo}/code-scanning/alerts?per_page=1 --silent'
     res = run_command(cmd)
     return res.returncode == 0
@@ -26,9 +25,7 @@ def main():
             num = str(pr.get("number"))
             repo = pr.get("repository", {}).get("nameWithOwner")
             
-            # Skip repos without Code Scanning active
             if not is_code_scanning_enabled(repo):
-                print(f"Skipping {repo}: Code Scanning not active.")
                 continue
             
             lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
@@ -44,10 +41,18 @@ def main():
                     "category_name": f"{repo.split('/')[-1]}-{num}-{lang}"
                 })
 
-    output = json.dumps({"include": matrix_include})
+    # Always output a valid JSON structure for the matrix
+    output_obj = {"include": matrix_include}
+    output_json = json.dumps(output_obj)
+
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-            f.write(f"matrix_data={output}\n")
+            f.write(f"matrix_data={output_json}\n")
+    
+    # NEW: Write to Summary if empty
+    if not matrix_include and "GITHUB_STEP_SUMMARY" in os.environ:
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+            f.write("### ℹ️ Discovery Summary\nNo matching AI-authored PRs were found with Code Scanning enabled.")
 
 if __name__ == "__main__":
     main()
