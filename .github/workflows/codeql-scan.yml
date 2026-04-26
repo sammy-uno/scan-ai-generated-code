@@ -45,20 +45,20 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17' # Required for CodeQL Java extraction
+          java-version: '17'
 
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # 1. Clear everything EXCEPT the scripts folder so CodeQL doesn't get confused
-          find . -maxdepth 1 ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
+          # 1. Clean workspace but KEEP .git (for CLI) and scripts (for parsing)
+          find . -maxdepth 1 ! -name '.git' ! -name 'scripts' ! -name '.' ! -name '..' -exec rm -rf {} +
           
-          # 2. Checkout the target code
+          # 2. Checkout target PR code
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # 3. Capture metadata for the upload step
+          # 3. Capture metadata for CodeQL upload
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
@@ -67,7 +67,6 @@ jobs:
         with:
           languages: java-kotlin
           build-mode: none
-          # Ensure CodeQL looks at the current directory where the PR was checked out
           source-root: .
 
       - name: Perform CodeQL Analysis
@@ -75,7 +74,6 @@ jobs:
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: results.sarif
-          # Override metadata to target the remote repo/PR
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
 
@@ -84,5 +82,4 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           echo "**Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
-          # Script is still available because we excluded 'scripts' from deletion
           python scripts/parse-results.py
