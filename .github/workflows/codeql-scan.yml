@@ -71,10 +71,11 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Java now uses 'none' (build-free), Go/C#/C++ still use 'autobuild'
           build-mode: ${{ (matrix.language == 'csharp' || matrix.language == 'cpp' || matrix.language == 'go') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
+          # Path Filtering: Focus strictly on folders changed in the PR
+          paths: ${{ matrix.scan_paths }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -96,7 +97,7 @@ jobs:
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "❌ No SARIF results found." >> $GITHUB_STEP_SUMMARY
+            echo "❌ No SARIF results generated." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
@@ -105,4 +106,3 @@ jobs:
         with:
           name: sarif-${{ matrix.category_name }}
           path: results.sarif
-          if-no-files-found: warn
