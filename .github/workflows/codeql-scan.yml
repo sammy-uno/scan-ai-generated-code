@@ -4,9 +4,35 @@ on:
   workflow_dispatch: 
 
 jobs:
-  analyze:
-    name: No-Build Java Scan
+  discover:
+    name: Find AI PRs
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix_data }}
+    steps:
+      - name: Checkout Tooling Repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Discover PRs
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
+        run: python scripts/ai-scanner.py
+
+  analyze:
+    name: Scan ${{ matrix.repo_name }}
+    needs: discover
+    if: ${{ fromJson(needs.discover.outputs.matrix).include[0] != null }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
     permissions:
       security-events: write 
       contents: read
@@ -14,48 +40,27 @@ jobs:
     steps:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Orchestrate AI PR Scan
-        id: detect
+      - name: Checkout Target PR
         env:
-          # Required for cross-repo search permissions
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
-        run: |
-          cp -r scripts /tmp/scripts_backup
-          python scripts/ai-scanner.py
-          cp -r /tmp/scripts_backup scripts
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
 
       - name: Initialize CodeQL
-        if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ steps.detect.outputs.detected_langs }}
+          languages: java-kotlin
           build-mode: none 
-          config-file: ./codeql-config.yml
-
-      - name: Reset Git Metadata
-        if: steps.detect.outputs.detected_langs != ''
-        run: git update-ref HEAD ${{ github.sha }}
 
       - name: Perform CodeQL Analysis
-        if: steps.detect.outputs.detected_langs != ''
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/pr:${{ steps.detect.outputs.pr_name }}"
-          ref: ${{ github.ref }}
-          sha: ${{ github.sha }}
+          category: "/pr:${{ matrix.category_name }}"
           output: results.sarif
 
-      - name: Create Workflow Summary
-        if: always() && steps.detect.outputs.pr_name != ''
+      - name: Create Job Summary
+        if: always()
         run: |
-          echo "## 🛡️ Scan Summary for ${{ steps.detect.outputs.full_title }}" >> $GITHUB_STEP_SUMMARY
-          echo "Checked out code from: \`${{ steps.detect.outputs.repo_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
           python scripts/parse-results.py
