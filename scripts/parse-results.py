@@ -1,16 +1,21 @@
 import json
 import os
+import glob
 
 def main():
-    sarif_file = 'results.sarif'
-    if not os.path.exists(sarif_file):
+    # Find any .sarif file in the current directory
+    sarif_files = glob.glob("*.sarif")
+    if not sarif_files:
+        print("No SARIF files found.")
         return
+
+    sarif_file = sarif_files[0]
+    print(f"Parsing results from: {sarif_file}")
 
     with open(sarif_file, 'r') as f:
         data = json.load(f)
 
     runs = data.get('runs', [])
-    # Access the list of findings
     results = runs[0].get('results', []) if runs else []
     
     summary_md = f"\n### 🛡️ Analysis Results: {len(results)} Issues Found\n"
@@ -22,15 +27,12 @@ def main():
 
         for res in results:
             rule_id = res.get('ruleId', 'N/A')
-            # Extract first line of the message
             msg = res.get('message', {}).get('text', 'No description').split('\n')[0]
             level = res.get('level', 'warning')
             icon = icons.get(level, "🟡 Medium")
             
-            # Get file path
             locs = res.get('locations', [{}])
             path = locs[0].get('physicalLocation', {}).get('artifactLocation', {}).get('uri', 'Unknown')
-            
             summary_md += f"| {icon} | `{rule_id}` | `{path}` | {msg} |\n"
 
     if 'GITHUB_STEP_SUMMARY' in os.environ:
