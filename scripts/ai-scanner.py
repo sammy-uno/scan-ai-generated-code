@@ -13,8 +13,9 @@ def is_code_scanning_enabled(repo):
 
 def main():
     codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
+    # Limit set to 5 to match your max-parallel setting
     query = '"Co-Authored-By: Claude" --state open --visibility public'
-    search_cmd = f'gh search prs {query} --limit 30 --json number,repository,title'
+    search_cmd = f'gh search prs {query} --limit 5 --json number,repository,title'
     search_res = run_command(search_cmd)
     
     prs = json.loads(search_res.stdout)
