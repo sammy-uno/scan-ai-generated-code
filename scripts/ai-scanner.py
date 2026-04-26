@@ -7,7 +7,9 @@ def run_command(command):
     return result
 
 def main():
-    # Search for PRs with specific attribution
+    # Identify CodeQL-supported languages
+    codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
+    
     query = '"Co-Authored-By: Claude" --state open --visibility public'
     search_cmd = f'gh search prs {query} --limit 30 --json number,repository,title'
     search_res = run_command(search_cmd)
@@ -19,28 +21,25 @@ def main():
         for pr in prs:
             num = str(pr.get("number"))
             repo = pr.get("repository", {}).get("nameWithOwner")
-            title = pr.get("title", "Untitled PR")
             
-            # Check for Java/Kotlin
-            lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name"')
-            if any(lang in lang_res.stdout for lang in ["Java", "Kotlin"]):
-                # Clean title for category name
-                safe_title = "".join(c for c in title if c.isalnum() or c in ("-", "_"))[:50]
-                
-                matrix_include.append({
-                    "pr_num": num,
-                    "repo_name": repo,
-                    "pr_title": title,
-                    "category_name": f"{repo.split('/')[-1]}-{num}"
-                })
+            # Fetch all languages used in this repo
+            lang_res = run_command(f'gh repo view {repo} --json languages --jq ".languages[].node.name | ascii_downcase"')
+            repo_langs = lang_res.stdout.strip().split('\n')
+            
+            # Identify which of these are supported by CodeQL
+            target_langs = [l for l in repo_langs if l in codeql_supported]
+            
+            if target_langs:
+                for lang in target_langs:
+                    matrix_include.append({
+                        "pr_num": num,
+                        "repo_name": repo,
+                        "language": lang,
+                        "pr_title": pr.get("title", "Untitled"),
+                        "category_name": f"{repo.split('/')[-1]}-{num}-{lang}"
+                    })
 
-    # Output the matrix for GitHub Actions
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"matrix_data={output}\n")
-    else:
-        print(output)
-
-if __name__ == "__main__":
-    main()
