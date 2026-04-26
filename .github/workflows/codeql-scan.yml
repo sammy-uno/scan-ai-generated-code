@@ -3,6 +3,10 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
+# Force early opt-in to Node.js 24 to test compatibility
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
 
@@ -14,10 +18,10 @@ jobs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
       - name: Checkout Tooling Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5  # Updated to v5 (Node 24 support)
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # Updated to v6 (Node 24 support)
         with:
           python-version: '3.10'
 
@@ -26,14 +30,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Ensure sub-processes like 'gh' see the token
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    # Only run if discovery found matching PRs
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -44,10 +46,10 @@ jobs:
     
     steps:
       - name: Checkout Tooling Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5  # Updated to v5
 
       - name: Setup Runner Environment
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5  # Updated to v5 (Node 24 support)
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -57,41 +59,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # 1. Back up scripts to /tmp to prevent deletion during checkout
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
-          
-          # 2. Clear workspace to ensure a clean slate for the target PR
           rm -rf ./*
-          
-          # 3. Checkout the target PR from the external repo
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          
-          # 4. Restore scripts back into the workspace for analysis
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
-          
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4  # Updated to v4 (Node 24 support)
         with:
           languages: ${{ matrix.language }}
-          # Fix: Added 'go' to autobuild list. Interpreted languages use 'none'.
           build-mode: ${{ (matrix.language == 'java' || matrix.language == 'csharp' || matrix.language == 'cpp' || matrix.language == 'go') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4  # Updated to v4
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
           sha: ${{ steps.pr_checkout.outputs.pr_sha }}
           ref: ${{ steps.pr_checkout.outputs.pr_ref }}
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # Prevent 404/403 errors by not uploading to target repo's Security tab
           upload: false 
 
       - name: Create Summary
@@ -99,21 +91,18 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
-          
-          # Rename language-specific SARIF (e.g. go.sarif) to results.sarif for the script
           if [ -d "sarif-results" ]; then
             mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
           fi
-
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "❌ No SARIF results generated for this scan." >> $GITHUB_STEP_SUMMARY
+            echo "❌ No SARIF results generated." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5  # Updated to v5 (Node 24 support)
         with:
           name: sarif-${{ matrix.category_name }}
           path: results.sarif
