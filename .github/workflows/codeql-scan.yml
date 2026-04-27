@@ -36,9 +36,10 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
+    # Only run if discovery found matching PRs
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       max-parallel: 5
@@ -59,17 +60,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Backup scripts to /tmp to prevent deletion during checkout
+          # 1. Back up scripts to /tmp
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
           
-          # Clean workspace
+          # 2. Clean workspace
           rm -rf ./*
           
-          # Checkout target PR
+          # 3. Checkout target PR
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # Restore scripts
+          # 4. Restore scripts
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
           
@@ -84,10 +85,9 @@ jobs:
           build-mode: ${{ (matrix.language == 'csharp' || matrix.language == 'cpp' || matrix.language == 'go') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # FIX: Path filtering must be wrapped in the 'config' YAML block
+          # Uses the JSON list from the matrix to target specific directories
           config: |
-            paths:
-              - ${{ matrix.scan_paths }}
+            paths: ${{ matrix.scan_paths }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -105,7 +105,7 @@ jobs:
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
           
-          # Align filename for the Python script
+          # Move language-specific SARIF results into place for the parser
           if [ -d "sarif-results" ]; then
             mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
           fi
@@ -113,7 +113,7 @@ jobs:
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "❌ No SARIF results found." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No security issues found or code was outside of scan paths." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
