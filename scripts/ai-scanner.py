@@ -10,10 +10,10 @@ def run_command(command):
     return result
 
 def get_detailed_changes(repo, pr_num):
-    """Returns a dictionary mapping detected languages to the folders they changed in."""
+    # Only high-speed build-free languages remaining
     ext_to_lang = {
         '.java': 'java', '.js': 'javascript', '.ts': 'javascript', 
-        '.py': 'python', '.go': 'go', '.rb': 'ruby', '.swift': 'swift'
+        '.py': 'python', '.rb': 'ruby'
     }
     
     cmd = f'gh pr diff {pr_num} --repo {repo} --name-only'
@@ -43,9 +43,10 @@ def get_detailed_changes(repo, pr_num):
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
-    codeql_supported = ["java", "javascript", "python", "go", "ruby", "swift"]
+    # Optimized list: strictly Build-free focus (No Go, No Swift, No C++, No C#)
+    codeql_supported = ["java", "javascript", "python", "ruby"]
     
-    print(f"DEBUG: Searching for AI PRs (Limit 100 search, 1 PR per repo)", file=sys.stderr)
+    print(f"DEBUG: Searching for AI PRs (Limit 100 search, 1 PR per repo, Build-free focus)", file=sys.stderr)
     
     search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 100 --json number,repository,title'
     search_res = run_command(search_cmd)
@@ -56,7 +57,7 @@ def main():
 
     all_prs = json.loads(search_res.stdout)
     matrix_include = []
-    seen_repos = {} # Track repo name -> PR details for logging
+    seen_repos = {} 
 
     for pr in all_prs:
         repo = pr.get("repository", {}).get("nameWithOwner")
@@ -66,7 +67,6 @@ def main():
         num = str(pr.get("number"))
         title = pr.get("title", "Untitled")
 
-        # Filter by Stars/Recency
         repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt,languages')
         if repo_data_res.returncode != 0: continue
         repo_data = json.loads(repo_data_res.stdout)
@@ -99,14 +99,9 @@ def main():
         if added_any:
             seen_repos[repo] = {"num": num, "stars": stars}
 
-    # --- PRINT ALPHABETIZED SUMMARY OF SELECTED REPOS ---
-    print("\n" + "="*50, file=sys.stderr)
-    print("📋 SELECTED REPOSITORIES FOR SCAN (1 PR EACH):", file=sys.stderr)
-    print("-" * 50, file=sys.stderr)
+    print("\n📋 SELECTED REPOSITORIES FOR SCAN:", file=sys.stderr)
     for repo_name in sorted(seen_repos.keys()):
-        details = seen_repos[repo_name]
-        print(f"⭐ {details['stars']:<5} | {repo_name} (PR #{details['num']})", file=sys.stderr)
-    print("="*50 + "\n", file=sys.stderr)
+        print(f"⭐ {seen_repos[repo_name]['stars']:<5} | {repo_name}", file=sys.stderr)
 
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
