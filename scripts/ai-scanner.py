@@ -5,15 +5,15 @@ import sys
 from datetime import datetime, timedelta
 
 def run_command(command):
+    """Executes a command and returns the result, logging errors to stderr."""
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
     return result
 
 def get_detailed_changes(repo, pr_num):
-    # Removed .cpp, .c, .cc, and .h to skip C++ analysis
+    # Removed .cs (C#) and .cpp/.c (C++) to ensure high scan reliability
     ext_to_lang = {
         '.java': 'java', '.js': 'javascript', '.ts': 'javascript', 
-        '.py': 'python', '.go': 'go', '.rb': 'ruby', 
-        '.cs': 'csharp', '.swift': 'swift'
+        '.py': 'python', '.go': 'go', '.rb': 'ruby', '.swift': 'swift'
     }
     
     cmd = f'gh pr diff {pr_num} --repo {repo} --name-only'
@@ -35,6 +35,7 @@ def get_detailed_changes(repo, pr_num):
             if lang not in lang_map:
                 lang_map[lang] = set()
             if '/' in f:
+                # Add top-level folder
                 lang_map[lang].add(f.split('/')[0])
             else:
                 lang_map[lang].add(".")
@@ -43,10 +44,10 @@ def get_detailed_changes(repo, pr_num):
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
-    # Removed 'cpp' from supported list
-    codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "swift"]
+    # Refined list: No C++ or C#
+    codeql_supported = ["java", "javascript", "python", "go", "ruby", "swift"]
     
-    print(f"DEBUG: Starting search for AI PRs (Stars > 10, Active since {one_year_ago})", file=sys.stderr)
+    print(f"DEBUG: Searching for AI PRs (Stars > 10, Active since {one_year_ago})", file=sys.stderr)
     
     search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 50 --json number,repository,title'
     search_res = run_command(search_cmd)
