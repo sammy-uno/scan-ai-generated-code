@@ -1,7 +1,3 @@
-provide the full yml file
-Here is the full, corrected codeql-scan.yml file.
-The fix involves moving the dynamic paths into the config input, as CodeQL requires path filtering to be defined under a paths key within a YAML configuration block rather than as a direct input.
-yaml
 name: "General AI Multi-Language Scanner"
 
 on:
