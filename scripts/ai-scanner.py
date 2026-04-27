@@ -10,7 +10,7 @@ def run_command(command):
     return result
 
 def get_detailed_changes(repo, pr_num):
-    # Removed .cs (C#) and .cpp/.c (C++) to ensure high scan reliability
+    """Returns a dictionary mapping detected languages to the folders they changed in."""
     ext_to_lang = {
         '.java': 'java', '.js': 'javascript', '.ts': 'javascript', 
         '.py': 'python', '.go': 'go', '.rb': 'ruby', '.swift': 'swift'
@@ -35,7 +35,6 @@ def get_detailed_changes(repo, pr_num):
             if lang not in lang_map:
                 lang_map[lang] = set()
             if '/' in f:
-                # Add top-level folder
                 lang_map[lang].add(f.split('/')[0])
             else:
                 lang_map[lang].add(".")
@@ -44,12 +43,11 @@ def get_detailed_changes(repo, pr_num):
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
-    # Refined list: No C++ or C#
     codeql_supported = ["java", "javascript", "python", "go", "ruby", "swift"]
     
-    print(f"DEBUG: Searching for AI PRs (Stars > 10, Active since {one_year_ago})", file=sys.stderr)
+    print(f"DEBUG: Searching for AI PRs (Limit 100 search, 1 PR per repo)", file=sys.stderr)
     
-    search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 50 --json number,repository,title'
+    search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 100 --json number,repository,title'
     search_res = run_command(search_cmd)
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
@@ -58,12 +56,17 @@ def main():
 
     all_prs = json.loads(search_res.stdout)
     matrix_include = []
+    seen_repos = {} # Track repo name -> PR details for logging
 
     for pr in all_prs:
         repo = pr.get("repository", {}).get("nameWithOwner")
+        if repo in seen_repos:
+            continue
+
         num = str(pr.get("number"))
         title = pr.get("title", "Untitled")
 
+        # Filter by Stars/Recency
         repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt,languages')
         if repo_data_res.returncode != 0: continue
         repo_data = json.loads(repo_data_res.stdout)
@@ -80,6 +83,7 @@ def main():
 
         repo_supported_langs = [l['node']['name'].lower() for l in repo_data.get("languages", [])]
         
+        added_any = False
         for lang, folders in changed_langs.items():
             if lang in codeql_supported and lang in repo_supported_langs:
                 matrix_include.append({
@@ -90,6 +94,19 @@ def main():
                     "category_name": f"{repo.split('/')[-1]}-{num}-{lang}",
                     "scan_paths": json.dumps(folders)
                 })
+                added_any = True
+        
+        if added_any:
+            seen_repos[repo] = {"num": num, "stars": stars}
+
+    # --- PRINT ALPHABETIZED SUMMARY OF SELECTED REPOS ---
+    print("\n" + "="*50, file=sys.stderr)
+    print("📋 SELECTED REPOSITORIES FOR SCAN (1 PR EACH):", file=sys.stderr)
+    print("-" * 50, file=sys.stderr)
+    for repo_name in sorted(seen_repos.keys()):
+        details = seen_repos[repo_name]
+        print(f"⭐ {details['stars']:<5} | {repo_name} (PR #{details['num']})", file=sys.stderr)
+    print("="*50 + "\n", file=sys.stderr)
 
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
