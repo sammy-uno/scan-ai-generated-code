@@ -73,7 +73,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # ALL remaining languages support build-mode: none
+          # All selected languages (Java, Python, JS, Ruby) support build-mode: none
           build-mode: none
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -132,20 +132,30 @@ jobs:
           echo "| :--- | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
           
           python3 -c "
-          import json, glob, os
-          files = sorted(glob.glob('all-results/*.sarif'))
+          import json, glob, os, sys
+          
+          # Recursive search to find files regardless of sub-directory nesting
+          files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
+          
+          if not files:
+              print('| No SARIF results found | - | - | - |')
+          
           for f in files:
               try:
                   with open(f, 'r') as s:
                       data = json.load(s)
-                  results = data.get('runs', [{}]).get('results', [])
+                  
+                  # Standard SARIF path to results
+                  results = data.get('runs', [{}])[0].get('results', [])
                   high = sum(1 for r in results if r.get('level') == 'error')
                   med = sum(1 for r in results if r.get('level') == 'warning')
                   total = len(results)
+                  
+                  # Clean display name from path/filename
                   display_name = os.path.basename(f).replace('sarif-', '').replace('.sarif', '')
                   print(f'| {display_name} | {high} | {med} | {total} |')
-              except Exception:
-                  pass
+              except Exception as e:
+                  print(f'| Error parsing {os.path.basename(f)} | - | - | - |', file=sys.stderr)
           " >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Merged Final Results
