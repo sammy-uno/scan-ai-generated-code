@@ -5,53 +5,52 @@ import sys
 from datetime import datetime, timedelta
 
 def run_command(command):
-    """Executes a command and returns the result, logging errors to stderr."""
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
-    if result.returncode != 0:
-        print(f"DEBUG ERROR: Command failed: {command}\nStderr: {result.stderr}", file=sys.stderr)
     return result
 
-def get_relevant_changes(repo, pr_num):
+def get_detailed_changes(repo, pr_num):
     """
-    Checks if the PR contains changes to supported source files.
-    Returns (bool: has_code, list: top_level_dirs).
+    Returns a dictionary mapping detected languages to the folders they changed in.
+    Example: {'java': ['android'], 'python': ['torch/csrc']}
     """
-    ext_map = {
-        '.java', '.js', '.ts', '.py', '.go', '.rb', '.cs', '.cpp', '.c', '.swift'
+    ext_to_lang = {
+        '.java': 'java', '.js': 'javascript', '.ts': 'javascript', 
+        '.py': 'python', '.go': 'go', '.rb': 'ruby', 
+        '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.cc': 'cpp', '.swift': 'swift'
     }
     
     cmd = f'gh pr diff {pr_num} --repo {repo} --name-only'
     res = run_command(cmd)
     if res.returncode != 0:
-        return False, ["."]
+        return {}
     
     files = res.stdout.strip().split('\n')
-    paths = set()
-    found_code = False
+    lang_map = {}
 
     for f in files:
         f = f.strip()
         if not f: continue
         
-        # FIX: os.path.splitext returns (root, ext). We only want the ext.
         _, ext = os.path.splitext(f)
-        if ext.lower() in ext_map:
-            found_code = True
+        lang = ext_to_lang.get(ext.lower())
+        
+        if lang:
+            if lang not in lang_map:
+                lang_map[lang] = set()
+            
             if '/' in f:
-                # Extract top-level folder
-                paths.add(f.split('/')[0])
+                lang_map[lang].add(f.split('/')[0])
             else:
-                paths.add(".")
+                lang_map[lang].add(".")
                 
-    return found_code, list(paths)
+    # Convert sets to lists
+    return {k: list(v) for k, v in lang_map.items()}
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
+    # Languages we are willing to scan
     codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
     
-    print(f"DEBUG: Searching for up to 50 AI PRs in active repos...", file=sys.stderr)
-    
-    # 1. Search for open PRs with the Claude trailer, limited to 50
     search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 50 --json number,repository,title'
     search_res = run_command(search_cmd)
     
@@ -67,33 +66,30 @@ def main():
         num = str(pr.get("number"))
         title = pr.get("title", "Untitled")
 
-        # 2. Filter by Stars (>10) and Activity (Last Year)
-        repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt,languages')
+        # 1. Basic Repo Filter
+        repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt')
         if repo_data_res.returncode != 0: continue
         repo_data = json.loads(repo_data_res.stdout)
         
         if repo_data.get("stargazerCount", 0) <= 10 or repo_data.get("pushedAt", "") < one_year_ago:
             continue
 
-        # 3. Skip PR if it only changes non-code files
-        has_code, changed_folders = get_relevant_changes(repo, num)
-        if not has_code:
-            print(f"DEBUG: Skipping {repo}#{num} - No supported source code files changed.", file=sys.stderr)
+        # 2. Get specific languages changed in THIS PR
+        changed_langs = get_detailed_changes(repo, num)
+        if not changed_langs:
             continue
 
-        # 4. Map supported languages for the matrix
-        repo_langs = [l['node']['name'].lower() for l in repo_data.get("languages", [])]
-        target_langs = [l for l in repo_langs if l in codeql_supported]
-        
-        for lang in target_langs:
-            matrix_include.append({
-                "pr_num": num,
-                "repo_name": repo,
-                "language": lang,
-                "pr_title": title,
-                "category_name": f"{repo.split('/')[-1]}-{num}-{lang}",
-                "scan_paths": json.dumps(changed_folders)
-            })
+        # 3. Only add to matrix if the changed language is in our supported list
+        for lang, folders in changed_langs.items():
+            if lang in codeql_supported:
+                matrix_include.append({
+                    "pr_num": num,
+                    "repo_name": repo,
+                    "language": lang,
+                    "pr_title": title,
+                    "category_name": f"{repo.split('/')[-1]}-{num}-{lang}",
+                    "scan_paths": json.dumps(folders)
+                })
 
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
