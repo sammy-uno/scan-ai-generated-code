@@ -30,12 +30,16 @@ def get_relevant_changes(repo, pr_num):
     found_code = False
 
     for f in files:
-        if not f.strip(): continue
-        ext = os.path.splitext(f).lower()
-        if ext in ext_map:
+        f = f.strip()
+        if not f: continue
+        
+        # FIX: os.path.splitext returns (root, ext). We only want the ext.
+        _, ext = os.path.splitext(f)
+        if ext.lower() in ext_map:
             found_code = True
             if '/' in f:
-                paths.add(f.split('/'))
+                # Extract top-level folder
+                paths.add(f.split('/')[0])
             else:
                 paths.add(".")
                 
@@ -71,7 +75,7 @@ def main():
         if repo_data.get("stargazerCount", 0) <= 10 or repo_data.get("pushedAt", "") < one_year_ago:
             continue
 
-        # 3. Skip PR if it only changes non-code files (Docs, Config, etc.)
+        # 3. Skip PR if it only changes non-code files
         has_code, changed_folders = get_relevant_changes(repo, num)
         if not has_code:
             print(f"DEBUG: Skipping {repo}#{num} - No supported source code files changed.", file=sys.stderr)
