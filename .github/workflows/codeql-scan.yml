@@ -30,20 +30,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Ensure sub-processes like 'gh' see the token
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    # Only run if discovery found matching PRs
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
     steps:
@@ -60,23 +58,14 @@ jobs:
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # FIX: Skip LFS 'smudge' to prevent errors with large binary files (PDFs, etc)
           GIT_LFS_SKIP_SMUDGE: 1
         run: |
-          # 1. Back up scripts to /tmp to prevent deletion during clean-up
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
-          
-          # 2. Clean workspace to ensure a clean slate for target PR
           rm -rf ./*
-          
-          # 3. Checkout the target PR
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          
-          # 4. Restore scripts folder
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
-          
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
@@ -84,8 +73,8 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Go and Swift require autobuild. Others use build-free 'none' mode.
-          build-mode: ${{ (matrix.language == 'go' || matrix.language == 'swift') && 'autobuild' || 'none' }}
+          # ALL remaining languages support build-mode: none
+          build-mode: none
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
           config: |
@@ -93,7 +82,6 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
-        # Fault tolerance for high-volume automated scanning
         continue-on-error: true
         with:
           category: "/pr:${{ matrix.category_name }}"
