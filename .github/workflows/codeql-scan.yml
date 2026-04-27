@@ -1,8 +1,13 @@
+provide the full yml file
+Here is the full, corrected codeql-scan.yml file.
+The fix involves moving the dynamic paths into the config input, as CodeQL requires path filtering to be defined under a paths key within a YAML configuration block rather than as a direct input.
+yaml
 name: "General AI Multi-Language Scanner"
 
 on:
   workflow_dispatch: 
 
+# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -58,12 +63,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
+          # Backup scripts to /tmp to prevent deletion during checkout
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
+          
+          # Clean workspace
           rm -rf ./*
+          
+          # Checkout target PR
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          
+          # Restore scripts
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
+          
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
@@ -71,11 +84,14 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          # Java uses 'none', Go/C#/C++ use 'autobuild'
           build-mode: ${{ (matrix.language == 'csharp' || matrix.language == 'cpp' || matrix.language == 'go') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # Path Filtering: Focus strictly on folders changed in the PR
-          paths: ${{ matrix.scan_paths }}
+          # FIX: Path filtering must be wrapped in the 'config' YAML block
+          config: |
+            paths:
+              - ${{ matrix.scan_paths }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -91,13 +107,17 @@ jobs:
         if: always()
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Align filename for the Python script
           if [ -d "sarif-results" ]; then
             mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
           fi
+
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "❌ No SARIF results generated." >> $GITHUB_STEP_SUMMARY
+            echo "❌ No SARIF results found." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
@@ -106,3 +126,4 @@ jobs:
         with:
           name: sarif-${{ matrix.category_name }}
           path: results.sarif
+          if-no-files-found: warn
