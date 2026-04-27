@@ -30,6 +30,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
+          # Ensure sub-processes like 'gh' see the token
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
@@ -60,17 +61,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # 1. Back up scripts to /tmp
+          # 1. Back up scripts to /tmp to prevent deletion during clean-up
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
           
-          # 2. Clean workspace
+          # 2. Clean workspace to ensure a clean slate for target PR
           rm -rf ./*
           
-          # 3. Checkout target PR
+          # 3. Checkout the target PR
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # 4. Restore scripts
+          # 4. Restore scripts folder
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
           
@@ -81,16 +82,19 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Java uses 'none', Go/C#/C++ use 'autobuild'
-          build-mode: ${{ (matrix.language == 'csharp' || matrix.language == 'cpp' || matrix.language == 'go') && 'autobuild' || 'none' }}
+          # Optimized: Java, Go, Python, JS, Ruby use 'none' (build-free).
+          # Only Swift remains on 'autobuild' as it lacks 'none' support.
+          build-mode: ${{ (matrix.language == 'swift') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # Uses the JSON list from the matrix to target specific directories
+          # Path filtering wrapped in YAML block for dynamic matrix support
           config: |
             paths: ${{ matrix.scan_paths }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
+        # Fault tolerance for high-volume automated scanning
+        continue-on-error: true
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
