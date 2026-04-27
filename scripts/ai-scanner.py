@@ -9,14 +9,11 @@ def run_command(command):
     return result
 
 def get_detailed_changes(repo, pr_num):
-    """
-    Returns a dictionary mapping detected languages to the folders they changed in.
-    Example: {'java': ['android'], 'python': ['torch/csrc']}
-    """
+    # Removed .cpp, .c, .cc, and .h to skip C++ analysis
     ext_to_lang = {
         '.java': 'java', '.js': 'javascript', '.ts': 'javascript', 
         '.py': 'python', '.go': 'go', '.rb': 'ruby', 
-        '.cs': 'csharp', '.cpp': 'cpp', '.c': 'cpp', '.cc': 'cpp', '.swift': 'swift'
+        '.cs': 'csharp', '.swift': 'swift'
     }
     
     cmd = f'gh pr diff {pr_num} --repo {repo} --name-only'
@@ -37,19 +34,19 @@ def get_detailed_changes(repo, pr_num):
         if lang:
             if lang not in lang_map:
                 lang_map[lang] = set()
-            
             if '/' in f:
                 lang_map[lang].add(f.split('/')[0])
             else:
                 lang_map[lang].add(".")
                 
-    # Convert sets to lists
     return {k: list(v) for k, v in lang_map.items()}
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
-    # Languages we are willing to scan
-    codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "cpp", "swift"]
+    # Removed 'cpp' from supported list
+    codeql_supported = ["java", "javascript", "python", "go", "ruby", "csharp", "swift"]
+    
+    print(f"DEBUG: Starting search for AI PRs (Stars > 10, Active since {one_year_ago})", file=sys.stderr)
     
     search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 50 --json number,repository,title'
     search_res = run_command(search_cmd)
@@ -66,22 +63,24 @@ def main():
         num = str(pr.get("number"))
         title = pr.get("title", "Untitled")
 
-        # 1. Basic Repo Filter
-        repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt')
+        repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt,languages')
         if repo_data_res.returncode != 0: continue
         repo_data = json.loads(repo_data_res.stdout)
         
-        if repo_data.get("stargazerCount", 0) <= 10 or repo_data.get("pushedAt", "") < one_year_ago:
+        stars = repo_data.get("stargazerCount", 0)
+        pushed_at = repo_data.get("pushedAt", "")
+
+        if stars <= 10 or pushed_at < one_year_ago:
             continue
 
-        # 2. Get specific languages changed in THIS PR
         changed_langs = get_detailed_changes(repo, num)
         if not changed_langs:
             continue
 
-        # 3. Only add to matrix if the changed language is in our supported list
+        repo_supported_langs = [l['node']['name'].lower() for l in repo_data.get("languages", [])]
+        
         for lang, folders in changed_langs.items():
-            if lang in codeql_supported:
+            if lang in codeql_supported and lang in repo_supported_langs:
                 matrix_include.append({
                     "pr_num": num,
                     "repo_name": repo,
