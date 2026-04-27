@@ -30,14 +30,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # Ensure sub-processes like 'gh' see the token
           export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
           python scripts/ai-scanner.py
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
-    # Only run if discovery found matching PRs
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -61,20 +59,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          # 1. Back up scripts to /tmp to prevent deletion during clean-up
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
-          
-          # 2. Clean workspace to ensure a clean slate for target PR
           rm -rf ./*
-          
-          # 3. Checkout the target PR
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          
-          # 4. Restore scripts folder
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
-          
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
@@ -82,18 +72,15 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Optimized: Java, Go, Python, JS, Ruby use 'none' (build-free).
-          # Only Swift remains on 'autobuild' as it lacks 'none' support.
-          build-mode: ${{ (matrix.language == 'swift') && 'autobuild' || 'none' }}
+          # Go and Swift require autobuild. Others use build-free 'none' mode.
+          build-mode: ${{ (matrix.language == 'go' || matrix.language == 'swift') && 'autobuild' || 'none' }}
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # Path filtering wrapped in YAML block for dynamic matrix support
           config: |
             paths: ${{ matrix.scan_paths }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
-        # Fault tolerance for high-volume automated scanning
         continue-on-error: true
         with:
           category: "/pr:${{ matrix.category_name }}"
@@ -107,17 +94,13 @@ jobs:
         if: always()
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Language:** ${{ matrix.language }} | **Title:** ${{ matrix.pr_title }}" >> $GITHUB_STEP_SUMMARY
-          
-          # Move language-specific SARIF results into place for the parser
           if [ -d "sarif-results" ]; then
             mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
           fi
-
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "⚠️ No security issues found or code was outside of scan paths." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No results generated for this job." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
@@ -127,3 +110,45 @@ jobs:
           name: sarif-${{ matrix.category_name }}
           path: results.sarif
           if-no-files-found: warn
+
+  report:
+    name: Consolidate Final Report
+    needs: analyze
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all SARIF Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: sarif-*
+          path: all-results
+          merge-multiple: true
+
+      - name: Generate Consolidated Summary
+        run: |
+          echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository & Language | 🔴 High | 🟡 Medium | Total |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
+          
+          python3 -c "
+          import json, glob, os
+          files = sorted(glob.glob('all-results/*.sarif'))
+          for f in files:
+              try:
+                  with open(f, 'r') as s:
+                      data = json.load(s)
+                  results = data.get('runs', [{}])[0].get('results', [])
+                  high = sum(1 for r in results if r.get('level') == 'error')
+                  med = sum(1 for r in results if r.get('level') == 'warning')
+                  total = len(results)
+                  display_name = os.path.basename(f).replace('sarif-', '').replace('.sarif', '')
+                  print(f'| {display_name} | {high} | {med} | {total} |')
+              except Exception:
+                  pass
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Merged Final Results
+        uses: actions/upload-artifact@v6
+        with:
+          name: final-consolidated-report
+          path: all-results/
