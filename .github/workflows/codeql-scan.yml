@@ -131,7 +131,6 @@ jobs:
           
           python3 -c "
           import json, glob, os, sys
-          # Look recursively for all SARIF files
           files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
           found_count = 0
           for f in files:
@@ -144,7 +143,7 @@ jobs:
                   repo_full = parts[0].replace('_SLASH_', '/')
                   pr_num = parts[1]
                   lang = parts[2]
-                  pr_url = f'https://github.com/{repo_full}/pull/{pr_num}'
+                  pr_url = f'https://github.com{repo_full}/pull/{pr_num}'
                   
                   with open(f, 'r') as s:
                       data = json.load(s)
