@@ -58,9 +58,9 @@ jobs:
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          GIT_LFS_SKIP_SMUDGE: 1 # Skip downloading heavy LFS files
+          GIT_LFS_SKIP_SMUDGE: 1 # Prevents 404 errors on binary objects
         run: |
-          # Disable Git LFS filters to prevent 404 errors on binary objects
+          # Force Git LFS to skip all smudge/process filters
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
@@ -101,9 +101,11 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
+            # results.sarif is for the local job parser
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            # Embed metadata for global report: OWNER_REPO--PR--LANG.sarif
-            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | tr '/' '_')
+            
+            # Embed metadata for global report using a unique slash placeholder
+            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
           fi
           if [ -f "results.sarif" ]; then
@@ -145,13 +147,16 @@ jobs:
           files = sorted(glob.glob('all-results/*.sarif'))
           for f in files:
               fname = os.path.basename(f)
+              # Ignore the generic results file, process metadata files
               if fname == 'results.sarif': continue
               try:
-                  # Parse metadata from filename
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 3: continue
-                  repo_raw, pr_num, lang = parts[0], parts[1], parts[2]
-                  repo_full = repo_raw.replace('_', '/', 1)
+                  
+                  # Correctly restore owner/repo and build the PR URL
+                  repo_full = parts[0].replace('_SLASH_', '/')
+                  pr_num = parts[1]
+                  lang = parts[2]
                   pr_url = f'https://github.com{repo_full}/pull/{pr_num}'
                   
                   with open(f, 'r') as s:
