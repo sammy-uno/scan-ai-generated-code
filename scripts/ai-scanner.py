@@ -43,10 +43,14 @@ def get_detailed_changes(repo, pr_num):
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
-    # Optimized list: strictly Build-free focus (No Go, No Swift, No C++, No C#)
+    # Optimized list: strictly Build-free focus
     codeql_supported = ["java", "javascript", "python", "ruby"]
     
-    print(f"DEBUG: Searching for AI PRs (Limit 100 search, 1 PR per repo, Build-free focus)", file=sys.stderr)
+    # --- PR SIZE LIMIT ---
+    # Sum of additions and deletions. Adjust this to prevent timeouts.
+    MAX_PR_LINES = 1000 
+    
+    print(f"DEBUG: Searching for AI PRs (Limit 100 search, Max {MAX_PR_LINES} lines)", file=sys.stderr)
     
     search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 100 --json number,repository,title'
     search_res = run_command(search_cmd)
@@ -66,6 +70,16 @@ def main():
 
         num = str(pr.get("number"))
         title = pr.get("title", "Untitled")
+
+        # --- SIZE FILTERING ---
+        lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
+        total_changes = 0
+        if lines_res.returncode == 0:
+            stats = json.loads(lines_res.stdout)
+            total_changes = stats.get("additions", 0) + stats.get("deletions", 0)
+            if total_changes > MAX_PR_LINES:
+                print(f"DEBUG: Skipping {repo}#{num} - Too large ({total_changes} lines)", file=sys.stderr)
+                continue
 
         repo_data_res = run_command(f'gh repo view {repo} --json stargazerCount,pushedAt,languages')
         if repo_data_res.returncode != 0: continue
@@ -97,11 +111,11 @@ def main():
                 added_any = True
         
         if added_any:
-            seen_repos[repo] = {"num": num, "stars": stars}
+            seen_repos[repo] = {"num": num, "stars": stars, "size": total_changes}
 
     print("\n📋 SELECTED REPOSITORIES FOR SCAN:", file=sys.stderr)
     for repo_name in sorted(seen_repos.keys()):
-        print(f"⭐ {seen_repos[repo_name]['stars']:<5} | {repo_name}", file=sys.stderr)
+        print(f"⭐ {seen_repos[repo_name]['stars']:<5} | 📏 {seen_repos[repo_name]['size']:<4} lines | {repo_name}", file=sys.stderr)
 
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
