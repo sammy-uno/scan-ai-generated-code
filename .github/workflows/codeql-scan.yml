@@ -3,7 +3,6 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
-# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -19,12 +18,10 @@ jobs:
     steps:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.10'
-
       - name: Discover PRs
         id: detect
         env:
@@ -38,7 +35,7 @@ jobs:
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Increased to handle larger codebases like OpenClaw
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -47,29 +44,23 @@ jobs:
     steps:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v5
-
       - name: Setup Runner Environment
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          GIT_LFS_SKIP_SMUDGE: 1 # Bypass binary file 404 errors
+          GIT_LFS_SKIP_SMUDGE: 1
         run: |
-          # Disable Git LFS filters globally for this session
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
-          
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
           rm -rf ./*
-          
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          
           mkdir -p scripts
           cp -r /tmp/tooling_scripts/* scripts/
           echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
@@ -101,19 +92,14 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
-            # generic results file for individual job summary
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            
-            # Metadata-rich filename for the global consolidated report
-            # Replaces / with _SLASH_ to preserve the path structure in the filename
             SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
           fi
-          
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "⚠️ No results generated for this job (Check for timeouts)." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No results generated for this job." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
@@ -145,41 +131,35 @@ jobs:
           
           python3 -c "
           import json, glob, os, sys
-          
-          files = sorted(glob.glob('all-results/*.sarif'))
+          # Look recursively for all SARIF files
+          files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
+          found_count = 0
           for f in files:
               fname = os.path.basename(f)
-              if fname == 'results.sarif': continue
+              if fname == 'results.sarif' or '--' not in fname: continue
               try:
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 3: continue
                   
-                  # Reconstruct the repo path and build the PR URL
-                  repo_full = parts.replace('_SLASH_', '/')
-                  pr_num = parts
-                  lang = parts
-                  
-                  # Correctly builds URL with all necessary slashes
-                  pr_url = 'https://github.com' + repo_full + '/pull/' + pr_num
+                  repo_full = parts[0].replace('_SLASH_', '/')
+                  pr_num = parts[1]
+                  lang = parts[2]
+                  pr_url = f'https://github.com/{repo_full}/pull/{pr_num}'
                   
                   with open(f, 'r') as s:
                       data = json.load(s)
-                  
                   runs = data.get('runs', [])
-                  results = runs.get('results', []) if runs else []
+                  results = runs[0].get('results', []) if runs else []
                   
                   high = sum(1 for r in results if r.get('level') == 'error')
                   med = sum(1 for r in results if r.get('level', 'warning') == 'warning')
                   low = sum(1 for r in results if r.get('level') == 'note')
-                  total = len(results)
                   
-                  print(f'| {repo_full} | [#{pr_num}]({pr_url}) | {lang} | {high} | {med} | {low} | {total} |')
+                  print(f'| {repo_full} | [#{pr_num}]({pr_url}) | {lang} | {high} | {med} | {low} | {len(results)} |')
+                  found_count += 1
               except Exception as e:
                   print(f'| Error parsing {fname} | - | - | - | - | - | - |', file=sys.stderr)
+          
+          if found_count == 0:
+              print('| No valid results found | - | - | - | - | - | - |')
           " >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Merged Final Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: final-consolidated-report
-          path: all-results/
