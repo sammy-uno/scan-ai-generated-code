@@ -18,20 +18,22 @@ def main():
     if not results:
         summary_md += "_No security issues detected in modified files._\n"
     else:
-        summary_md += "| Severity | Vulnerability | File | Description |\n| :--- | :--- | :--- | :--- |\n"
-        # Map note to Low
+        summary_md += "| Severity | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- |\n"
         icons = {"error": "🔴 High", "warning": "🟡 Medium", "note": "🔵 Low"}
 
         for res in results:
             rule_id = res.get('ruleId', 'N/A')
             msg = res.get('message', {}).get('text', 'No description').split('\n')[0]
-            # Default to warning if level is missing
             level = res.get('level', 'warning')
-            icon = icons.get(level, "🔵 Low" if level == "note" else "🟡 Medium")
+            icon = icons.get(level, "🟡 Medium")
             
+            # Extract Path and Line Number
             locs = res.get('locations', [{}])
-            path = locs[0].get('physicalLocation', {}).get('artifactLocation', {}).get('uri', 'Unknown')
-            summary_md += f"| {icon} | `{rule_id}` | `{path}` | {msg} |\n"
+            phys = locs[0].get('physicalLocation', {})
+            path = phys.get('artifactLocation', {}).get('uri', 'Unknown')
+            line = phys.get('region', {}).get('startLine', '?')
+            
+            summary_md += f"| {icon} | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
     if 'GITHUB_STEP_SUMMARY' in os.environ:
         with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
