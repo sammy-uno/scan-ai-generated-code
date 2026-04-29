@@ -3,6 +3,7 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
+# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -94,9 +95,9 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
-            # We rename to results.sarif for parse-results.py to work locally
+            # Rename to results.sarif for the local parse-results.py script
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            # We also create a unique filename for the global report to prevent overwrites
+            # Create a unique filename for the consolidate/download job
             cp sarif-results/*.sarif ./${{ matrix.category_name }}.sarif 2>/dev/null || true
           fi
           if [ -f "results.sarif" ]; then
@@ -110,7 +111,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sarif-${{ matrix.category_name }}
-          # Upload the unique filename so they don't overwrite in the final download
           path: ${{ matrix.category_name }}.sarif
           if-no-files-found: warn
 
@@ -130,34 +130,37 @@ jobs:
       - name: Generate Consolidated Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Repository & Language | 🔴 High | 🟡 Medium | Total |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository & Language | 🔴 High | 🟡 Medium | 🔵 Low | Total |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :---: | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
           
           python3 -c "
           import json, glob, os, sys
           
-          # Search for any .sarif file in the download directory
           files = sorted(glob.glob('all-results/*.sarif'))
           
           if not files:
-              print('| No SARIF results found | - | - | - |')
+              print('| No SARIF results found | - | - | - | - |')
           else:
               for f in files:
                   try:
                       with open(f, 'r') as s:
                           data = json.load(s)
                       
-                      runs = data.get('runs', [{}])
-                      results = runs[0].get('results', []) if runs else []
+                      runs = data.get('runs', [])
+                      if not runs: continue
                       
+                      results = runs[0].get('results', [])
+                      
+                      # Map levels and handle default 'warning' behavior
                       high = sum(1 for r in results if r.get('level') == 'error')
-                      med = sum(1 for r in results if r.get('level') == 'warning')
+                      med = sum(1 for r in results if r.get('level', 'warning') == 'warning')
+                      low = sum(1 for r in results if r.get('level') == 'note')
                       total = len(results)
                       
                       display_name = os.path.basename(f).replace('.sarif', '')
-                      print(f'| {display_name} | {high} | {med} | {total} |')
+                      print(f'| {display_name} | {high} | {med} | {low} | {total} |')
                   except Exception as e:
-                      print(f'| Error parsing {os.path.basename(f)} | - | - | - |', file=sys.stderr)
+                      print(f'| Error parsing {os.path.basename(f)} | - | - | - | - |', file=sys.stderr)
           " >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Merged Final Results
