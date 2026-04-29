@@ -3,7 +3,6 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
-# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -58,9 +57,8 @@ jobs:
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          GIT_LFS_SKIP_SMUDGE: 1 # Prevents 404 errors on binary objects
+          GIT_LFS_SKIP_SMUDGE: 1 
         run: |
-          # Force Git LFS to skip all smudge/process filters
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
@@ -101,10 +99,9 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
-            # results.sarif is for the local job parser
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             
-            # Embed metadata for global report using a unique slash placeholder
+            # Replace slash with _SLASH_ to keep the repo path intact in the filename
             SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
           fi
@@ -147,17 +144,18 @@ jobs:
           files = sorted(glob.glob('all-results/*.sarif'))
           for f in files:
               fname = os.path.basename(f)
-              # Ignore the generic results file, process metadata files
               if fname == 'results.sarif': continue
               try:
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 3: continue
                   
-                  # Correctly restore owner/repo and build the PR URL
+                  # Reconstruct repo name and PR number
                   repo_full = parts[0].replace('_SLASH_', '/')
                   pr_num = parts[1]
                   lang = parts[2]
-                  pr_url = f'https://github.com{repo_full}/pull/{pr_num}'
+                  
+                  # Ensure the URL is built with standard slashes
+                  pr_url = 'https://github.com' + repo_full + '/pull/' + pr_num
                   
                   with open(f, 'r') as s:
                       data = json.load(s)
