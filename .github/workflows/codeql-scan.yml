@@ -3,7 +3,6 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
-# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -19,12 +18,10 @@ jobs:
     steps:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.10'
-
       - name: Discover PRs
         id: detect
         env:
@@ -47,18 +44,15 @@ jobs:
     steps:
       - name: Checkout Tooling Repo
         uses: actions/checkout@v5
-
       - name: Setup Runner Environment
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          GIT_LFS_SKIP_SMUDGE: 1
         run: |
           mkdir -p /tmp/tooling_scripts
           cp -r scripts/* /tmp/tooling_scripts/
@@ -70,7 +64,7 @@ jobs:
           echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           build-mode: none
@@ -80,7 +74,7 @@ jobs:
             paths: ${{ matrix.scan_paths }}
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@v3
         continue-on-error: true
         with:
           category: "/pr:${{ matrix.category_name }}"
@@ -95,10 +89,10 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
-            # Rename to results.sarif for the local parse-results.py script
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            # Create a unique filename for the consolidate/download job
-            cp sarif-results/*.sarif ./${{ matrix.category_name }}.sarif 2>/dev/null || true
+            # Embed metadata in the filename for the report job: [REPO_OWNER]_[REPO_NAME]--[PR_NUM]--[LANG].sarif
+            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | tr '/' '_')
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
           fi
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
@@ -111,7 +105,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sarif-${{ matrix.category_name }}
-          path: ${{ matrix.category_name }}.sarif
+          path: "*.sarif"
           if-no-files-found: warn
 
   report:
@@ -130,41 +124,31 @@ jobs:
       - name: Generate Consolidated Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Repository & Language | 🔴 High | 🟡 Medium | 🔵 Low | Total |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :---: | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | PR Link | Lang | 🔴 High | 🟡 Med | 🔵 Low | Total |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :---: | :---: | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
           
           python3 -c "
           import json, glob, os, sys
-          
           files = sorted(glob.glob('all-results/*.sarif'))
-          
-          if not files:
-              print('| No SARIF results found | - | - | - | - |')
-          else:
-              for f in files:
-                  try:
-                      with open(f, 'r') as s:
-                          data = json.load(s)
-                      
-                      runs = data.get('runs', [])
-                      if not runs: continue
-                      
-                      results = runs[0].get('results', [])
-                      
-                      # Map levels and handle default 'warning' behavior
-                      high = sum(1 for r in results if r.get('level') == 'error')
-                      med = sum(1 for r in results if r.get('level', 'warning') == 'warning')
-                      low = sum(1 for r in results if r.get('level') == 'note')
-                      total = len(results)
-                      
-                      display_name = os.path.basename(f).replace('.sarif', '')
-                      print(f'| {display_name} | {high} | {med} | {low} | {total} |')
-                  except Exception as e:
-                      print(f'| Error parsing {os.path.basename(f)} | - | - | - | - |', file=sys.stderr)
+          for f in files:
+              fname = os.path.basename(f)
+              if fname == 'results.sarif': continue
+              try:
+                  # Filename format: OWNER_REPO--PR--LANG.sarif
+                  parts = fname.replace('.sarif', '').split('--')
+                  if len(parts) < 3: continue
+                  repo_raw, pr_num, lang = parts[0], parts[1], parts[2]
+                  repo_full = repo_raw.replace('_', '/', 1)
+                  pr_url = f'https://github.com/{repo_full}/pull/{pr_num}'
+                  
+                  with open(f, 'r') as s:
+                      data = json.load(s)
+                  results = data.get('runs', [{}])[0].get('results', [])
+                  high = sum(1 for r in results if r.get('level') == 'error')
+                  med = sum(1 for r in results if r.get('level', 'warning') or 'level' not in r)
+                  low = sum(1 for r in results if r.get('level') == 'note')
+                  
+                  print(f'| {repo_full} | [#{pr_num}]({pr_url}) | {lang} | {high} | {med} | {low} | {len(results)} |')
+              except Exception as e:
+                  print(f'| Error parsing {fname} | - | - | - | - | - | - |', file=sys.stderr)
           " >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Merged Final Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: final-consolidated-report
-          path: all-results/
