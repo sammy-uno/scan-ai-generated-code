@@ -10,7 +10,6 @@ def run_command(command):
     return result
 
 def get_detailed_changes(repo, pr_num):
-    # Only high-speed build-free languages remaining
     ext_to_lang = {
         '.java': 'java', '.js': 'javascript', '.ts': 'javascript', 
         '.py': 'python', '.rb': 'ruby'
@@ -43,16 +42,15 @@ def get_detailed_changes(repo, pr_num):
 
 def main():
     one_year_ago = (datetime.now() - timedelta(days=365)).isoformat()
-    # Optimized list: strictly Build-free focus
     codeql_supported = ["java", "javascript", "python", "ruby"]
     
-    # --- PR SIZE LIMIT ---
-    # Sum of additions and deletions. Adjust this to prevent timeouts.
-    MAX_PR_LINES = 1000 
+    # --- UPDATED LIMITS ---
+    MAX_PR_LINES = 5000 
+    SEARCH_LIMIT = 1000
     
-    print(f"DEBUG: Searching for AI PRs (Limit 100 search, Max {MAX_PR_LINES} lines)", file=sys.stderr)
+    print(f"DEBUG: Searching for AI PRs (Limit {SEARCH_LIMIT} search, Max {MAX_PR_LINES} lines)", file=sys.stderr)
     
-    search_cmd = 'gh search prs "Co-Authored-By: Claude" --state open --limit 100 --json number,repository,title'
+    search_cmd = f'gh search prs "Co-Authored-By: Claude" --state open --limit {SEARCH_LIMIT} --json number,repository,title'
     search_res = run_command(search_cmd)
     
     if not search_res.stdout or search_res.stdout.strip() == "[]":
@@ -65,13 +63,12 @@ def main():
 
     for pr in all_prs:
         repo = pr.get("repository", {}).get("nameWithOwner")
-        if repo in seen_repos:
-            continue
+        if repo in seen_repos: continue
 
         num = str(pr.get("number"))
         title = pr.get("title", "Untitled")
 
-        # --- SIZE FILTERING ---
+        # Size Filtering
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         total_changes = 0
         if lines_res.returncode == 0:
@@ -85,15 +82,11 @@ def main():
         if repo_data_res.returncode != 0: continue
         repo_data = json.loads(repo_data_res.stdout)
         
-        stars = repo_data.get("stargazerCount", 0)
-        pushed_at = repo_data.get("pushedAt", "")
-
-        if stars <= 10 or pushed_at < one_year_ago:
+        if repo_data.get("stargazerCount", 0) <= 10 or repo_data.get("pushedAt", "") < one_year_ago:
             continue
 
         changed_langs = get_detailed_changes(repo, num)
-        if not changed_langs:
-            continue
+        if not changed_langs: continue
 
         repo_supported_langs = [l['node']['name'].lower() for l in repo_data.get("languages", [])]
         
@@ -111,11 +104,7 @@ def main():
                 added_any = True
         
         if added_any:
-            seen_repos[repo] = {"num": num, "stars": stars, "size": total_changes}
-
-    print("\n📋 SELECTED REPOSITORIES FOR SCAN:", file=sys.stderr)
-    for repo_name in sorted(seen_repos.keys()):
-        print(f"⭐ {seen_repos[repo_name]['stars']:<5} | 📏 {seen_repos[repo_name]['size']:<4} lines | {repo_name}", file=sys.stderr)
+            seen_repos[repo] = {"num": num, "stars": repo_data.get("stargazerCount"), "size": total_changes}
 
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
