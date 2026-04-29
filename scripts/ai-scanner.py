@@ -45,8 +45,8 @@ def main():
     codeql_supported = ["java", "javascript", "python", "ruby"]
     
     # --- UPDATED LIMITS ---
-    MAX_PR_LINES = 5000 
-    SEARCH_LIMIT = 1000
+    MAX_PR_LINES = 2500 
+    SEARCH_LIMIT = 500
     
     print(f"DEBUG: Searching for AI PRs (Limit {SEARCH_LIMIT} search, Max {MAX_PR_LINES} lines)", file=sys.stderr)
     
