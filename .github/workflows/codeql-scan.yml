@@ -3,7 +3,6 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
-# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -73,7 +72,6 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # All selected languages (Java, Python, JS, Ruby) support build-mode: none
           build-mode: none
           source-root: .
           token: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -96,7 +94,10 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
-            mv sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            # We rename to results.sarif for parse-results.py to work locally
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            # We also create a unique filename for the global report to prevent overwrites
+            cp sarif-results/*.sarif ./${{ matrix.category_name }}.sarif 2>/dev/null || true
           fi
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
@@ -106,10 +107,11 @@ jobs:
 
       - name: Save SARIF as Workflow Artifact
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: sarif-${{ matrix.category_name }}
-          path: results.sarif
+          # Upload the unique filename so they don't overwrite in the final download
+          path: ${{ matrix.category_name }}.sarif
           if-no-files-found: warn
 
   report:
@@ -119,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all SARIF Artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
           pattern: sarif-*
           path: all-results
@@ -134,32 +136,32 @@ jobs:
           python3 -c "
           import json, glob, os, sys
           
-          # Recursive search to find files regardless of sub-directory nesting
-          files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
+          # Search for any .sarif file in the download directory
+          files = sorted(glob.glob('all-results/*.sarif'))
           
           if not files:
               print('| No SARIF results found | - | - | - |')
-          
-          for f in files:
-              try:
-                  with open(f, 'r') as s:
-                      data = json.load(s)
-                  
-                  # Standard SARIF path to results
-                  results = data.get('runs', [{}])[0].get('results', [])
-                  high = sum(1 for r in results if r.get('level') == 'error')
-                  med = sum(1 for r in results if r.get('level') == 'warning')
-                  total = len(results)
-                  
-                  # Clean display name from path/filename
-                  display_name = os.path.basename(f).replace('sarif-', '').replace('.sarif', '')
-                  print(f'| {display_name} | {high} | {med} | {total} |')
-              except Exception as e:
-                  print(f'| Error parsing {os.path.basename(f)} | - | - | - |', file=sys.stderr)
+          else:
+              for f in files:
+                  try:
+                      with open(f, 'r') as s:
+                          data = json.load(s)
+                      
+                      runs = data.get('runs', [{}])
+                      results = runs[0].get('results', []) if runs else []
+                      
+                      high = sum(1 for r in results if r.get('level') == 'error')
+                      med = sum(1 for r in results if r.get('level') == 'warning')
+                      total = len(results)
+                      
+                      display_name = os.path.basename(f).replace('.sarif', '')
+                      print(f'| {display_name} | {high} | {med} | {total} |')
+                  except Exception as e:
+                      print(f'| Error parsing {os.path.basename(f)} | - | - | - |', file=sys.stderr)
           " >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Merged Final Results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: final-consolidated-report
           path: all-results/
