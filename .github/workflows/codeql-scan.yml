@@ -3,6 +3,7 @@ name: "General AI Multi-Language Scanner"
 on:
   workflow_dispatch: 
 
+# Opt-in to Node.js 24 runtime to resolve deprecation warnings
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -37,7 +38,7 @@ jobs:
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60  # Increased to handle larger codebases like OpenClaw
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -57,8 +58,9 @@ jobs:
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          GIT_LFS_SKIP_SMUDGE: 1 
+          GIT_LFS_SKIP_SMUDGE: 1 # Bypass binary file 404 errors
         run: |
+          # Disable Git LFS filters globally for this session
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
@@ -99,16 +101,19 @@ jobs:
         run: |
           echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
           if [ -d "sarif-results" ]; then
+            # generic results file for individual job summary
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             
-            # Replace slash with _SLASH_ to keep the repo path intact in the filename
+            # Metadata-rich filename for the global consolidated report
+            # Replaces / with _SLASH_ to preserve the path structure in the filename
             SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
           fi
+          
           if [ -f "results.sarif" ]; then
             python scripts/parse-results.py
           else
-            echo "⚠️ No results generated for this job." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No results generated for this job (Check for timeouts)." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Save SARIF as Workflow Artifact
@@ -149,19 +154,19 @@ jobs:
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 3: continue
                   
-                  # Reconstruct repo name and PR number
-                  repo_full = parts[0].replace('_SLASH_', '/')
-                  pr_num = parts[1]
-                  lang = parts[2]
+                  # Reconstruct the repo path and build the PR URL
+                  repo_full = parts.replace('_SLASH_', '/')
+                  pr_num = parts
+                  lang = parts
                   
-                  # Ensure the URL is built with standard slashes
+                  # Correctly builds URL with all necessary slashes
                   pr_url = 'https://github.com' + repo_full + '/pull/' + pr_num
                   
                   with open(f, 'r') as s:
                       data = json.load(s)
                   
                   runs = data.get('runs', [])
-                  results = runs[0].get('results', []) if runs else []
+                  results = runs.get('results', []) if runs else []
                   
                   high = sum(1 for r in results if r.get('level') == 'error')
                   med = sum(1 for r in results if r.get('level', 'warning') == 'warning')
