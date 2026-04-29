@@ -126,7 +126,7 @@ jobs:
       - name: Generate Consolidated Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Repository | PR Link | Lang | 🔴 High | 🟡 Med | 🔵 Low | Total |" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | PR Link | Lang | 🔴 High | 🟡 Med | 🔵 Low | Total (Unique Files) |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :---: | :---: | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
           
           python3 -c "
@@ -147,14 +147,23 @@ jobs:
                   
                   with open(f, 'r') as s:
                       data = json.load(s)
-                  runs = data.get('runs', [])
+                  runs = data.get('runs', [{}])
                   results = runs[0].get('results', []) if runs else []
                   
                   high = sum(1 for r in results if r.get('level') == 'error')
                   med = sum(1 for r in results if r.get('level', 'warning') == 'warning')
                   low = sum(1 for r in results if r.get('level') == 'note')
                   
-                  print(f'| {repo_full} | [#{pr_num}]({pr_url}) | {lang} | {high} | {med} | {low} | {len(results)} |')
+                  # Calculate unique files impacted
+                  files_impacted = set()
+                  for r in results:
+                      for l in r.get('locations', []):
+                          path = l.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
+                          if path: files_impacted.add(path)
+                  
+                  total_display = f'{len(results)} ({len(files_impacted)})'
+                  
+                  print(f'| {repo_full} | [#{pr_num}]({pr_url}) | {lang} | {high} | {med} | {low} | {total_display} |')
                   found_count += 1
               except Exception as e:
                   print(f'| Error parsing {fname} | - | - | - | - | - | - |', file=sys.stderr)
@@ -162,3 +171,9 @@ jobs:
           if found_count == 0:
               print('| No valid results found | - | - | - | - | - | - |')
           " >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Merged Final Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-consolidated-report
+          path: all-results/
