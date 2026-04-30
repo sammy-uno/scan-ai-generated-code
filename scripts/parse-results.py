@@ -1,11 +1,18 @@
 import json, os, sys
 
 def main():
-    if not os.path.exists("results.sarif"): return
-    with open("results.sarif", 'r') as f:
-        data = json.load(f)
+    sarif_path = "results.sarif"
+    if not os.path.exists(sarif_path):
+        return
+        
+    try:
+        with open(sarif_path, 'r') as f:
+            data = json.load(f)
+    except:
+        return
 
-    results = data.get('runs', [{}])[0].get('results', [])
+    runs = data.get('runs', [{}])[0]
+    results = runs.get('results', [])
     summary_md = f"\n### 🛡️ Analysis Details: {len(results)} Issues Found\n"
     
     if results:
@@ -15,9 +22,13 @@ def main():
             phys = res.get('locations', [{}])[0].get('physicalLocation', {})
             path = phys.get('artifactLocation', {}).get('uri', 'Unknown')
             line = phys.get('region', {}).get('startLine', '?')
-            summary_md += f"| {icons.get(res.get('level'), '🟡')} | `{res.get('ruleId')}` | `{path}:{line}` | {res.get('message', {}).get('text', '').splitlines()[0]} |\n"
+            level = res.get('level', 'warning')
+            msg = res.get('message', {}).get('text', 'No description').split('\n')[0]
+            summary_md += f"| {icons.get(level, '🟡')} | `{res.get('ruleId')}` | `{path}:{line}` | {msg} |\n"
 
-    with open(os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md'), 'a') as f:
+    summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
+    with open(summary_file, 'a') as f:
         f.write(summary_md)
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
