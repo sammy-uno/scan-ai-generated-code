@@ -1,19 +1,28 @@
 import subprocess
 import json
 import os
-import sys
+import time
 import pandas as pd
 
-def run_command(command):
-    """Executes a command and returns the result."""
-    result = subprocess.run(command, capture_output=True, text=True, shell=True)
-    return result
+def run_command(command, max_retries=2):
+    """Executes a command with a 30s timeout and internal retries."""
+    for attempt in range(max_retries):
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
+            if result.returncode == 0:
+                return result
+            print(f"Command failed (Attempt {attempt + 1}): {result.stderr}")
+            time.sleep(2)
+        except subprocess.TimeoutExpired:
+            print(f"Command timed out (Attempt {attempt + 1})")
+            continue
+    return None
 
 def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
-    MAX_PR_LINES = 2500
-    SCAN_LIMIT = 20  # Limit to the first 20 valid PRs
+    MAX_PR_LINES = 1000 
+    SCAN_LIMIT = 10    
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -25,7 +34,6 @@ def main():
     found_count = 0
 
     for _, row in df.iterrows():
-        # Stop once we hit the test limit
         if found_count >= SCAN_LIMIT:
             break
 
@@ -39,7 +47,7 @@ def main():
             continue
 
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
-        if lines_res.returncode == 0:
+        if lines_res and lines_res.returncode == 0:
             stats = json.loads(lines_res.stdout)
             total_changes = stats.get("additions", 0) + stats.get("deletions", 0)
             if total_changes > MAX_PR_LINES:
