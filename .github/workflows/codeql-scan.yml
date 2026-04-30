@@ -8,6 +8,8 @@ env:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
   discover:
@@ -31,12 +33,12 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }}
     needs: discover
-    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && fromJson(needs.discover.outputs.matrix).include[0] != null }}
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 20
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
     steps:
@@ -45,10 +47,7 @@ jobs:
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          GIT_LFS_SKIP_SMUDGE: 1
         run: |
-          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
-          git config --global filter.lfs.process "git-lfs filter-process --skip"
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/
           rm -rf ./*
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
@@ -59,10 +58,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-          config: |
-            paths-ignore: 
-              - '**/docs/**'
-              - '**/doc/**'
+          db-location: ${{ runner.temp }}/codeql_db
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -71,6 +67,7 @@ jobs:
           category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
           upload: false 
+          wait-for-processing: false 
 
       - name: Create Summary
         if: always()
@@ -103,7 +100,7 @@ jobs:
       - name: Generate Consolidated Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues (Unique Files) |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           python3 -c "
           import json, glob, os
@@ -114,7 +111,7 @@ jobs:
                   parts = fname.replace('.sarif', '').split('--')
                   repo, pr, lang, agent = parts[0].replace('_SLASH_', '/'), parts[1], parts[2], parts[3].replace('_', ' ')
                   with open(f) as s: data = json.load(s)
-                  res = data.get('runs', [{}]).get('results', [])
+                  res = data.get('runs', [{}])[0].get('results', [])
                   h = sum(1 for r in res if r.get('level') == 'error')
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
