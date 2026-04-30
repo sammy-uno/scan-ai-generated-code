@@ -1,43 +1,23 @@
-import json
-import os
-import glob
-import sys
+import json, os, sys
 
 def main():
-    sarif_file = "results.sarif"
-    if not os.path.exists(sarif_file):
-        return
-
-    with open(sarif_file, 'r') as f:
+    if not os.path.exists("results.sarif"): return
+    with open("results.sarif", 'r') as f:
         data = json.load(f)
 
-    runs = data.get('runs', [])
-    results = runs[0].get('results', []) if runs else []
-    
+    results = data.get('runs', [{}])[0].get('results', [])
     summary_md = f"\n### 🛡️ Analysis Details: {len(results)} Issues Found\n"
-    if not results:
-        summary_md += "_No security issues detected in modified files._\n"
-    else:
+    
+    if results:
         summary_md += "| Severity | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- |\n"
         icons = {"error": "🔴 High", "warning": "🟡 Medium", "note": "🔵 Low"}
-
         for res in results:
-            rule_id = res.get('ruleId', 'N/A')
-            msg = res.get('message', {}).get('text', 'No description').split('\n')[0]
-            level = res.get('level', 'warning')
-            icon = icons.get(level, "🟡 Medium")
-            
-            # Extract Path and Line Number
-            locs = res.get('locations', [{}])
-            phys = locs[0].get('physicalLocation', {})
+            phys = res.get('locations', [{}])[0].get('physicalLocation', {})
             path = phys.get('artifactLocation', {}).get('uri', 'Unknown')
             line = phys.get('region', {}).get('startLine', '?')
-            
-            summary_md += f"| {icon} | `{rule_id}` | `{path}:{line}` | {msg} |\n"
+            summary_md += f"| {icons.get(res.get('level'), '🟡')} | `{res.get('ruleId')}` | `{path}:{line}` | {res.get('message', {}).get('text', '').splitlines()[0]} |\n"
 
-    if 'GITHUB_STEP_SUMMARY' in os.environ:
-        with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-            f.write(summary_md)
+    with open(os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md'), 'a') as f:
+        f.write(summary_md)
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
