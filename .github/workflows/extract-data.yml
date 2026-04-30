@@ -1,0 +1,41 @@
+name: "Manual AIDev Data Extraction"
+
+on:
+  workflow_dispatch: # Enables the "Run workflow" button in GitHub Actions
+
+permissions:
+  contents: write # Required to commit the CSV file back to the repo
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Data Science Dependencies
+        run: |
+          pip install pandas pyarrow fastparquet huggingface_hub
+
+      - name: Run Extraction Script
+        run: python scripts/extract_aidev.py
+
+      - name: Commit and Push CSV
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          
+          # Only commit if the file actually changed to avoid workflow errors
+          if [ -f "aidev_scan_list.csv" ]; then
+            git add aidev_scan_list.csv
+            git commit -m "Update AIDev scan list [on-demand]" || echo "No changes to commit"
+            git push
+          else
+            echo "Error: aidev_scan_list.csv was not generated."
+            exit 1
+          fi
