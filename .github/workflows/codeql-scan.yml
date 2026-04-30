@@ -1,65 +1,96 @@
 name: "General AI Multi-Language Scanner"
+
 on:
-  workflow_dispatch:
+  workflow_dispatch: 
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
+
 jobs:
   discover:
+    name: Find AI PRs
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - run: |
-          pip install pandas
-          python scripts/ai-scanner.py
+      - name: Discover Scan Matrix
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          pip install pandas
+          python scripts/ai-scanner.py
 
   analyze:
+    name: Scan ${{ matrix.repo_name }}
     needs: discover
-    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && fromJson(needs.discover.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
+      max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
     steps:
-      - uses: actions/checkout@v4
-      - name: PR Checkout
+      - uses: actions/checkout@v5
+      - name: Prepare Workspace and Checkout PR
+        id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
         run: |
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/
-          rm -rf ./* && gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          rm -rf ./*
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           mkdir -p scripts && cp /tmp/scripts/* scripts/
-      - uses: github/codeql-action/init@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-      - uses: github/codeql-action/analyze@v3
+          config: |
+            paths-ignore: 
+              - '**/docs/**'
+              - '**/doc/**'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
         continue-on-error: true
         with:
+          category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
-          upload: false
-      - name: Local Report
+          upload: false 
+
+      - name: Create Summary
+        if: always()
         run: |
-          cp sarif-results/*.sarif ./results.sarif
-          cp sarif-results/*.sarif ./${{ matrix.category_name }}.sarif
-          python scripts/parse-results.py
-      - uses: actions/upload-artifact@v4
+          if [ -d "sarif-results" ]; then
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
+            python scripts/parse-results.py
+          fi
+
+      - name: Save Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: sarif-${{ matrix.category_name }}
           path: "*.sarif"
 
   report:
+    name: Consolidate Final Report
     needs: analyze
     if: always()
     runs-on: ubuntu-latest
@@ -69,23 +100,25 @@ jobs:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
-      - name: Global Summary
+      - name: Generate Consolidated Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           python3 -c "
           import json, glob, os
-          for f in sorted(glob.glob('all-results/*.sarif')):
+          for f in sorted(glob.glob('all-results/**/*.sarif', recursive=True)):
               fname = os.path.basename(f)
-              if fname == 'results.sarif': continue
-              parts = fname.replace('.sarif', '').split('--')
-              repo, pr, lang, agent = parts[0].replace('_SLASH_', '/'), parts[1], parts[2], parts[3].replace('_', ' ')
-              with open(f) as s: data = json.load(s)
-              res = data.get('runs', [{}])[0].get('results', [])
-              h = sum(1 for r in res if r.get('level') == 'error')
-              m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
-              l = sum(1 for r in res if r.get('level') == 'note')
-              u = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
-              print(f'| {repo} | [#{pr}](https://github.com{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({u}) |')
+              if fname == 'results.sarif' or '--' not in fname: continue
+              try:
+                  parts = fname.replace('.sarif', '').split('--')
+                  repo, pr, lang, agent = parts[0].replace('_SLASH_', '/'), parts[1], parts[2], parts[3].replace('_', ' ')
+                  with open(f) as s: data = json.load(s)
+                  res = data.get('runs', [{}]).get('results', [])
+                  h = sum(1 for r in res if r.get('level') == 'error')
+                  m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
+                  l = sum(1 for r in res if r.get('level') == 'note')
+                  u = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
+                  print(f'| {repo} | [#{pr}](https://github.com{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({u}) |')
+              except: pass
           " >> $GITHUB_STEP_SUMMARY
