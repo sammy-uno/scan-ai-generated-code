@@ -1,179 +1,91 @@
 name: "General AI Multi-Language Scanner"
-
 on:
-  workflow_dispatch: 
-
+  workflow_dispatch:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 permissions:
   contents: read
-
 jobs:
   discover:
-    name: Find AI PRs
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - name: Checkout Tooling Repo
-        uses: actions/checkout@v5
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Discover PRs
+      - run: |
+          pip install pandas
+          python scripts/ai-scanner.py
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-        run: |
-          export GH_TOKEN=${{ secrets.GLOBAL_SCAN_PAT }}
-          python scripts/ai-scanner.py
 
   analyze:
-    name: Scan ${{ matrix.repo_name }} (${{ matrix.language }})
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
-    
     steps:
-      - name: Checkout Tooling Repo
-        uses: actions/checkout@v5
-      - name: Setup Runner Environment
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Prepare Workspace and Checkout PR
-        id: pr_checkout
+      - uses: actions/checkout@v4
+      - name: PR Checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
         run: |
-          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
-          git config --global filter.lfs.process "git-lfs filter-process --skip"
-          mkdir -p /tmp/tooling_scripts
-          cp -r scripts/* /tmp/tooling_scripts/
-          rm -rf ./*
-          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          mkdir -p scripts
-          cp -r /tmp/tooling_scripts/* scripts/
-          echo "pr_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          echo "pr_ref=refs/pull/${{ matrix.pr_num }}/head" >> $GITHUB_OUTPUT
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+          mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/
+          rm -rf ./* && gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          mkdir -p scripts && cp /tmp/scripts/* scripts/
+      - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-          source-root: .
-          token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          config: |
-            paths: ${{ matrix.scan_paths }}
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v3
         continue-on-error: true
         with:
-          category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
-          sha: ${{ steps.pr_checkout.outputs.pr_sha }}
-          ref: ${{ steps.pr_checkout.outputs.pr_ref }}
-          token: ${{ secrets.GLOBAL_SCAN_PAT }}
-          upload: false 
-
-      - name: Create Summary
-        if: always()
+          upload: false
+      - name: Local Report
         run: |
-          echo "## 🛡️ Scan Summary for ${{ matrix.repo_name }} #${{ matrix.pr_num }}" >> $GITHUB_STEP_SUMMARY
-          if [ -d "sarif-results" ]; then
-            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
-            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
-          fi
-          if [ -f "results.sarif" ]; then
-            python scripts/parse-results.py
-          else
-            echo "⚠️ No results generated for this job." >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Save SARIF as Workflow Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
+          cp sarif-results/*.sarif ./results.sarif
+          cp sarif-results/*.sarif ./${{ matrix.category_name }}.sarif
+          python scripts/parse-results.py
+      - uses: actions/upload-artifact@v4
         with:
           name: sarif-${{ matrix.category_name }}
           path: "*.sarif"
-          if-no-files-found: warn
 
   report:
-    name: Consolidate Final Report
     needs: analyze
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Download all SARIF Artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
-
-      - name: Generate Consolidated Summary
+      - name: Global Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Repository | PR Link | Lang | 🔴 High | 🟡 Med | 🔵 Low | Total (Unique Files) |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :---: | :---: | :---: | :---: | :---: |" >> $GITHUB_STEP_SUMMARY
-          
+          echo "| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           python3 -c "
-          import json, glob, os, sys
-          files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
-          found_count = 0
-          for f in files:
+          import json, glob, os
+          for f in sorted(glob.glob('all-results/*.sarif')):
               fname = os.path.basename(f)
-              if fname == 'results.sarif' or '--' not in fname: continue
-              try:
-                  parts = fname.replace('.sarif', '').split('--')
-                  if len(parts) < 3: continue
-                  
-                  repo_full = parts[0].replace('_SLASH_', '/')
-                  pr_num = parts[1]
-                  lang = parts[2]
-                  pr_url = f'https://github.com{repo_full}/pull/{pr_num}'
-                  
-                  with open(f, 'r') as s:
-                      data = json.load(s)
-                  runs = data.get('runs', [{}])
-                  results = runs[0].get('results', []) if runs else []
-                  
-                  high = sum(1 for r in results if r.get('level') == 'error')
-                  med = sum(1 for r in results if r.get('level', 'warning') == 'warning')
-                  low = sum(1 for r in results if r.get('level') == 'note')
-                  
-                  # Calculate unique files impacted
-                  files_impacted = set()
-                  for r in results:
-                      for l in r.get('locations', []):
-                          path = l.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
-                          if path: files_impacted.add(path)
-                  
-                  total_display = f'{len(results)} ({len(files_impacted)})'
-                  
-                  print(f'| {repo_full} | [#{pr_num}]({pr_url}) | {lang} | {high} | {med} | {low} | {total_display} |')
-                  found_count += 1
-              except Exception as e:
-                  print(f'| Error parsing {fname} | - | - | - | - | - | - |', file=sys.stderr)
-          
-          if found_count == 0:
-              print('| No valid results found | - | - | - | - | - | - |')
+              if fname == 'results.sarif': continue
+              parts = fname.replace('.sarif', '').split('--')
+              repo, pr, lang, agent = parts[0].replace('_SLASH_', '/'), parts[1], parts[2], parts[3].replace('_', ' ')
+              with open(f) as s: data = json.load(s)
+              res = data.get('runs', [{}])[0].get('results', [])
+              h = sum(1 for r in res if r.get('level') == 'error')
+              m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
+              l = sum(1 for r in res if r.get('level') == 'note')
+              u = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
+              print(f'| {repo} | [#{pr}](https://github.com{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({u}) |')
           " >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Merged Final Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: final-consolidated-report
-          path: all-results/
