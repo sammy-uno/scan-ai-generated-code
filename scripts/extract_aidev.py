@@ -38,7 +38,7 @@ def extract_data():
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
     # Take the top 100 most recent PRs
-    scan_limit = 100
+    scan_limit = 500
     final_list = filtered_df.head(scan_limit)
 
     # Select and rename columns for your scanner
