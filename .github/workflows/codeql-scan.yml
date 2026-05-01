@@ -59,6 +59,7 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
+          trap-caching: false  # FIX: Prevents parallel jobs from fighting over the cache
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -100,7 +101,7 @@ jobs:
       - name: Generate Consolidated Summary
         run: |
           echo "# 📊 Global Analysis Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues (Unique Files) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
           python3 -c "
           import json, glob, os
@@ -109,13 +110,23 @@ jobs:
               if fname == 'results.sarif' or '--' not in fname: continue
               try:
                   parts = fname.replace('.sarif', '').split('--')
-                  repo, pr, lang, agent = parts[0].replace('_SLASH_', '/'), parts[1], parts[2], parts[3].replace('_', ' ')
+                  if len(parts) < 4: continue
+                  repo = parts[0].replace('_SLASH_', '/')
+                  pr = parts[1]
+                  lang = parts[2]
+                  agent = parts[3].replace('_', ' ')
                   with open(f) as s: data = json.load(s)
-                  res = data.get('runs', [{}])[0].get('results', [])
+                  runs = data.get('runs', [{}])
+                  res = runs[0].get('results', []) if runs else []
                   h = sum(1 for r in res if r.get('level') == 'error')
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
-                  u = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
-                  print(f'| {repo} | [#{pr}](https://github.com{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({u}) |')
+                  u_files = set()
+                  for r in res:
+                      for loc in r.get('locations', []):
+                          uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
+                          if uri: u_files.add(uri)
+                  # FIX: Missing slash after .com added here
+                  print(f'| {repo} | [#{pr}](https://github.com/{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
               except: pass
           " >> $GITHUB_STEP_SUMMARY
