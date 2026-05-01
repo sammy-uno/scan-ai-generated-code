@@ -99,3 +99,406 @@ siteboon/claudecodeui,129,feat: Enhanced Claude Code UI with Complete Transparen
 binarywang/WxJava,3663,[WIP] 【企业微信】获取审批模板详情异常:Expected BEGIN_OBJECT but was BEGIN_ARRAY,java,Copilot
 Kiln-AI/Kiln,463,Fix ruff command and lint issues,python,OpenAI_Codex
 AgentOps-AI/agentops,1183,Update README.md with latest AgentOps integrations and features,python,Devin
+datahub-project/datahub,14258,Upgrade docusaurus documentation website to v3,java,Cursor
+3rdIteration/btcrecover,615,Switch scrypt to wallycore,python,OpenAI_Codex
+BerriAI/litellm,13110,Add user activity metrics and UI tab,python,Cursor
+giselles-ai/giselle,1569,Add onBeforeDelete to V2 editor,javascript,OpenAI_Codex
+lordmauve/pgzero,366,Add Windows and macOS test runs,python,OpenAI_Codex
+mendableai/firecrawl,1886,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin
+opral/monorepo,3660,Remove LIX branding from HTML Diff landing page,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3901,Ensure later CI jobs always run,python,OpenAI_Codex
+antiwork/flexile,670,Remove line break tags from homepage to fix responsive formatting,ruby,Devin
+mendableai/firecrawl,1885,Add database fallback to crawl errors endpoint,javascript,Devin
+antiwork/flexile,669,Update Pay Contractors section to highlight 190+ countries support,ruby,Devin
+crewAIInc/crewAI,3237,Fix Windows path length issue in memory storage,python,Devin
+neondatabase/website,3726,Remove 'Neon AI chat assistants' section from docs introduction page,javascript,Devin
+mendableai/firecrawl,1884,N-API Go html-to-markdown,javascript,Claude_Code
+antiwork/gumroad,710,Allow decimal values in Search Purchase charge_amount parameter,ruby,Devin
+jacepark12/ticktick-mcp,31,Add get_all_tasks functionality to fetch tasks across all projects,python,Claude_Code
+cartography-cncf/cartography,1737,feat: Add ingestion from disk for Trivy,python,OpenAI_Codex
+3rdIteration/btcrecover,614,Fix outer_iterations to avoid zero,python,OpenAI_Codex
+mendableai/firecrawl,1883,fix(go): add mutex to prevent concurrent access issues in html-to-markdown,javascript,Claude_Code
+maxDcb/C2TeamServer,29,Update gRPC and add GCC11 build instructions,python,OpenAI_Codex
+ruvnet/claude-flow,523,🎯 Maestro Comprehensive Workflow Guide + Code Quality Integration,javascript,Claude_Code
+stanford-crfm/haliax,189,Add tests for MoELinear,python,OpenAI_Codex
+stanford-crfm/levanter,1114,Use DecodeState for generation tracking,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3893,test: assert middleware state,python,OpenAI_Codex
+567-labs/instructor,1754,fix: add BEDROCK_MISTRAL_JSON mode for Mistral models that don't support system messages,python,Devin
+antiwork/gumroad,708,Update Payouts nav icon from solid-currency-dollar to bank,ruby,Devin
+onetimesecret/onetimesecret,1577,Replace custom rate limiting logic,ruby,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3890,Improve API server static tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3889,[alpha_factory] Add postponed annotations to test,python,OpenAI_Codex
+strapi/documentation,2621,Improve GraphQL queries explanations (Flat vs. Relay-style),javascript,OpenAI_Codex
+Kiln-AI/Kiln,461,Add developer content check workflow,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3888,[alpha_factory] add agent context to ping logs,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3887,[alpha_factory] expose middleware on app state,python,OpenAI_Codex
+neondatabase/website,3723,Remove final batch of unused media files (batch 7),javascript,Devin
+neondatabase/website,3722,Remove unused media files from introduction and manage directories (batch 6),javascript,Devin
+neondatabase/website,3721,Remove unused media files from introduction directory (batch 5),javascript,Devin
+neondatabase/website,3719,Remove prefixes from file and media storage guide titles in sidebar,javascript,Devin
+neondatabase/website,3718,"Remove unused media files from guides, import, and introduction directories (batch 4)",javascript,Devin
+ruvnet/claude-flow,519,"Alpha.78: Agent System Fix, Hooks Improvements & GitHub CLI Safety",javascript,Claude_Code
+neondatabase/website,3717,Remove unused media files from guides directory (batch 3),javascript,Devin
+AgentOps-AI/agentops,1182,Create Custom LiteLLM Callback Handler Maintained by AgentOps,python,Devin
+neondatabase/website,3716,Remove unused media files from connect and guides directories (batch 2),javascript,Devin
+neondatabase/website,3715,Remove unused media files from get-started-with-neon directory,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3886,Fix MetaRefinementAgent typing,python,OpenAI_Codex
+antiwork/flexile,664,Remove user_leads table and all associated code via migration,ruby,Devin
+antiwork/flexile,663,Remove time_entries table and all associated code,ruby,Devin
+AgentOps-AI/agentops,1181,Restructure README.md to showcase AgentOps tool and popular projects,python,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3885,[alpha_factory] increase meta refinement agent coverage,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3884,fix: improve MetaRefinementAgent bottleneck detection,python,OpenAI_Codex
+prebid/Prebid.js,13689,Test suite: clean up tests not setting shouldClearNativeTimers,javascript,OpenAI_Codex
+Rello/analytics,533,Update threshold modal IDs,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3883,docs: add lightweight test instructions,python,OpenAI_Codex
+ruvnet/claude-flow,512,📚 Comprehensive Maestro Workflow Guide & Documentation,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3882,[alpha_factory] expose harness helpers,python,OpenAI_Codex
+Rello/analytics,532,Fix settings button spacing and add menu animations,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3881,[alpha_factory] cast Mapping values before float conversion,python,OpenAI_Codex
+WellApp-ai/Well,77,"Implement comprehensive FatturaPA (Italian e-invoicing) support with 300+ fields, XML/JSON exporters, and full test coverage",javascript,Copilot
+elastic/kibana,229804,Add retry logic to CSP plugin getInstallation call,javascript,Copilot
+WellApp-ai/Well,76,Implement comprehensive FatturaPA (Italian E-Invoicing) support with XML/JSON output,javascript,Copilot
+WellApp-ai/Well,75,Add FatturaPA XML/JSON dual output support for Italian electronic invoicing compliance,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3880,Fix variable name in quickstart script,python,OpenAI_Codex
+mendableai/firecrawl,1880,Fix robots.txt HTML filtering to check content structure,javascript,Devin
+getAlby/lightning-browser-extension,3405,feat: change NWC connector title to include NWC abbreviation,javascript,Copilot
+ukrbublik/react-awesome-query-builder,1288,deprecated ant design v5 patterns,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3878,[alpha_factory] fix disclaimer link paths,python,OpenAI_Codex
+microsoft/genaiscript,1804,Add automatic retry for streaming LLM responses that fail partway through,javascript,Copilot
+microsoft/genaiscript,1802,Fix quiet mode to suppress all LLM output,javascript,Copilot
+bugsink/bugsink,172,Add vacuum_ingest_dir management command for cleaning up temporary ingest files,python,Copilot
+taiga-family/taiga-ui,11464,"test: enhance textfield-in-table.cy.ts with textarea, input-chip, and input-card-group components",javascript,Copilot
+liveblocks/liveblocks,2552,Add trust center section to data storage documentation,javascript,Devin
+rxaviers/async-pool,49,Update README with Node v24 note,javascript,OpenAI_Codex
+liam-hq/liam,2763,feat: implement Deep Modeling toggle processing logic,javascript,Devin
+zhandouxiaojiji/behavior3editor,43,Create detailed project tutorial,javascript,Cursor
+liam-hq/liam,2762,feat: Complete Upload functionality server-side processing,javascript,Devin
+liam-hq/liam,2761,feat: temporarily hide voice input and file attachment UI,javascript,Devin
+microsoft/vscode,258447,Fix duplicate Windows 11 context menu entries for VS Code Insiders,javascript,Copilot
+bugsink/bugsink,171,[WIP] vacuum ingest dir,python,Copilot
+StarRocks/starrocks,61403,Implement json_contains and fix issue 57086,java,Cursor
+mfts/papermark,1788,feat: add cancel export button and recent exports,javascript,Cursor
+ibelick/zola,252,Generate comprehensive API documentation,javascript,Cursor
+MontrealAI/AGI-Alpha-Agent-v0,3877,docs: add disclaimer links,python,OpenAI_Codex
+vespa-engine/pyvespa,1099,Support multiline indexing statements with tuple syntax,python,Copilot
+miurla/morphic,595,fix: prevent displaying '0' results during loading in search section,javascript,Devin
+liam-hq/liam,2759,feat: update CodeRabbit configuration with comprehensive settings,javascript,Devin
+Emurgo/yoroi,3995,Ignore expo directory in mobile app,javascript,Cursor
+cloudflare/workers-sdk,10112,fix: handle workflow bindings in getPlatformProxy(),javascript,Devin
+StarRocks/starrocks,61394,[Feature] implement json_remove,java,Cursor
+microsoft/vscode,258424,Restore Windows ARM64 emulation warning with proper detection,javascript,Copilot
+remotion-dev/remotion,5538,@remotion/webcodecs: Add documentation for getPartialAudioData() API,javascript,Copilot
+reflex-dev/reflex-web,1550,Add Browser Use Cloud API Search and Ask Feature,python,Devin
+python/python-docs-zh-tw,1135,Translate extending/embedding.po - Complete Chinese (Traditional) translation,python,Copilot
+elementary-data/dbt-data-reliability,831,Add configuration to disable sample collection for PII tables,python,Devin
+cloudflare/workers-sdk,10111,feat: improve CORS validation with AWS S3 format detection,javascript,Devin
+saleor/apps,2046,Improve language correctness across documentation and code,javascript,Copilot
+U8F69/open-webui,174,chore: 在 dev 分支推送时构建 Docker 镜像但不标记为 latest,javascript,Copilot
+liam-hq/liam,2752,feat: implement structured DML-Usecase mapping artifact display,javascript,Devin
+liam-hq/liam,2750,refactor: remove unused repositories annotation from langGraphUtils.ts,javascript,Devin
+skypilot-org/skypilot,6414,Fix skypilot github issue 6413,python,Cursor
+YunaiV/ruoyi-vue-pro,906,Optimize readme file,java,Cursor
+CarGuo/GSYGithubAPP,138,Upgrade GSYGithubAPP to React Native 0.74 with complete navigation modernization and runtime error resolution,javascript,Copilot
+halo-dev/halo,7644,Optimize homepage post loading by eliminating N+1 queries for user data,java,Copilot
+shouhengyi/bagel,29,Add read_topic_frequencies MCP tool for robolog frequency analysis,python,Copilot
+Ljzd-PRO/KToolBox,284,Add post context to download error messages,python,Copilot
+ikamensh/flynt,244,Refactor CodeEditor to accept state directly,python,OpenAI_Codex
+Ljzd-PRO/KToolBox,283,Add winloop support for Windows platforms as uvloop alternative,python,Copilot
+Ljzd-PRO/KToolBox,282,Add sync-creator queue for batch downloading multiple creators,python,Copilot
+Ljzd-PRO/KToolBox,281,Add prefix_sequence_to_filename option to resolve duplicate attachment filename conflicts,python,Copilot
+Ljzd-PRO/KToolBox,280,Add selective sequential filename feature with excludes option,python,Copilot
+Azure/autorest.typescript,3400,Upgrade tcgc to latest dev version (0.59.0-dev.9),javascript,Copilot
+microsoft/vscode,258402,Fix leaked disposables when closing notebook inline chat,javascript,Copilot
+OWASP/wrongsecrets,2121,Fix ZAP DAST scan security issues and resolve GitHub Actions workflow failures,java,Copilot
+CarGuo/GSYGithubAPP,137,Upgrade React Native from 0.61.3 to 0.74.5 with complete dependency migration,javascript,Copilot
+Wei-Shaw/claude-relay-service,114,feat: Add tag support for API Keys and fix OAuth token exchange,javascript,Claude_Code
+liam-hq/liam,2749,feat: implement validation result mapping for DML-Usecase association,javascript,Devin
+vespa-engine/pyvespa,1097,Support multiple index statements in Field definitions,python,Copilot
+vespa-engine/pyvespa,1095,[WIP] Support multiple `index` statements in `Field`-definition,python,Copilot
+microsoft/genaiscript,1800,Add system prompts for Ruby and PHP programming with automatic activation,javascript,Copilot
+microsoft/genaiscript,1799,Implement Simplified GenAIScript Markdown Reference Link Validator,javascript,Copilot
+liam-hq/liam,2746,feat: implement artifact transformation logic for DML-Usecase mapping,javascript,Devin
+liam-hq/liam,2745,feat: restructure DMLGenerationAgent to output structured DmlOperation[],javascript,Devin
+liam-hq/liam,2743,feat: extend Usecase schema with UUID and DML operations array,javascript,Devin
+mlflow/mlflow,16927,Sort requirements alphabetically in generate_requirements.py output,python,Copilot
+OpenAgentsInc/openagents,1264,feat: Complete Convex→Confect migration + Device sync research and APM improvements,javascript,Claude_Code
+Ljzd-PRO/KToolBox,279,Support custom `external_link_patterns` in `JobConfiguration` and fix content image counter,python,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3875,docs: ignore bundle artifacts,python,OpenAI_Codex
+Ljzd-PRO/KToolBox,278,Fix content image parsing and downloading with unified sequential numbering,python,Copilot
+quay/quay,4158,fix: add comprehensive global readonly superuser endpoint testing (PROJQUAY-8279),python,Claude_Code
+ryokun6/ryos,238,Add song id to ipod playlist,javascript,Cursor
+Ljzd-PRO/KToolBox,277,[WIP] Support custom `external_link_patterns` in `JobConfiguration`,python,Copilot
+Ljzd-PRO/KToolBox,276,[WIP] Support custom `external_link_patterns` in `JobConfiguration`,python,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3874,Sync openai_agents pins,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3873,[alpha_factory] Robust orchestrator restart test,python,OpenAI_Codex
+ryokun6/ryos,237,Start auto-hide timer on interaction,javascript,Cursor
+wataru-maeda/react-native-boilerplate,82,docs: improve README structure and add comprehensive script documentation,javascript,Claude_Code
+mastra-ai/mastra,6363,Research and code AI SDK v5 transforms,javascript,Cursor
+MontrealAI/AGI-Alpha-Agent-v0,3871,[alpha_factory] Fix module-level skip,python,OpenAI_Codex
+microsoft/vscode,258382,[WIP] Fixing Issue #257872 in VSCode Repository,javascript,Copilot
+wataru-maeda/react-native-boilerplate,81,feat: upgrade to Expo SDK 53 with modern architecture and tooling,javascript,Claude_Code
+opensource-observer/oso,4646,Add SQL query solution for counting projects in Optimism collection using OSO MCP server,python,Copilot
+langchain-ai/langgraph,5697,Refactor create_react_agent to use internal _AgentBuilder helper class,python,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3869,fix: ensure protobuf module loads and handle envelope stubs,python,OpenAI_Codex
+reflex-dev/reflex-web,1549,Add comprehensive MCP integration documentation,python,Devin
+roboflow/inference,1461,Create and monitor image batch,python,Cursor
+3rdIteration/btcrecover,613,Fix Blockchain mnemonic GUID parsing,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3867,[alpha_factory] fix openai_agents tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3865,[alpha_factory] Mock GPT2 link head request,python,OpenAI_Codex
+antiwork/flexile,661,Add Turbopack support for faster development builds,ruby,Devin
+mendableai/firecrawl,1877,feat(v2): add natural language prompt support to crawl API,javascript,Devin
+elementary-data/dbt-data-reliability,830,Add configuration to disable sample collection for PII tables,python,Devin
+liveblocks/liveblocks,2550,Add OpenAPI schema link to README developers section,javascript,Devin
+stanford-crfm/levanter,1112,Implement DecodeState operations,python,OpenAI_Codex
+AgentOps-AI/agentops,1179,Add llms.txt compilation system for AI model documentation,python,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3864,[alpha_factory] verify openai-agents attrs,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3863,[alpha_factory] clarify API_TOKEN docs,python,OpenAI_Codex
+databuddy-analytics/Databuddy,41,refactor: add proper types,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3862,[alpha_factory] improve check_env auto install,python,OpenAI_Codex
+ruvnet/claude-flow,490,🚀 Alpha.75: Windows Compatibility Overhaul (Based on PR #483 by @alexx-ftw),javascript,Claude_Code
+mendableai/firecrawl,1874,fix: switch RPC calls from read replica to main service,javascript,Devin
+ruvnet/claude-flow,489,🚀 Alpha.74: SQLite & Async/Await Fixes,javascript,Claude_Code
+gensx-inc/gensx,907,fix: make @libsql/client optional in @gensx/storage,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3860,[alpha_factory] fix openai_agents spec,python,OpenAI_Codex
+liveblocks/liveblocks,2549,Add storage documentation page,javascript,Devin
+basicmachines-co/basic-memory,241,fix: handle missing 'name' key in memory JSON import,python,Claude_Code
+antiwork/flexile,654,Configure tests workflow to run only on push events,ruby,Devin
+antiwork/gumroad,699,"Add search bar to admin purchases page with product name, date range, and status filters",ruby,Devin
+Rello/analytics,531,Move thresholds management to modal,javascript,OpenAI_Codex
+antiwork/flexile,652,Add comprehensive component guidance to copilot instructions and cursor rules,ruby,Devin
+3rdIteration/btcrecover,612,Add CI workflow for PoCL,python,OpenAI_Codex
+alchemyplatform/aa-sdk,1810,docs: add Solana program support in our docs,javascript,OpenAI_Codex
+onlook-dev/onlook,2554,Add user_first_signup PostHog event for reliable server-side signup tracking,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3859,[alpha_factory] add minimal smoke test instructions,python,OpenAI_Codex
+sunbeam-labs/sunbeam,549,Fix absolute paths in generated samples.csv,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3858,Update tests README for wheelhouse setup,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3857,[alpha_factory] enforce openai_agents version check,python,OpenAI_Codex
+copy/v86,1375,Codex/develop forge app for wasm emulator,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3856,[alpha_factory] document optional test packages,python,OpenAI_Codex
+liveblocks/liveblocks,2548,Add svix-cli testing section to webhooks documentation,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3855,[alpha_factory] start API client lifespan,python,OpenAI_Codex
+liveblocks/liveblocks,2547,Add svix-cli testing section to webhooks documentation,javascript,Devin
+3rdIteration/btcrecover,611,Add manual verification message,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3854,[alpha_factory] integrate Insight CLI,python,OpenAI_Codex
+antiwork/flexile,650,Add schema synchronization and PR self-review guidelines,ruby,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3853,[alpha_factory] ensure ledger cleanup after tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3852,Add pre-commit usage docs,python,OpenAI_Codex
+antiwork/gumroad,697,Configure user-sales-data/ prefix for sales CSV uploads,ruby,Devin
+arakoodev/EdgeChains,427,Add database-backed triggers and tests,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3851,fix tests,python,OpenAI_Codex
+benwbrum/fromthepage,4795,Fix security vulnerability in bulk export routes with granular access control,ruby,Copilot
+Rello/analytics,530,Fix threshold coloring in tables,javascript,OpenAI_Codex
+evandempsey/podcast-llm,27,Fix audio extractor init docs,python,OpenAI_Codex
+567-labs/instructor,1752,Add integration tests for thinking_config with create_iterable,python,Devin
+neondatabase/website,3711,Add changelog template for 2025-08-01,javascript,Devin
+celestiaorg/docs,2173,Fix broken lychee.cli.rs links in README and configuration,javascript,Copilot
+ikamensh/flynt,242,Enable hatch-vcs versioning,python,OpenAI_Codex
+OpenAgentsInc/openagents,1257,fix: Resolve React 19 JSX component type compatibility issues,javascript,Claude_Code
+ikamensh/flynt,241,Adjust CI matrix,python,OpenAI_Codex
+codexu/note-gen,481,feat: 增加AI配置自定义请求头功能,javascript,Claude_Code
+ar-io/ar-io-node,455,Add AWS AppConfig docs with OpenAPI env schema,javascript,OpenAI_Codex
+zqhang/AnomalyCLIP,84,Codex/anomalyclip学習データ作成コードの作成,python,OpenAI_Codex
+OpenAgentsInc/openagents,1253,fix: Remove all 'as any' type assertions from codebase,javascript,Claude_Code
+ikamensh/flynt,239,Support notebook conversion,python,OpenAI_Codex
+arakoodev/EdgeChains,426,Add RLS test,javascript,OpenAI_Codex
+antiwork/helper,819,Add React hooks wrapper for @helperai/client APIs,javascript,Devin
+Rello/analytics,529,Expand smart picker results,javascript,OpenAI_Codex
+TobikoData/sqlmesh,5042,Implement vscode test controller,python,OpenAI_Codex
+elastic/kibana,229602,Fix accessibility: Update aria-labels for findings filter buttons to announce filter functionality,javascript,Copilot
+microsoft/vscode,258172,Cherry-pick OOM fix: Replace AsyncIterableObject with AsyncIterableProducer to prevent memory leaks,javascript,Copilot
+microsoft/vscode,258171,Set triggerCommandOnProviderChange default to false to fix #256458,javascript,Copilot
+jamdotdev/jam-dev-utilities,104,feat: Implement SQL Minifier with robust parsing and comprehensive tests,javascript,Copilot
+microsoft/vscode-pull-request-github,7418,Add ESLint pre-commit hook to ensure code quality,javascript,Copilot
+calcom/cal.com,22768,refactor: convert checkBookingLimits to class service with dependency injection,javascript,Devin
+giorgosart/react-easy-edit,210,Add autofocus=false test for datalist,javascript,OpenAI_Codex
+tadata-org/fastapi_mcp,205,Add stateful streamable http transport,python,Cursor
+giorgosart/react-easy-edit,209,Add AGENTS file,javascript,OpenAI_Codex
+mlflow/mlflow,16915,Fix typos in pyproject.toml: 'improt' and 'unecessary',python,Copilot
+streamich/json-joy,923,Add recursive schema types support with function wrappers,javascript,Copilot
+ikamensh/flynt,236,Fix escaped newline handling,python,OpenAI_Codex
+microsoft/vscode,258150,Fix Pull Request card issue number wrapping in chat interface,javascript,Copilot
+mlflow/mlflow,16913,Update setup-python action to remove Python 3.9 and add Python 3.11 support,python,Copilot
+PyLabRobot/pylabrobot,627,Remove deprecated helpers,python,OpenAI_Codex
+mlflow/mlflow,16911,Remove ParamSpec from typing-extensions-allowlist after dropping Python 3.9 support,python,Copilot
+mlflow/mlflow,16909,Remove D417 from Ruff lint rules (duplicate with clint),python,Copilot
+microsoft/mssql-python,156,DOC: Add comprehensive BUILDGUIDE.md with cross-platform build instructions and VS Code setup,python,Copilot
+ryokun6/ryos,233,Apply os-font-ui to sonner toast,javascript,Cursor
+liam-hq/liam,2729,feat: wrap applyPatchOperations with neverthrow fromThrowable and return new object,javascript,Devin
+ryokun6/ryos,232,Update iPod player UI elements,javascript,Cursor
+PyLabRobot/pylabrobot,626,Refactor thermocycler lid status API,python,OpenAI_Codex
+AgentOps-AI/agentops,1174,"Fix documentation issues: deprecated session references, multi-turn guidance, ADK clarifications",python,Devin
+stanford-crfm/haliax,186,Implement shard_map wrapper,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3847,[alpha_factory] add missing SPDX headers,python,OpenAI_Codex
+microsoft/vscode-pull-request-github,7415,[WIP] Generating VS Code Product Links for Chat Response Turn 2,javascript,Copilot
+gitroomhq/postiz-app,901,Fix Discord bot IndentationError by implementing complete Python service,javascript,Copilot
+microsoft/vscode-pull-request-github,7414,[WIP] Aligning Setup Logs Display in CopilotRemoteAgentManager with Session Log Editor,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3846,fix: correct calc demo,python,OpenAI_Codex
+crewAIInc/crewAI-tools,397,feat: Add support for stateless HTTP MCP servers,python,Devin
+microsoft/typespec,8029,[python] Support python 3.13,java,Copilot
+miurla/morphic,588,fix: prevent image upload button from triggering form submission,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3843,[alpha_factory] fix typos,python,OpenAI_Codex
+liam-hq/liam,2717,Remove unused logger parameters from workflow system,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3842,Fix optional middleware and improve offline fallback,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3840,[alpha_factory] fix openai bridge env,python,OpenAI_Codex
+esphome/esphome-devices,1171,Migrate ESPHome configurations from deprecated platform syntax to new format,javascript,Copilot
+graphistry/pygraphistry,716,docs(gfql): Comprehensive GFQL documentation updates,python,Claude_Code
+graphistry/pygraphistry,715,"feat(gfql): Consolidated GFQL core implementation - AST nodes, Let bindings, Call operations",python,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3839,Fix tests and OpenAI error reference,python,OpenAI_Codex
+willccbb/verifiers,166,Benchmark review and improvement with gpt-4.1-mini,python,Cursor
+MontrealAI/AGI-Alpha-Agent-v0,3838,Fix README disclaimer spacing,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3837,[alpha_factory] fix: address mypy errors and add annotations,python,OpenAI_Codex
+esphome/esphome-devices,1170,Fix deprecated platform syntax in ESPHome configurations,javascript,Copilot
+liam-hq/liam,2705,feat: disable Renovate updates for @huggingface/transformers above 3.3.3,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3836,[alpha_factory] fix import order,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3835,[alpha_factory] replace demo subprocess shell call,python,OpenAI_Codex
+ikamensh/flynt,235,Adjust aggressive %d behavior,python,OpenAI_Codex
+ikamensh/flynt,234,Handle concats with backslashes,python,OpenAI_Codex
+arakoodev/EdgeChains,425,Add Redis action and fix merge worker tests,javascript,OpenAI_Codex
+stanford-crfm/haliax,184,Add named bincount,python,OpenAI_Codex
+ikamensh/flynt,232,Add CI auto fix for ruff,python,OpenAI_Codex
+ikamensh/flynt,231,Handle raw string prefixes,python,OpenAI_Codex
+ikamensh/flynt,230,Fix octal escape handling,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3834,docs: add pre-commit reminder,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3833,Update install instructions to use lock files,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3832,docs: update test setup instructions,python,OpenAI_Codex
+ikamensh/flynt,229,Fix unicode escape preservation when mixed with literal chars,python,OpenAI_Codex
+ikamensh/flynt,228,Fix concatenation transform for constant chains,python,OpenAI_Codex
+ikamensh/flynt,227,Fix transform-concats for literal-only joins,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3831,[alpha_factory] clarify heavy extras for tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3830,[alpha_factory] skip aiga bridge test when openai stub used,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3829,chore: upgrade rdkit,python,OpenAI_Codex
+ikamensh/flynt,226,Preserve unicode escapes,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3828,docs: list required extras for tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3827,[alpha_factory] fix openai_agents spec,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3826,Fix local action path in setup-insight-assets,python,OpenAI_Codex
+source-academy/frontend,3261,Migrate testing setup from Jest to Vitest,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3825,[alpha_factory] enforce google_adk checks,python,OpenAI_Codex
+valkey-io/valkey-glide,4486,Eliminate ACL permission requirements for CLIENT commands with intelligent detection,java,Copilot
+OpenAgentsInc/openagents,1220,security: Fix critical vulnerabilities from PR #1219 review - Complete authentication hardening,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3824,[alpha_factory] add JsonSchema stub,python,OpenAI_Codex
+aipotheosis-labs/aci,555,Add plan display section with upgrade button to sidebar,python,Devin
+aipotheosis-labs/aci,554,Capitalize plan name and add upgrade button to usage page,python,Devin
+codezonediitj/pydatastructs,691,Use clang on Windows CI,python,OpenAI_Codex
+neutronX/django-markdownx,285,Ensure MarkdownX textarea resizability after tab switch,python,OpenAI_Codex
+KuekHaoYang/KResearch,3,Add OpenAI-compatible API support with provider selection,javascript,Copilot
+codezonediitj/pydatastructs,690,Add enum-based node type checks,python,OpenAI_Codex
+Ljzd-PRO/KToolBox,267,Preserve image metadata (published date) when downloading files,python,Copilot
+Ljzd-PRO/KToolBox,266,Add search results download functionality for Kemono.su posts,python,Copilot
+Ljzd-PRO/KToolBox,265,Add comprehensive revision post support with enhanced API and configuration,python,Copilot
+streamich/memfs,1119,Fix fs.createReadStream throwing ERR_OUT_OF_RANGE with start parameter,javascript,Copilot
+streamich/memfs,1118,Add support for Worker instances and module URLs in FsaNodeSyncAdapterWorker,javascript,Copilot
+elastic/kibana,229539,Unskip Cloud Security Posture integration tests,javascript,Copilot
+ryokun6/ryos,229,Set blue lavender video as default wallpaper,javascript,Cursor
+aliev/aioauth,122,Switch docs to mkdocs,python,OpenAI_Codex
+stanford-crfm/haliax,183,Document haliax.vmap usage,python,OpenAI_Codex
+stanford-crfm/levanter,1111,Fix GPT-2 integration workflow install,python,OpenAI_Codex
+OpenAgentsInc/openagents,1219,feat: Complete 4-phase authentication integration - Remove duplication & add production hardening,javascript,Claude_Code
+OWASP/wrongsecrets,2120,Add comprehensive secret scanner comparison GitHub Action workflow,java,Copilot
+OpenAgentsInc/openagents,1216,fix: Resolve cargo build errors and warnings,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3822,fix: remove stray string call,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3821,Fix ADK module import,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3820,fix: improve google_adk stub handling,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3819,test: skip google adk bridge,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3818,[alpha_factory] extend optional dep guidance,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3817,docs: clarify google_adk setup,python,OpenAI_Codex
+SNGWN/Mobile-PT,2,Add comprehensive Flutter security testing section and improve repository documentation,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3816,[alpha_factory] fix test ledger payload check,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3815,Ensure EvolverAgent launch logs are captured,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3814,[alpha_factory] fix mats seed isolation,python,OpenAI_Codex
+SNGWN/Mobile-PT,1,"Complete Mobile Penetration Testing Repository Enhancement: Add iOS Support, FRIDA Framework, and Professional Documentation",javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3813,Fix dependency checks and add ADK stub,python,OpenAI_Codex
+crewAIInc/crewAI,3227,Fix custom tool registration in CrewAI 0.150.0,python,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3812,Fix novelty test when transformer missing,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3811,Add openai_agents compatibility shim,python,OpenAI_Codex
+EdgeTranslate/EdgeTranslate,636,Codex/revisar todos e melhorar tratamento de erros,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3810,[alpha_factory] fix API server test,python,OpenAI_Codex
+willccbb/verifiers,161,Create and evaluate a new environment with a dataset,python,Cursor
+MontrealAI/AGI-Alpha-Agent-v0,3809,[alpha_factory] clarify environment check,python,OpenAI_Codex
+willccbb/verifiers,160,Create and evaluate a new Hugging Face environment,python,Cursor
+MontrealAI/AGI-Alpha-Agent-v0,3808,Improve dependency-based test skips,python,OpenAI_Codex
+OpenAgentsInc/openagents,1201,feat: Implement historical APM chart with time-series visualization,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3807,[alpha_factory] update aiga agents import test,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3806,[alpha_factory] fix failing tests,python,OpenAI_Codex
+OpenAgentsInc/openagents,1200,feat: Implement unified session history showing both local and Convex sessions,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3804,fix: update test module paths,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3803,docs: expand heavy test instructions,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3802,Add wheel/pytest-asyncio base deps,python,OpenAI_Codex
+Polymarket/poly-market-maker,85,docs: document default env endpoints,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3801,[alpha_factory] enforce openai-agents version check,python,OpenAI_Codex
+ikamensh/flynt,225,Fix byte offsets for unicode strings,python,OpenAI_Codex
+stanford-crfm/levanter,1110,Fix GPT-2 integration workflow install,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3799,Fix flaky tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3798,feat: expand core settings,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3797,[alpha_factory] patch heartbeat tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3796,fix: allow pytest fixture injection in agent test,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3795,[alpha_factory] fix CSP hash,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3794,Update Node to 22.17.1,python,OpenAI_Codex
+stanford-crfm/levanter,1109,Fix TPU test skipping logic,python,OpenAI_Codex
+stanford-crfm/levanter,1108,Fix docs by re-exporting SkipStepConfig,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3793,[alpha_factory] update Docker Node version,python,OpenAI_Codex
+tolwi/hassio-ecoflow-cloud,538,Add Backup reserve to RIVER 2 Pro,python,OpenAI_Codex
+bolna-ai/bolna,236,Implement connection pooling for LLM classes to optimize performance,python,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3792,Fix owner-check gating,python,OpenAI_Codex
+stanford-crfm/levanter,1106,Add mixture dataset cache subsampling utility,python,OpenAI_Codex
+stanford-crfm/levanter,1105,Fix equinox static_field warnings in tests,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3790,[alpha_factory] Clarify Cypress tests removed,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3789,[alpha_factory] handle missing requests in update_pyodide,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3788,[alpha_factory] add workflow update hook,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3787,[alpha_factory] update CI lockfile list,python,OpenAI_Codex
+antiwork/helper,817,Add /api/chat/conversations/unread endpoint,javascript,Devin
+3rdIteration/btcrecover,609,Add Termux test workflow,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3786,[alpha_factory] set up python in docker job,python,OpenAI_Codex
+ralixjs/rails-ralix-tailwind,66,Upgrade to Tailwind CSS v4,ruby,Copilot
+vitejs/vite-plugin-react,631,Update React Router RSC example to match official template structure,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3785,[alpha_factory] improve test cache paths,python,OpenAI_Codex
+microsoft/vscode,257977,Cherry-pick: Fix VS Code OOM issues with AsyncIterableProducer,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3784,[alpha_factory] Update cache action,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3783,Update Node.js release,python,OpenAI_Codex
+unsend-dev/unsend,189,Fix Admin sidebar item visibility for self-hosted deployments,javascript,Copilot
+sugyan/claude-code-webui,205,feat: add comprehensive README screenshots with optimized layout,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3782,Update CI to limit mutation tests,python,OpenAI_Codex
+lrzjason/T2ITrainer,63,Codex/modify train flux lora UI with mask for locon,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3781,[alpha_factory] update docs workflow pre-commit env,python,OpenAI_Codex
+waldzellai/waldzell-mcp,69,Implement Clear Thought toolset registry,javascript,OpenAI_Codex
+waldzellai/waldzell-mcp,68,Add plan for clear-thought toolset refactor,javascript,OpenAI_Codex
+arakoodev/EdgeChains,424,Add NexusFlow skeleton in ec-3,javascript,OpenAI_Codex
+ikamensh/flynt,224,Handle str and repr call conversions,python,OpenAI_Codex
+ikamensh/flynt,223,Add architecture overview,python,OpenAI_Codex
+waldzellai/waldzell-mcp,66,Add TypeScript mapping tools,javascript,OpenAI_Codex
+yysun/apprun,151,Replace generic type parameter defaults from `any` to `unknown`,javascript,Copilot
+codezonediitj/pydatastructs,689,Add Meson build,python,OpenAI_Codex
+puemos/hls-downloader,427,Enable npm workspaces,javascript,OpenAI_Codex
+puemos/hls-downloader,426,Update usage instructions,javascript,OpenAI_Codex
+puemos/hls-downloader,425,Remove leftover console logs,javascript,OpenAI_Codex
+ikamensh/flynt,222,Make report optional and refine output,python,OpenAI_Codex
+ikamensh/flynt,221,Add adversarial case for conversion fields,python,OpenAI_Codex
+ikamensh/flynt,220,Add failing test for newline escape issue,python,OpenAI_Codex
+puemos/hls-downloader,424,Improve repo guidance,javascript,OpenAI_Codex
+puemos/hls-downloader,423,Fix fetch retry logic,javascript,OpenAI_Codex
+CapSoftware/Cap,807,Fix upgrade modal redirect logic,javascript,OpenAI_Codex
+chebpy/chebpy,77,Switch to nose2,python,OpenAI_Codex
+gridaco/grida,406,Create gradient control points editor component,javascript,Cursor
+OWASP/wrongsecrets,2117,docs: Add comprehensive documentation for AI agent efficiency,java,Copilot
+open-condo-software/condo,6441,Fix getSchemaContexts returns object,javascript,OpenAI_Codex
+yutto-dev/yutto,539,"♻️ refactor: optimize repository structure, rename `bilibili_typing` to media and improve function naming",python,Copilot
+OWASP/wrongsecrets,2115,Auto-create master Docker containers and publish to GitHub Container Registry,java,Copilot
+valkey-io/valkey-glide,4481,Fix CodeQL Java/Kotlin detection by building all modules with assemble task,java,Copilot
+jamdotdev/jam-dev-utilities,103,Implement localStorage persistence for HAR file viewer mode selection,javascript,Copilot
+bmander/graphserver,49,Implement transit edge provider for GTFS-based routing,python,Copilot
+bmander/graphserver,48,"[WIP] In the pythons extensions section let's create a new ""transit"" edge provider. It takes a gtfs file. The edge expansion specification follows:
+
+[Contains lat/lon/time] -> for every nearby stop, a vertex with stop_id, and time at arrival 
+[Contains stop i...",python,Copilot
+bmander/graphserver,47,Add GTFS-based Transit Edge Provider for Public Transit Routing,python,Copilot
+ikamensh/flynt,218,Switch to ast.unparse for source generation,python,OpenAI_Codex
+ikamensh/flynt,217,Fix backslash handling in format conversion,python,OpenAI_Codex
+ikamensh/flynt,216,Add AGENTS developer guide,python,OpenAI_Codex
+onlook-dev/onlook,2540,feat: enable PostHog session recording for iframe canvas,javascript,Devin
+classmethod/tsumiki,2,ファイルパス参照を相対パスに統一し、doc/からdocs/に統一,javascript,Claude_Code
+pixeltable/pixeltable,729,"[Testing Cursor Background Agent] ""Find and fix 3 bugs in the codebase...""",python,Cursor
+thirdweb-dev/js,7720,Improve package documentation and create READMEs,javascript,Cursor
+MontrealAI/AGI-Alpha-Agent-v0,3780,[alpha_factory] lint docs in CI docs jobs,python,OpenAI_Codex
+vscode-neovim/vscode-neovim,2526,Fix search & replace confirmation dialog handling for :%s/foo/bar/gc commands,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3779,[alpha_factory] clarify always() in CI workflow,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3778,[alpha_factory] Add timeout-minutes to CI jobs,python,OpenAI_Codex
+allthingslinux/tux,977,refactor: Continue dynamic moderation refactoring timeout arguments,python,Cursor
