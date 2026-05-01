@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 20 # Keep at 20 to avoid PAT exhaustion
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
@@ -106,20 +106,26 @@ jobs:
               if fname == 'results.sarif' or '--' not in fname: continue
               try:
                   parts = fname.replace('.sarif', '').split('--')
-                  repo, pr_num, lang, agent = parts[0].replace('_SLASH_', '/'), parts[1], parts[2], parts[3].replace('_', ' ')
+                  if len(parts) < 4: continue
+                  repo_path = parts.replace('_SLASH_', '/')
+                  pr_num = parts
+                  lang = parts
+                  agent = parts.replace('_', ' ')
                   
                   with open(f) as s: data = json.load(s)
-                  res = data.get('runs', [{}])[0].get('results', [])
-                  h = sum(1 for r in res if r.get('level') == 'error')
-                  m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
-                  l = sum(1 for r in res if r.get('level') == 'note')
-                  
+                  runs = data.get('runs', [{}])
+                  res = runs.get('results', []) if runs else []
                   total_scanned += 1
                   if len(res) > 0: vulnerable_count += 1
                   
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
-                  # FIXED LINK: Slash added after .com
-                  table_rows.append(f'| {repo} | [#{pr_num}](https://github.com{repo}/pull/{pr_num}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({u_files}) |')
+                  
+                  # EXPLICIT SLASH FIX:
+                  base_url = 'https://github.com'
+                  full_url = base_url + repo_path + '/pull/' + pr_num
+                  link_markdown = '[#' + pr_num + '](' + full_url + ')'
+                  
+                  table_rows.append(f'| {repo_path} | {link_markdown} | {agent} | {lang} | ' + str(sum(1 for r in res if r.get('level') == 'error')) + ' | ' + str(sum(1 for r in res if r.get('level', 'warning') == 'warning')) + ' | ' + str(sum(1 for r in res if r.get('level') == 'note')) + f' | {len(res)} ({u_files}) |')
               except: pass
 
           print('# 📊 Global Analysis Summary')
@@ -127,7 +133,7 @@ jobs:
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
+          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues (Files) |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for row in table_rows: print(row)
           " >> $GITHUB_STEP_SUMMARY
