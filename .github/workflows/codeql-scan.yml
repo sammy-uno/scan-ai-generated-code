@@ -36,7 +36,6 @@ jobs:
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
-    # UPDATED: Reduced timeout to 30 minutes
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -117,17 +116,20 @@ jobs:
               fname = os.path.basename(f)
               if fname == 'results.sarif' or '--' not in fname: continue
               try:
-                  parts = fname.replace('.sarif', '').split('--')
+                  name_root = fname.replace('.sarif', '')
+                  parts = name_root.split('--')
                   if len(parts) < 4: continue
                   
-                  repo_path = parts.replace('_SLASH_', '/')
-                  pr_num = parts
-                  lang = parts
-                  agent = parts.replace('_', ' ')
+                  repo_path = parts[0].replace('_SLASH_', '/')
+                  pr_num = parts[1]
+                  lang = parts[2]
+                  agent = parts[3].replace('_', ' ')
                   
-                  with open(f) as s: data = json.load(s)
+                  with open(f) as s: 
+                      data = json.load(s)
+                  
                   runs = data.get('runs', [{}])
-                  res = runs.get('results', []) if runs else []
+                  res = runs[0].get('results', []) if runs else []
                   
                   total_scanned += 1
                   if len(res) > 0: vulnerable_count += 1
@@ -136,6 +138,7 @@ jobs:
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
                   
+                  # BULLETPROOF URL FIX: join ensures a slash between .com and path
                   full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
                   link_md = f'[#{pr_num}]({full_url})'
                   
@@ -143,7 +146,7 @@ jobs:
               except Exception as e:
                   print(f'Error processing {fname}: {e}')
 
-          print('# 📊 Global Analysis Summary')
+          print('# 📊 1-PR Test Summary')
           print('\n### Executive Summary')
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
