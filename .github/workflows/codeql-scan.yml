@@ -37,9 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 20
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
-    
     steps:
       - uses: actions/checkout@v5
       - name: Prepare Workspace and Checkout PR
@@ -50,7 +48,6 @@ jobs:
           rm -rf ./*
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           mkdir -p scripts && cp /tmp/scripts/* scripts/
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -59,7 +56,6 @@ jobs:
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
           queries: security-extended
-
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         continue-on-error: true
@@ -68,7 +64,6 @@ jobs:
           output: sarif-results
           upload: false 
           wait-for-processing: false 
-
       - name: Create Summary
         if: always()
         run: |
@@ -78,7 +73,6 @@ jobs:
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
             python scripts/parse-results.py
           fi
-
       - name: Save Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -103,47 +97,25 @@ jobs:
           import json, glob, os
           all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
           table_rows = []
-          total_scanned = 0
-          vulnerable_count = 0
-
           for f in all_files:
               fname = os.path.basename(f)
               if fname == 'results.sarif' or '--' not in fname: continue
               try:
                   parts = fname.replace('.sarif', '').split('--')
-                  if len(parts) < 4: continue
-                  
                   repo_path = parts[0].replace('_SLASH_', '/')
                   pr_num = parts[1]
-                  lang = parts[2]
-                  agent = parts[3].replace('_', ' ')
-                  
                   with open(f) as s: data = json.load(s)
-                  runs = data.get('runs', [{}])
-                  res = runs[0].get('results', []) if runs else []
+                  res = data.get('runs', [{}])[0].get('results', [])
                   
-                  total_scanned += 1
-                  if len(res) > 0: vulnerable_count += 1
+                  # THE SLASH FIX: join avoids any string concatenation errors
+                  full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
+                  link_md = f'[#{pr_num}]({full_url})'
                   
-                  h = sum(1 for r in res if r.get('level') == 'error')
-                  m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
-                  l = sum(1 for r in res if r.get('level') == 'note')
-                  
-                  # EXPLICIT SLASH FIX:
-                  base_url = 'https://github.com'
-                  full_url = base_url + repo_path + '/pull/' + pr_num
-                  link_md = '[#' + pr_num + '](' + full_url + ')'
-                  
-                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {h} | {m} | {l} | {len(res)} |')
-              except Exception as e:
-                  print(f'Error processing {fname}: {e}')
+                  table_rows.append(f'| {repo_path} | {link_md} | {parts[3].replace(\"_\", \" \")} | {parts[2]} | {len(res)} |')
+              except Exception as e: print(f'Error: {e}')
 
-          print('# 📊 Global Analysis Summary')
-          print('\n### Executive Summary')
-          print(f'- **Total PRs Scanned:** {total_scanned}')
-          print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
-          print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues |')
-          print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
-          for r in sorted(table_rows): print(r)
+          print('# 📊 1-PR Test Summary')
+          print('| Repository | PR | AI Tool | Lang | Issues |')
+          print('| :--- | :--- | :--- | :--- | :--- |')
+          for r in table_rows: print(r)
           " >> $GITHUB_STEP_SUMMARY
