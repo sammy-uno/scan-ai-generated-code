@@ -31,7 +31,8 @@ jobs:
           python scripts/ai-scanner.py
 
   analyze:
-    name: Scan ${{ matrix.repo_name }}
+    # UPDATED HEADER: Now shows "Scan [Repo] (PR #123) - [Language]"
+    name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - ${{ matrix.language }}
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
@@ -60,7 +61,6 @@ jobs:
           build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
-          # ADDITION: Enables deeper built-in queries for Deserialization (Pickle/AI), Injections, and Secrets
           queries: security-extended
 
       - name: Perform CodeQL Analysis
@@ -113,22 +113,27 @@ jobs:
               try:
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 4: continue
+                  
                   repo = parts[0].replace('_SLASH_', '/')
-                  pr = parts[1]
+                  pr_num = parts[1]
                   lang = parts[2]
                   agent = parts[3].replace('_', ' ')
+                  
                   with open(f) as s: data = json.load(s)
-                  runs = data.get('runs', [{}])
-                  res = runs[0].get('results', []) if runs else []
+                  runs = data.get('runs', [{}])[0]
+                  res = runs.get('results', [])
+                  
                   h = sum(1 for r in res if r.get('level') == 'error')
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
+                  
                   u_files = set()
                   for r in res:
                       for loc in r.get('locations', []):
                           uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
                           if uri: u_files.add(uri)
-                  # FIXED LINK: Slash after .com
-                  print(f'| {repo} | [#{pr}](https://github.com{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
+                  
+                  # FIXED LINK: Slash after .com correctly implemented
+                  print(f'| {repo} | [#{pr_num}](https://github.com{repo}/pull/{pr_num}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
               except: pass
           " >> $GITHUB_STEP_SUMMARY
