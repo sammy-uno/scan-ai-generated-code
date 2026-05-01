@@ -5,15 +5,15 @@ def run_command(command, max_retries=2):
         try:
             result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
             if result.returncode == 0: return result
-            time.sleep(2)
+            time.sleep(1)
         except subprocess.TimeoutExpired: continue
     return None
 
 def main():
-    # --- UPDATED CONFIGURATION ---
+    # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 300    # Increased to 300
+    SCAN_LIMIT = 500    # Increased to 500
     EXCLUDE_REPOS = ["BerriAI/litellm"]
     
     if not os.path.exists(INPUT_CSV):
@@ -25,31 +25,43 @@ def main():
     seen_repos = set()
     found_count = 0
 
+    print(f"--- Starting Discovery (Target: {SCAN_LIMIT} PRs) ---")
     for _, row in df.iterrows():
         if found_count >= SCAN_LIMIT: break
+        
         repo = row['repo_name']
-        if repo in EXCLUDE_REPOS: continue
+        num = str(row['number'])
+        
+        if repo in EXCLUDE_REPOS:
+            print(f"SKIP: {repo} (Excluded)")
+            continue
 
-        num, lang, agent = str(row['number']), row['primary_language'], row['agent_name']
-        title = row.get('title', 'Untitled')
-
-        if repo in seen_repos: continue
+        if repo in seen_repos:
+            continue
 
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res and lines_res.returncode == 0:
             stats = json.loads(lines_res.stdout)
-            if (stats.get("additions", 0) + stats.get("deletions", 0)) > MAX_PR_LINES: continue
-        else: continue
+            total = stats.get("additions", 0) + stats.get("deletions", 0)
+            if total > MAX_PR_LINES:
+                print(f"SKIP: {repo} #{num} (Too big: {total} lines)")
+                continue
+        else:
+            print(f"SKIP: {repo} #{num} (API Error)")
+            continue
 
         matrix_include.append({
-            "pr_num": num, "repo_name": repo, "language": lang, "pr_title": title, "agent_name": agent,
-            "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{lang}--{agent.replace(' ', '_')}"
+            "pr_num": num, "repo_name": repo, "language": row['primary_language'], 
+            "pr_title": row.get('title', 'Untitled'), "agent_name": row['agent_name'],
+            "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{row['primary_language']}--{row['agent_name'].replace(' ', '_')}"
         })
         
-        seen_repos.add(repo); found_count += 1
-        # Small delay to prevent API secondary rate limits
-        if found_count % 10 == 0: time.sleep(1)
+        print(f"ADDED: {repo} #{num}")
+        seen_repos.add(repo)
+        found_count += 1
+        if found_count % 20 == 0: time.sleep(1) # Rate limit safety
 
+    print(f"--- Finished: {found_count} PRs in Matrix ---")
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f: f.write(f"matrix_data={output}\n")
