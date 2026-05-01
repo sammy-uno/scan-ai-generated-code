@@ -31,14 +31,16 @@ jobs:
           python scripts/ai-scanner.py
 
   analyze:
-    name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - ${{ matrix.language }}
+    name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }})
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 20 # Keep at 20 to avoid PAT exhaustion
+      max-parallel: 20
+      # NOTE: GitHub will cap this at 256 parallel jobs automatically
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
     steps:
       - uses: actions/checkout@v5
       - name: Prepare Workspace and Checkout PR
@@ -49,6 +51,7 @@ jobs:
           rm -rf ./*
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           mkdir -p scripts && cp /tmp/scripts/* scripts/
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -57,6 +60,7 @@ jobs:
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
           queries: security-extended
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         continue-on-error: true
@@ -65,6 +69,7 @@ jobs:
           output: sarif-results
           upload: false 
           wait-for-processing: false 
+
       - name: Create Summary
         if: always()
         run: |
@@ -74,6 +79,7 @@ jobs:
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
             python scripts/parse-results.py
           fi
+
       - name: Save Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -107,33 +113,33 @@ jobs:
               try:
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 4: continue
-                  repo_path = parts.replace('_SLASH_', '/')
-                  pr_num = parts
-                  lang = parts
-                  agent = parts.replace('_', ' ')
+                  repo = parts[0].replace('_SLASH_', '/')
+                  pr_num = parts[1]
                   
                   with open(f) as s: data = json.load(s)
-                  runs = data.get('runs', [{}])
-                  res = runs.get('results', []) if runs else []
+                  runs = data.get('runs', [{}])[0]
+                  res = runs.get('results', [])
+                  
                   total_scanned += 1
-                  if len(res) > 0: vulnerable_count += 1
+                  if res: vulnerable_count += 1
                   
-                  u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
+                  h = sum(1 for r in res if r.get('level') == 'error')
+                  m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
+                  l = sum(1 for r in res if r.get('level') == 'note')
                   
-                  # EXPLICIT SLASH FIX:
-                  base_url = 'https://github.com'
-                  full_url = base_url + repo_path + '/pull/' + pr_num
-                  link_markdown = '[#' + pr_num + '](' + full_url + ')'
+                  # FIXED LINK: Explicit slash after .com
+                  link = f'[#{pr_num}](https://github.com{repo}/pull/{pr_num})'
                   
-                  table_rows.append(f'| {repo_path} | {link_markdown} | {agent} | {lang} | ' + str(sum(1 for r in res if r.get('level') == 'error')) + ' | ' + str(sum(1 for r in res if r.get('level', 'warning') == 'warning')) + ' | ' + str(sum(1 for r in res if r.get('level') == 'note')) + f' | {len(res)} ({u_files}) |')
-              except: pass
+                  table_rows.append(f'| {repo} | {link} | {parts[3].replace(\"_\", \" \")} | {parts[2]} | {h} | {m} | {l} | {len(res)} |')
+              except Exception as e:
+                  print(f'Error on {fname}: {e}')
 
           print('# 📊 Global Analysis Summary')
           print(f'\n### Executive Summary')
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues (Files) |')
+          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
-          for row in table_rows: print(row)
+          for r in sorted(table_rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
