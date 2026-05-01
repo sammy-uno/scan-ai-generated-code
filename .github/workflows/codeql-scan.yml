@@ -138,7 +138,6 @@ jobs:
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
                   
-                  # BULLETPROOF URL FIX: join ensures a slash between .com and path
                   full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
                   link_md = f'[#{pr_num}]({full_url})'
                   
@@ -146,7 +145,7 @@ jobs:
               except Exception as e:
                   print(f'Error processing {fname}: {e}')
 
-          print('# 📊 1-PR Test Summary')
+          print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
