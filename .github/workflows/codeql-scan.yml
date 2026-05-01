@@ -31,7 +31,6 @@ jobs:
           python scripts/ai-scanner.py
 
   analyze:
-    # UPDATED HEADER: Now shows "Scan [Repo] (PR #123) - [Language]"
     name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - ${{ matrix.language }}
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
@@ -111,6 +110,7 @@ jobs:
               fname = os.path.basename(f)
               if fname == 'results.sarif' or '--' not in fname: continue
               try:
+                  # Structure: {repo}--{num}--{lang}--{agent}.sarif
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 4: continue
                   
@@ -120,8 +120,8 @@ jobs:
                   agent = parts[3].replace('_', ' ')
                   
                   with open(f) as s: data = json.load(s)
-                  runs = data.get('runs', [{}])[0]
-                  res = runs.get('results', [])
+                  runs = data.get('runs', [{}])
+                  res = runs[0].get('results', []) if runs else []
                   
                   h = sum(1 for r in res if r.get('level') == 'error')
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
@@ -133,7 +133,8 @@ jobs:
                           uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
                           if uri: u_files.add(uri)
                   
-                  # FIXED LINK: Slash after .com correctly implemented
-                  print(f'| {repo} | [#{pr_num}](https://github.com{repo}/pull/{pr_num}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
-              except: pass
+                  # EXPLICIT FIX: The slash is hardcoded between .com and {repo}
+                  print(f'| {repo} | [#{pr_num}](https://github.com/{repo}/pull/{pr_num}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
+              except Exception as e:
+                  pass
           " >> $GITHUB_STEP_SUMMARY
