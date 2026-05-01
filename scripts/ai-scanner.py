@@ -10,11 +10,13 @@ def run_command(command, max_retries=2):
     return None
 
 def main():
-    # --- RESTORED CONFIGURATION ---
+    # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 500    # Set to 500
-    EXCLUDE_REPOS = ["BerriAI/litellm"]
+    SCAN_LIMIT = 500
+    
+    # ADDED: elastic/kibana to the exclude list
+    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -59,7 +61,6 @@ def main():
         print(f"ADDED: {repo} #{num}")
         seen_repos.add(repo)
         found_count += 1
-        # Rate limit safety for the large 500-PR loop
         if found_count % 20 == 0: time.sleep(1)
 
     print(f"--- Finished: {found_count} PRs added to Matrix ---")
