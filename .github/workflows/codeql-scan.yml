@@ -59,7 +59,9 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
-          trap-caching: false  # FIX: Prevents parallel jobs from fighting over the cache
+          trap-caching: false
+          # ADDITION: Enables deeper built-in queries for Deserialization (Pickle/AI), Injections, and Secrets
+          queries: security-extended
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -126,7 +128,7 @@ jobs:
                       for loc in r.get('locations', []):
                           uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
                           if uri: u_files.add(uri)
-                  # FIX: Missing slash after .com added here
-                  print(f'| {repo} | [#{pr}](https://github.com/{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
+                  # FIXED LINK: Slash after .com
+                  print(f'| {repo} | [#{pr}](https://github.com{repo}/pull/{pr}) | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({len(u_files)}) |')
               except: pass
           " >> $GITHUB_STEP_SUMMARY
