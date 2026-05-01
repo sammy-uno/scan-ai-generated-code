@@ -12,7 +12,8 @@ def run_command(command, max_retries=2):
 def main():
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 1  # 1-PR TEST LIMIT
+    SCAN_LIMIT = 500  # RESTORED LIMIT
+    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -20,12 +21,17 @@ def main():
 
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
+    seen_repos = set()
     found_count = 0
 
+    print(f"--- Starting Discovery (Target: {SCAN_LIMIT} PRs) ---")
     for _, row in df.iterrows():
         if found_count >= SCAN_LIMIT: break
         repo, num = row['repo_name'], str(row['number'])
         
+        if repo in EXCLUDE_REPOS: continue
+        if repo in seen_repos: continue
+
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res and lines_res.returncode == 0:
             stats = json.loads(lines_res.stdout)
@@ -37,7 +43,9 @@ def main():
             "pr_title": row.get('title', 'Untitled'), "agent_name": row['agent_name'],
             "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{row['primary_language']}--{row['agent_name'].replace(' ', '_')}"
         })
+        seen_repos.add(repo)
         found_count += 1
+        if found_count % 20 == 0: time.sleep(1)
 
     output = json.dumps({"include": matrix_include})
     if "GITHUB_OUTPUT" in os.environ:
