@@ -1,1 +1,101 @@
-aidev_scan_list.csv
+repo_name,number,title,primary_language,agent_name
+Skyvern-AI/skyvern,3063,Add skyvern_project table,python,OpenAI_Codex
+prebid/Prebid.js,13698,Core: use uuid for bid ids,javascript,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3931,[alpha_factory] Stabilize offline bridge test,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3930,ci: drop checkout from owner check,python,OpenAI_Codex
+Mail-0/Zero,1871,Fix workflow result passing between steps,javascript,Devin
+mendableai/firecrawl,1896,feat(python-sdk): implement missing crawl_entire_domain parameter,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3929,Fix duplicated cache steps in CI,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3928,[alpha_factory] run pre-commit diff in CI,python,OpenAI_Codex
+antiwork/flexile,680,Add issue assignment policy to CONTRIBUTING.md,ruby,Devin
+PyLabRobot/pylabrobot,634,Rename incubators module to storage,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3927,[alpha_factory] cache node deps and playwright,python,OpenAI_Codex
+pyth-network/pyth-crosschain,2911,fix: resolve Fuel deployment transaction size limit exceeded error,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3926,[alpha_factory] add setup-env action,python,OpenAI_Codex
+MontrealAI/AGI-Alpha-Agent-v0,3925,[alpha_factory] Auto-install requests in update_actions,python,OpenAI_Codex
+liveblocks/liveblocks,2557,Add documentation for resolveUsers 50-user batch limit,javascript,Devin
+mendableai/firecrawl,1895,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin
+neondatabase/website,3730,docs: highlight Neon Local Connect option on connection pages,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3924,[alpha_factory] Add Python 3.13 to CI,python,OpenAI_Codex
+prebid/Prebid.js,13695,e2e tests: extend webdriver session timeouts,javascript,OpenAI_Codex
+crewAIInc/crewAI,3243,Fix #3242: Add reasoning parameter to LLM class to disable reasoning mode,python,Devin
+sugyan/claude-code-webui,219,fix: add Windows .cmd parsing fallback for node.exe colocated environments,javascript,Claude_Code
+MontrealAI/AGI-Alpha-Agent-v0,3923,Fix test logging offline handling,python,OpenAI_Codex
+Pimzino/claude-code-spec-workflow,27,Fix docs and tests for updated command set,javascript,OpenAI_Codex
+reown-com/appkit,4741,feat: add native SOL payment asset for Solana network,javascript,Devin
+mendableai/firecrawl,1894,fix: convert timeout from milliseconds to seconds in Python SDK,javascript,Devin
+Pimzino/claude-code-spec-workflow,26,Fix setup command test list,javascript,OpenAI_Codex
+taiga-family/taiga-ui,11485,fix(kit): combo box stringify function not being called after update,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3920,[alpha_factory] Add Python 3.13 to CI matrix,python,OpenAI_Codex
+mendableai/firecrawl,1893,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus (ENG-3029),javascript,Devin
+zwave-js/zwave-js,8020,Fix: Mark node as asleep when compat query times out,javascript,Copilot
+elementary-data/dbt-data-reliability,835,Add disable_samples column configuration flag,python,Devin
+microsoft/genaiscript,1808,Fix generateImage returning undefined and enable Azure OpenAI image editing with proper URL construction,javascript,Copilot
+zwave-js/zwave-js,8019,Fix throttled firmware update progress events jumping back and forth,javascript,Copilot
+zwave-js/zwave-js,8018,feat: Add configuration parameter support to SmartStart provisioning entries,javascript,Copilot
+zwave-js/zwave-js,8017,Disable SmartStart provisioning entries after 5 failed inclusion attempts,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3919,Improve owner check in CI workflow,python,OpenAI_Codex
+mendableai/firecrawl,1892,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus,javascript,Devin
+calcom/cal.com,22814,refactor: convert getShouldServeCache to CacheService with dependency injection,javascript,Devin
+streamich/memfs,1124,feat: refactor core classes to src/core/ directory,javascript,Copilot
+3rdIteration/btcrecover,617,Add OpenCL Multibit test,python,OpenAI_Codex
+taiga-family/taiga-ui,11478,fix(experimental): `TuiExpand` double content projection causing duplicate child instantiations,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3917,Update CI Python matrix,python,OpenAI_Codex
+BerriAI/litellm,13125,feat(helm): Enhance Helm chart for ArgoCD integration and external resources,python,Claude_Code
+liam-hq/liam,2790,Improve deepModeling.ts error handling: implement immediate error recording and workflow stopping,javascript,Devin
+liam-hq/liam,2789,feat: unify WorkflowState type with createAnnotations,javascript,Devin
+microsoft/vscode-pull-request-github,7466,Add loading spinner to Cancel Coding Agent button,javascript,Copilot
+microsoft/vscode-pull-request-github,7465,Show loading indicator when clicking on commits in timeline,javascript,Copilot
+liam-hq/liam,2788,Replace dummy 'User Name' with real user data in timeline items,javascript,Devin
+valkey-io/valkey-glide,4515,Fix resource leak in TLS test teardown by properly resetting client references,java,Copilot
+microsoft/vscode-pull-request-github,7464,Fix unexpected cursor icon for commit links in PR webview,javascript,Copilot
+crewAIInc/crewAI,3241,Add LangDB AI Gateway documentation to observability section,python,Devin
+liam-hq/liam,2786,feat: refactor CopyButton component to be reusable and apply to SQL tab,javascript,Devin
+liam-hq/liam,2782,Rename Schema Updates tab to SQL tab,javascript,Devin
+djlint/djLint,1354,Add support for `.djlint.toml` configuration files,python,Copilot
+elementary-data/dbt-data-reliability,834,Fix schema name generation for branch names with forward slashes,python,Devin
+elementary-data/dbt-data-reliability,833,Implement column-level PII protection for sample collection,python,Devin
+remotion-dev/remotion,5544,docs: Add webcodecs/get-partial-audio-data to sidebars.ts,javascript,Copilot
+moshfeu/vscode-compare-folders,213,Fix Windows file path handling - replace Uri.parse() with Uri.file() for file paths,javascript,Copilot
+novuhq/novu,8820,Update dashboard layout docs links,javascript,Cursor
+crewAIInc/crewAI,3239,feat: implement Fast Apply edit_file tool,python,Devin
+OWASP/wrongsecrets,2127,Add GitHub Pages static preview system for PR reviews,java,Copilot
+microsoft/genaiscript,1807,Implement stream option support in PromptArgs with proper LLM call propagation,javascript,Copilot
+liam-hq/liam,2778,🔥 Remove unnecessary buildingSchemaVersionId from LangGraph annotations,javascript,Devin
+BerriAI/litellm,13122,Add GCS bucket caching support,python,OpenAI_Codex
+elementary-data/dbt-data-reliability,832,Implement column-level PII protection for sample collection,python,Devin
+YunaiV/ruoyi-vue-pro,909,Optimize readme file,java,Cursor
+liam-hq/liam,2777,fix: update schemaDesignTool to directly update workflow state,javascript,Devin
+novuhq/novu,8818,fix(dashboard): Update dashboard translation doc links,javascript,Cursor
+duneanalytics/spellbook,8572,Add tx_index and block_number to dex.trades,python,Cursor
+saleor/saleor-docs,1647,Improve documentation clarity and style for technical integrators,javascript,Copilot
+YunaiV/ruoyi-vue-pro,908,优化 README.md 文档结构和格式，提升用户体验,java,Copilot
+liam-hq/liam,2776,Fix LangGraph retry mechanism for designSchemaNode,javascript,Devin
+liam-hq/liam,2774,fix: prevent infinite retry loops in designSchema routing,javascript,Devin
+liam-hq/liam,2773,feat: improve Use Existing Schema feature with error constants and Japanese localization,javascript,Devin
+DestinyItemManager/DIM,11277,Codex/extract weapon data in structured json,javascript,OpenAI_Codex
+YunaiV/ruoyi-vue-pro,907,优化代码：修复TODO注释，清理导入语句，移除冗余注释,java,Copilot
+saleor/saleor,18009,Fix grammar errors and verb consistency in GraphQL mutation descriptions,python,Copilot
+saleor/saleor,18008,Add comprehensive GraphQL API documentation structure,python,Copilot
+stanford-crfm/levanter,1115,Fix lockfile issue in ray TPU,python,OpenAI_Codex
+halo-dev/halo,7645,[WIP] Request to reduce SQL query count for homepage posts.,java,Copilot
+Significant-Gravitas/AutoGPT,10483,fix(backend): Fix LLM blocks call tracking,python,Claude_Code
+liam-hq/liam,2770,feat: increase default recursion limit from 20 to 100,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3915,Enable PR comments in CI,python,OpenAI_Codex
+liam-hq/liam,2769,Remove boilerplate log messages from AI workflow nodes,javascript,Devin
+unocss-community/unocss-preset-theme,89,Upgrade all dependencies to latest versions,javascript,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3914,fix: enforce pre-commit version,python,OpenAI_Codex
+ryokun6/ryos,243,Investigate mobile top resize drag lock,javascript,Cursor
+ryokun6/ryos,242,Fix mobile macosx theme window occlusion,javascript,Cursor
+primer/react,6416,Migrate SelectPanel tests from Jest to Vitest,javascript,Copilot
+Ljzd-PRO/KToolBox,293,Add keyword filtering support to sync_creator command (title-only search),python,Copilot
+Mail-0/Zero,1870,feat: sync threadId to ZeroAgent via WebSocket for multi-tab support,javascript,Devin
+liam-hq/liam,2766,Improve schemaDesignTool prompts for one-shot success,javascript,Devin
+facioquo/stock-indicators-python,434,"refactor: Python.NET wrapper with improved type conversions, error handling, and performance optimizations",python,Copilot
+MontrealAI/AGI-Alpha-Agent-v0,3911,Improve CI diagnostics,python,OpenAI_Codex
+mendableai/firecrawl,1888,Fix SSL certificate verification error in AsyncFirecrawlApp,javascript,Devin
+MontrealAI/AGI-Alpha-Agent-v0,3907,docs: clarify CI workflow preparation,python,OpenAI_Codex
+siteboon/claudecodeui,129,feat: Enhanced Claude Code UI with Complete Transparency,javascript,Claude_Code
+binarywang/WxJava,3663,[WIP] 【企业微信】获取审批模板详情异常:Expected BEGIN_OBJECT but was BEGIN_ARRAY,java,Copilot
+Kiln-AI/Kiln,463,Fix ruff command and lint issues,python,OpenAI_Codex
+AgentOps-AI/agentops,1183,Update README.md with latest AgentOps integrations and features,python,Devin
