@@ -38,7 +38,6 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 20
-      # NOTE: GitHub will cap this at 256 parallel jobs automatically
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
     steps:
@@ -113,33 +112,38 @@ jobs:
               try:
                   parts = fname.replace('.sarif', '').split('--')
                   if len(parts) < 4: continue
-                  repo = parts[0].replace('_SLASH_', '/')
+                  
+                  repo_path = parts[0].replace('_SLASH_', '/')
                   pr_num = parts[1]
+                  lang = parts[2]
+                  agent = parts[3].replace('_', ' ')
                   
                   with open(f) as s: data = json.load(s)
-                  runs = data.get('runs', [{}])[0]
-                  res = runs.get('results', [])
+                  runs = data.get('runs', [{}])
+                  res = runs[0].get('results', []) if runs else []
                   
                   total_scanned += 1
-                  if res: vulnerable_count += 1
+                  if len(res) > 0: vulnerable_count += 1
                   
                   h = sum(1 for r in res if r.get('level') == 'error')
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
                   
-                  # FIXED LINK: Explicit slash after .com
-                  link = f'[#{pr_num}](https://github.com{repo}/pull/{pr_num})'
+                  # EXPLICIT SLASH FIX:
+                  base_url = 'https://github.com'
+                  full_url = base_url + repo_path + '/pull/' + pr_num
+                  link_md = '[#' + pr_num + '](' + full_url + ')'
                   
-                  table_rows.append(f'| {repo} | {link} | {parts[3].replace(\"_\", \" \")} | {parts[2]} | {h} | {m} | {l} | {len(res)} |')
+                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {h} | {m} | {l} | {len(res)} |')
               except Exception as e:
-                  print(f'Error on {fname}: {e}')
+                  print(f'Error processing {fname}: {e}')
 
           print('# 📊 Global Analysis Summary')
-          print(f'\n### Executive Summary')
+          print('\n### Executive Summary')
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total |')
+          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(table_rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
