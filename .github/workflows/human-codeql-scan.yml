@@ -1,0 +1,147 @@
+name: "Human PR CodeQL Scanner"
+
+on:
+  workflow_dispatch: 
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  discover:
+    name: Find Human PRs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix_data }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Discover Scan Matrix
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          pip install pandas
+          # TARGETING THE HUMAN CSV FILE
+          export SCAN_INPUT_FILE="human_scan_list.csv"
+          python scripts/ai-scanner.py
+
+  analyze:
+    name: Human Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
+    needs: discover
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare Workspace and Checkout PR
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          GIT_LFS_SKIP_SMUDGE: 1
+        run: |
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+          mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/
+          rm -rf ./*
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          mkdir -p scripts && cp /tmp/scripts/* scripts/
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          db-location: ${{ runner.temp }}/codeql_db
+          trap-caching: false
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+        with:
+          category: "/human_pr:${{ matrix.category_name }}"
+          output: sarif-results
+          upload: false 
+          wait-for-processing: false 
+
+      - name: Create Summary
+        if: always()
+        run: |
+          if [ -d "sarif-results" ]; then
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+            cp sarif-results/*.sarif "./human--${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}.sarif" 2>/dev/null || true
+            python scripts/parse-results.py
+          fi
+
+      - name: Save Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: human-sarif-${{ matrix.category_name }}
+          path: "*.sarif"
+
+  report:
+    name: Consolidate Human Report
+    needs: analyze
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: human-sarif-*
+          path: all-human-results
+          merge-multiple: true
+      - name: Generate Human Summary
+        run: |
+          python3 -c "
+          import json, glob, os
+          all_files = sorted(glob.glob('all-human-results/**/*.sarif', recursive=True))
+          table_rows = []
+          total_scanned = 0
+          vulnerable_count = 0
+
+          for f in all_files:
+              fname = os.path.basename(f)
+              if fname == 'results.sarif' or 'human--' not in fname: continue
+              try:
+                  # Structure: human--{repo}--{num}--{lang}.sarif
+                  name_root = fname.replace('.sarif', '')
+                  parts = name_root.split('--')
+                  repo_path = parts[1].replace('_SLASH_', '/')
+                  pr_num = parts[2]
+                  lang = parts[3]
+                  
+                  with open(f) as s: data = json.load(s)
+                  runs = data.get('runs', [{}])
+                  res = runs[0].get('results', []) if runs else []
+                  total_scanned += 1
+                  if len(res) > 0: vulnerable_count += 1
+                  
+                  full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
+                  link_md = f'[#{pr_num}]({full_url})'
+                  
+                  table_rows.append(f'| {repo_path} | {link_md} | {lang} | {len(res)} |')
+              except: pass
+
+          print('# 📊 Human Analysis Summary')
+          print(f'\n### Executive Summary')
+          print(f'- **Total Human PRs Scanned:** {total_scanned}')
+          print(f'- **PRs with Security Issues:** {vulnerable_count} ⚠️')
+          print(f'- **Clean Human PRs:** {total_scanned - vulnerable_count} ✅')
+          print('\n| Repository | PR | Lang | Total Issues |')
+          print('| :--- | :--- | :--- | :--- |')
+          for r in sorted(table_rows): print(r)
+          " >> $GITHUB_STEP_SUMMARY
