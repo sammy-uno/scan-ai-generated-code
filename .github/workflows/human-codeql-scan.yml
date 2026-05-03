@@ -37,6 +37,8 @@ jobs:
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      CODEQL_RAM: 12000
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -45,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Prepare Workspace and Checkout PR
+        id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -115,8 +118,10 @@ jobs:
               fname = os.path.basename(f)
               if fname == 'results.sarif' or 'human--' not in fname: continue
               try:
-                  parts = fname.replace('.sarif', '').split('--')
+                  name_root = fname.replace('.sarif', '')
+                  parts = name_root.split('--')
                   if len(parts) < 4: continue
+                  
                   repo_path = parts[1].replace('_SLASH_', '/')
                   pr_num = parts[2]
                   lang = parts[3]
@@ -124,23 +129,30 @@ jobs:
                   with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [{}])
                   res = runs[0].get('results', []) if runs else []
+                  
                   total_scanned += 1
                   if len(res) > 0: vulnerable_count += 1
                   
-                  # BULLETPROOF URL FIX
+                  h = sum(1 for r in res if r.get('level') == 'error')
+                  m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
+                  l = sum(1 for r in res if r.get('level') == 'note')
+                  
+                  # FILE COUNT LOGIC
+                  u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
+                  
                   full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
                   link_md = f'[#{pr_num}]({full_url})'
                   
-                  table_rows.append(f'| {repo_path} | {link_md} | {lang} | ' + str(sum(1 for r in res if r.get('level') == 'error')) + ' | ' + str(sum(1 for r in res if r.get('level', 'warning') == 'warning')) + ' | ' + str(sum(1 for r in res if r.get('level') == 'note')) + f' | {len(res)} |')
+                  table_rows.append(f'| {repo_path} | {link_md} | {lang} | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e:
-                  print(f'Error: {e}')
+                  print(f'Error processing {fname}: {e}')
 
           print('# 📊 Global Human Analysis Summary')
           print(f'\n### Executive Summary')
           print(f'- **Total Human PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
-          print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          print('\n| Repository | PR | Lang | 🔴 H | 🟡 M | 🔵 L | Total |')
+          print(f'- **Clean Human PRs:** {total_scanned - vulnerable_count} ✅')
+          print('\n| Repository | PR | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(table_rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
