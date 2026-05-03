@@ -2,50 +2,51 @@ import pandas as pd
 
 def extract_human_data():
     print("Streaming Human AIDev tables from Hugging Face...")
-    # Load curated human PRs and Repository metadata
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/human_pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
 
-    # FIX: Use 'repository_id' for the human dataset join
-    print("Joining tables on PR.repository_id and Repo.id...")
+    # Detect the correct column for repo ID in the human table
+    # It's usually 'repo_id' or 'repository_id'
+    potential_keys = ['repo_id', 'repository_id', 'repo']
+    left_key = next((k for k in potential_keys if k in pr_df.columns), None)
+
+    if not left_key:
+        print(f"Error: Could not find repo ID column. Available columns: {pr_df.columns.tolist()}")
+        return
+
+    print(f"Joining tables on PR.{left_key} and Repo.id...")
     merged_df = pd.merge(
         pr_df, 
         repo_df, 
-        left_on='repository_id', # Changed from 'repo_id'
+        left_on=left_key, 
         right_on='id', 
         how='inner', 
         suffixes=('_pr', '_repo')
     )
 
-    # Filter criteria (consistent with your previous logic)
+    # Filtering logic
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
     filtered_df = merged_df[
         (merged_df['stars'] > 100) &
         (merged_df['language'].isin(supported_langs))
     ].copy()
 
-    # Normalize language names for CodeQL
+    # Normalize language names
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # Sort by date and limit to 500
-    filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
-    filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
+    # Sorting and Limiting
+    filtered_df['created_at'] = pd.to_datetime(filtered_at_col) if (filtered_at_col := next((c for c in ['created_at', 'createdAt'] if c in filtered_df.columns), None)) else filtered_df.index
+    filtered_df = filtered_df.sort_values(by=filtered_at_col, ascending=False)
     
-    final_list = filtered_df.head(500)
-
-    # Select and rename columns for your scanner
-    # Note: 'agent' doesn't exist in the human table, so we omit or hardcode it
-    scan_list = final_list[['full_name', 'number', 'title', 'language']].rename(columns={
+    scan_list = filtered_df.head(500)[['full_name', 'number', 'title', 'language']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language'
     })
     
-    # Optional: Add a label so your scanner knows these are humans
     scan_list['agent_name'] = 'human'
-    
     scan_list.to_csv("human_scan_list.csv", index=False)
-    print(f"Success: Created human_scan_list.csv with {len(scan_list)} newest entries.")
+    print(f"Success: Created human_scan_list.csv with {len(scan_list)} entries.")
 
 if __name__ == "__main__":
     extract_human_data()
