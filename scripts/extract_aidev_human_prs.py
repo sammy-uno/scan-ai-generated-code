@@ -6,24 +6,25 @@ def extract_human_data():
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/human_pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
 
-    # Join on PR.repo_id to Repo.id
+    # FIX: Use 'repository_id' for the human dataset join
+    print("Joining tables on PR.repository_id and Repo.id...")
     merged_df = pd.merge(
         pr_df, 
         repo_df, 
-        left_on='repo_id', 
+        left_on='repository_id', # Changed from 'repo_id'
         right_on='id', 
         how='inner', 
         suffixes=('_pr', '_repo')
     )
 
-    # Filter by stars (>100) and supported languages
+    # Filter criteria (consistent with your previous logic)
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
     filtered_df = merged_df[
         (merged_df['stars'] > 100) &
         (merged_df['language'].isin(supported_langs))
     ].copy()
 
-    # Normalize language names
+    # Normalize language names for CodeQL
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
@@ -33,11 +34,15 @@ def extract_human_data():
     
     final_list = filtered_df.head(500)
 
-    # Prepare final scan list
+    # Select and rename columns for your scanner
+    # Note: 'agent' doesn't exist in the human table, so we omit or hardcode it
     scan_list = final_list[['full_name', 'number', 'title', 'language']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language'
     })
+    
+    # Optional: Add a label so your scanner knows these are humans
+    scan_list['agent_name'] = 'human'
     
     scan_list.to_csv("human_scan_list.csv", index=False)
     print(f"Success: Created human_scan_list.csv with {len(scan_list)} newest entries.")
