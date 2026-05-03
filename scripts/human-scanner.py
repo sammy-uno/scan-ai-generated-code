@@ -11,10 +11,19 @@ def run_command(command, max_retries=2):
 
 def main():
     # --- CONFIGURATION ---
-    INPUT_CSV = "human_scan_list.csv" # Specific to Human PRs
+    INPUT_CSV = "human_scan_list.csv" 
     MAX_PR_LINES = 1000 
     SCAN_LIMIT = 500
-    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
+    
+    # UPDATED: Exclude list with the new problematic/large repositories
+    EXCLUDE_REPOS = [
+        "BerriAI/litellm", 
+        "elastic/kibana",
+        "openops-cloud/openops", 
+        "DataDog/dd-trace-java", 
+        "Azure/azure-sdk-for-js", 
+        "Azure/azure-sdk-for-python"
+    ]
     
     # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0}
@@ -73,6 +82,8 @@ def main():
     print(f"✅ Total Added: {stats['added']}")
     print(f"❌ Too Large:  {stats['too_big']}")
     print(f"🚫 Excluded:   {stats['excluded']}")
+    print(f"👯 Duplicates: {stats['duplicates']}")
+    print(f"⚠️  API Errors: {stats['api_error']}")
     print("-------------------------\n")
 
     output = json.dumps({"include": matrix_include})
