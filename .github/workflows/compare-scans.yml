@@ -24,32 +24,13 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          # Use the actual filename instead of the 'name' field to be safe
-          # We grab the first index [0] from the JSON array
           AI_DATA=$(gh run list --workflow codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow human-codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           
-          # Use jq to safely extract the specific fields from the first array element
-          AI_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // "null"')
-          AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "null"')
-          HU_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // "null"')
-          HU_TIME=$(echo "$HU_DATA" | jq -r '.[0].createdAt // "null"')
-
-          echo "ai_run_id=$AI_ID" >> $GITHUB_OUTPUT
-          echo "ai_time_utc=$AI_TIME" >> $GITHUB_OUTPUT
-          echo "hu_run_id=$HU_ID" >> $GITHUB_OUTPUT
-          echo "hu_time_utc=$HU_TIME" >> $GITHUB_OUTPUT
-
-          # This will now appear in your 'Get Latest Run Details' logs
-          echo "--- DEBUG OUTPUT ---"
-          echo "AI_ID: $AI_ID"
-          echo "AI_TIME: $AI_TIME"
-          echo "HU_ID: $HU_ID"
-          echo "HU_TIME: $HU_TIME"
-          
-          if [ "$AI_ID" = "null" ] || [ "$HU_ID" = "null" ]; then
-            echo "::error::Could not find successful runs for one or both workflows. Check workflow names."
-          fi
+          echo "ai_run_id=$(echo $AI_DATA | jq -r '.[0].databaseId // "null"')" >> $GITHUB_OUTPUT
+          echo "ai_time_utc=$(echo $AI_DATA | jq -r '.[0].createdAt // "null"')" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$(echo $HU_DATA | jq -r '.[0].databaseId // "null"')" >> $GITHUB_OUTPUT
+          echo "hu_time_utc=$(echo $HU_DATA | jq -r '.[0].createdAt // "null"')" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -76,15 +57,14 @@ jobs:
           from datetime import datetime
 
           def to_ct(iso_str):
-              iso_str = str(iso_str).strip()
+              iso_str = str(iso_str).strip().strip('\"').strip(\"'\")
               if not iso_str or iso_str in ['None', 'null', '']: 
                   return 'No Run Data Found'
               try:
-                  # Parse 2026-05-04T04:54:00Z
                   utc_dt = datetime.strptime(iso_str.replace('Z', '+0000'), '%Y-%m-%dT%H:%M:%S%z')
                   ct_tz = pytz.timezone('US/Central')
                   return utc_dt.astimezone(ct_tz).strftime('%Y-%m-%d %I:%M:%S %p CT')
-              except Exception as e:
+              except Exception:
                   return f'Time Error ({iso_str})'
 
           def get_stats(root_dir):
@@ -116,7 +96,7 @@ jobs:
 
           ai_density = round(ai_issues/ai_prs, 2) if ai_prs > 0 else 0
           hu_density = round(hu_issues/hu_prs, 2) if hu_prs > 0 else 0
-          status = '⚠️ AI higher' if ai_density > hu_density else '✅ AI lower'
+          status = '⚠️ AI density is higher' if ai_density > hu_density else '✅ AI density is lower'
 
           dashboard = f'''# ⚖️ AI vs. Human Vulnerability Comparison
 
@@ -126,7 +106,6 @@ jobs:
 
           ### 📊 Executive Metrics
 
-
           | Metric | AI-Generated | Human-Written | Status |
           | :--- | :--- | :--- | :--- |
           | **Total PRs Found** | {ai_prs} | {hu_prs} | - |
@@ -135,11 +114,11 @@ jobs:
 
           ### 🔴 Severity Breakdown
 
-
           | Severity | AI Count | Human Count |
           | :--- | :--- | :--- |
           | High (Error) | {ai_sevs.get('error', 0)} | {hu_sevs.get('error', 0)} |
           | Medium (Warning) | {ai_sevs.get('warning', 0)} | {hu_sevs.get('warning', 0)} |
+          | Low (Note) | {ai_sevs.get('note', 0)} | {hu_sevs.get('note', 0)} |
           '''
 
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
