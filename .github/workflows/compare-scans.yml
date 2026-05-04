@@ -24,35 +24,26 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          # Fetch AI Run Details
           AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
-          AI_ID=$(echo "$AI_DATA" | jq -r '.databaseId')
-          AI_TIME=$(echo "$AI_DATA" | jq -r '.createdAt')
-          
-          # Fetch Human Run Details
           HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
-          HU_ID=$(echo "$HU_DATA" | jq -r '.databaseId')
-          HU_TIME=$(echo "$HU_DATA" | jq -r '.createdAt')
           
-          echo "ai_run_id=$AI_ID" >> $GITHUB_OUTPUT
-          echo "ai_time=$AI_TIME" >> $GITHUB_OUTPUT
-          echo "hu_run_id=$HU_ID" >> $GITHUB_OUTPUT
-          echo "hu_time=$HU_TIME" >> $GITHUB_OUTPUT
+          echo "ai_run_id=$(echo $AI_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
+          echo "ai_time=$(echo $AI_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$(echo $HU_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
+          echo "hu_time=$(echo $HU_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download All AI Results
+      - name: Download All Results
         run: |
-          mkdir -p ai-results
-          # Using GH CLI to bypass Action pagination limits
-          gh run download ${{ steps.runs.outputs.ai_run_id }} -n "sarif-*" -D ai-results || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Download All Human Results
-        run: |
-          mkdir -p human-results
-          gh run download ${{ steps.runs.outputs.hu_run_id }} -n "sarif-*" -D human-results || true
+          mkdir -p ai-results human-results
+          # Download all artifacts for both runs. GH CLI puts each in its own subfolder.
+          gh run download ${{ steps.runs.outputs.ai_run_id }} -D ai-results || true
+          gh run download ${{ steps.runs.outputs.hu_run_id }} -D human-results || true
+          
+          # Debug: Log how many files were actually found
+          echo "AI Files found: $(find ai-results -name '*.sarif' | wc -l)"
+          echo "Human Files found: $(find human-results -name '*.sarif' | wc -l)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -61,58 +52,63 @@ jobs:
           python3 -c "
           import json, glob, os
 
-          def get_stats(path_pattern):
-              # Recursive glob to find all SARIFs in subfolders created by GH CLI
-              files = glob.glob(path_pattern, recursive=True)
+          def get_stats(base_dir):
+              # Using a very broad recursive glob to find every .sarif file in any subfolder
+              search_path = os.path.join(base_dir, '**', '*.sarif')
+              files = glob.glob(search_path, recursive=True)
+              
               total_prs = 0
               total_issues = 0
               severities = {'error': 0, 'warning': 0, 'note': 0}
+              
+              print(f'Scanning {base_dir}: Found {len(files)} files.')
+              
               for f in files:
                   if os.path.basename(f) == 'results.sarif': continue
                   try:
-                      with open(f) as s: data = json.load(s)
-                      for run in data.get('runs', []):
-                          res = run.get('results', [])
+                      with open(f) as s:
+                          data = json.load(s)
+                          # Check for nested 'runs'
+                          runs = data.get('runs', [])
+                          if not runs: continue
+                          
+                          # Count this file as a PR
                           total_prs += 1
-                          total_issues += len(res)
-                          for r in res:
-                              sev = r.get('level', 'warning')
-                              severities[sev] = severities.get(sev, 0) + 1
-                  except: pass
+                          
+                          for run in runs:
+                              res = run.get('results', [])
+                              total_issues += len(res)
+                              for r in res:
+                                  sev = r.get('level', 'warning')
+                                  severities[sev] = severities.get(sev, 0) + 1
+                  except Exception as e:
+                      print(f'Error reading {f}: {e}')
               return total_prs, total_issues, severities
 
-          ai_prs, ai_issues, ai_sevs = get_stats('ai-results/**/*.sarif')
-          hu_prs, hu_issues, hu_sevs = get_stats('human-results/**/*.sarif')
+          ai_prs, ai_issues, ai_sevs = get_stats('ai-results')
+          hu_prs, hu_issues, hu_sevs = get_stats('human-results')
 
           def dens(iss, prs): return round(iss/prs, 2) if prs > 0 else 0
           ai_d = dens(ai_issues, ai_prs)
           hu_d = dens(hu_issues, hu_prs)
 
           print('# ⚖️ AI vs. Human Vulnerability Comparison')
-          
-          print('\n### 🕒 Data Freshness')
-          print(f'- **AI Scan Last Run:** `${{ steps.runs.outputs.ai_time }}` (ID: ${{ steps.runs.outputs.ai_run_id }})')
-          print(f'- **Human Scan Last Run:** `${{ steps.runs.outputs.hu_time }}` (ID: ${{ steps.runs.outputs.hu_run_id }})')
+          print(f'\n### 🕒 Data Freshness')
+          print(f'- **AI Scan Last Run:** ${{ steps.runs.outputs.ai_time }}')
+          print(f'- **Human Scan Last Run:** ${{ steps.runs.outputs.hu_time }}')
 
           print('\n### 📊 Executive Metrics')
           print(f'| Metric | AI-Generated | Human-Written | Status |')
           print(f'| :--- | :--- | :--- | :--- |')
-          print(f'| **Total PRs Found** | {ai_prs} | {hu_prs} | - |')
-          print(f'| **Total Issues Found** | {ai_issues} | {hu_issues} | - |')
+          print(f'| **Total PRs** | {ai_prs} | {hu_prs} | - |')
+          print(f'| **Issues Found** | {ai_issues} | {hu_issues} | - |')
           status = '⚠️ AI density is higher' if ai_d > hu_d else '✅ AI density is lower'
-          print(f'| **Vulnerability Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
+          print(f'| **Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
 
           print('\n### 🔴 Severity Breakdown')
           print(f'| Severity | AI Count | Human Count |')
           print(f'| :--- | :--- | :--- |')
-          print(f'| High (Error) | {ai_sevs[\"error\"]} | {hu_sevs[\"error\"]} |')
-          print(f'| Medium (Warning) | {ai_sevs[\"warning\"]} | {hu_sevs[\"warning\"]} |')
-          print(f'| Low (Note) | {ai_sevs[\"note\"]} | {hu_sevs[\"note\"]} |')
-
-          print('\n### 📈 Density Visualization')
-          print('```mermaid')
-          print('pie title Density Ratio (Issues per PR)')
-          print(f'    \"AI Density\" : {ai_d}')
-          print(f'    \"Human Density\" : {hu_d}')
-          print('```')
+          print(f'| High (Error) | {ai_sevs.get(\"error\", 0)} | {hu_sevs.get(\"error\", 0)} |')
+          print(f'| Medium (Warning) | {ai_sevs.get(\"warning\", 0)} | {hu_sevs.get(\"warning\", 0)} |')
+          print(f'| Low (Note) | {ai_sevs.get(\"note\", 0)} | {hu_sevs.get(\"note\", 0)} |')
           " >> $GITHUB_STEP_SUMMARY
