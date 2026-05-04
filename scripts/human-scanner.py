@@ -15,14 +15,15 @@ def main():
     MAX_PR_LINES = 1000 
     SCAN_LIMIT = 500
     
-    # UPDATED: Exclude list with the new problematic/large repositories
+    # UPDATED: Added microsoft/TypeScript to the exclusion list
     EXCLUDE_REPOS = [
         "BerriAI/litellm", 
         "elastic/kibana",
         "openops-cloud/openops", 
         "DataDog/dd-trace-java", 
         "Azure/azure-sdk-for-js", 
-        "Azure/azure-sdk-for-python"
+        "Azure/azure-sdk-for-python",
+        "microsoft/TypeScript"
     ]
     
     # --- TRACKING ---
