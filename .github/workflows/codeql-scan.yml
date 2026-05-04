@@ -37,6 +37,8 @@ jobs:
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      CODEQL_RAM: 12000
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -125,9 +127,7 @@ jobs:
                   lang = parts[2]
                   agent = parts[3].replace('_', ' ')
                   
-                  with open(f) as s: 
-                      data = json.load(s)
-                  
+                  with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [{}])
                   res = runs[0].get('results', []) if runs else []
                   
@@ -138,19 +138,22 @@ jobs:
                   m = sum(1 for r in res if r.get('level', 'warning') == 'warning')
                   l = sum(1 for r in res if r.get('level') == 'note')
                   
+                  # FILE COUNT LOGIC
+                  u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', [])))
+                  
                   full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
                   link_md = f'[#{pr_num}]({full_url})'
                   
-                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {h} | {m} | {l} | {len(res)} |')
+                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e:
                   print(f'Error processing {fname}: {e}')
 
           print('# 📊 Global Analysis Summary')
-          print('\n### Executive Summary')
+          print(f'\n### Executive Summary')
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total Issues |')
+          print('\n| Repository | PR | AI Tool | Lang | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(table_rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
