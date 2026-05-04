@@ -24,78 +24,76 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
-          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
+          # Fetch AI and Human run metadata
+          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
+          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
           
           echo "ai_run_id=$(echo $AI_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
-          echo "ai_time=$(echo $AI_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
+          echo "ai_time_utc=$(echo $AI_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
           echo "hu_run_id=$(echo $HU_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
-          echo "hu_time=$(echo $HU_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
+          echo "hu_time_utc=$(echo $HU_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download All Results
         run: |
           mkdir -p ai-results human-results
-          # Download all artifacts for both runs. GH CLI puts each in its own subfolder.
           gh run download ${{ steps.runs.outputs.ai_run_id }} -D ai-results || true
           gh run download ${{ steps.runs.outputs.hu_run_id }} -D human-results || true
           
-          # Debug: Log how many files were actually found
-          echo "AI Files found: $(find ai-results -name '*.sarif' | wc -l)"
-          echo "Human Files found: $(find human-results -name '*.sarif' | wc -l)"
+          echo "AI Files: $(find ai-results -name '*.sarif' | wc -l)"
+          echo "Human Files: $(find human-results -name '*.sarif' | wc -l)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Comparison Dashboard
         run: |
+          # Ensure pytz is available for timezone conversion
+          pip install pytz
+          
           python3 -c "
-          import json, glob, os
+          import json, glob, os, pytz
+          from datetime import datetime
+
+          def to_ct(iso_str):
+              try:
+                  utc_dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
+                  return utc_dt.astimezone(pytz.timezone('US/Central')).strftime('%Y-%m-%d %I:%M:%S %p CT')
+              except: return iso_str
 
           def get_stats(base_dir):
-              # Using a very broad recursive glob to find every .sarif file in any subfolder
               search_path = os.path.join(base_dir, '**', '*.sarif')
               files = glob.glob(search_path, recursive=True)
-              
-              total_prs = 0
-              total_issues = 0
-              severities = {'error': 0, 'warning': 0, 'note': 0}
-              
-              print(f'Scanning {base_dir}: Found {len(files)} files.')
+              total_prs, total_issues = 0, 0
+              sevs = {'error': 0, 'warning': 0, 'note': 0}
               
               for f in files:
                   if os.path.basename(f) == 'results.sarif': continue
                   try:
                       with open(f) as s:
                           data = json.load(s)
-                          # Check for nested 'runs'
                           runs = data.get('runs', [])
                           if not runs: continue
-                          
-                          # Count this file as a PR
                           total_prs += 1
-                          
                           for run in runs:
                               res = run.get('results', [])
                               total_issues += len(res)
                               for r in res:
-                                  sev = r.get('level', 'warning')
-                                  severities[sev] = severities.get(sev, 0) + 1
-                  except Exception as e:
-                      print(f'Error reading {f}: {e}')
-              return total_prs, total_issues, severities
+                                  lv = r.get('level', 'warning')
+                                  sevs[lv] = sevs.get(lv, 0) + 1
+                  except: pass
+              return total_prs, total_issues, sevs
 
           ai_prs, ai_issues, ai_sevs = get_stats('ai-results')
           hu_prs, hu_issues, hu_sevs = get_stats('human-results')
 
           def dens(iss, prs): return round(iss/prs, 2) if prs > 0 else 0
-          ai_d = dens(ai_issues, ai_prs)
-          hu_d = dens(hu_issues, hu_prs)
+          ai_d, hu_d = dens(ai_issues, ai_prs), dens(hu_issues, hu_prs)
 
           print('# ⚖️ AI vs. Human Vulnerability Comparison')
-          print(f'\n### 🕒 Data Freshness')
-          print(f'- **AI Scan Last Run:** ${{ steps.runs.outputs.ai_time }}')
-          print(f'- **Human Scan Last Run:** ${{ steps.runs.outputs.hu_time }}')
+          print(f'\n### 🕒 Data Freshness (Central Time)')
+          print(f'- **AI Scan Run:** `{to_ct(\"${{ steps.runs.outputs.ai_time_utc }}\")}`')
+          print(f'- **Human Scan Run:** `{to_ct(\"${{ steps.runs.outputs.hu_time_utc }}\")}`')
 
           print('\n### 📊 Executive Metrics')
           print(f'| Metric | AI-Generated | Human-Written | Status |')
@@ -110,5 +108,4 @@ jobs:
           print(f'| :--- | :--- | :--- |')
           print(f'| High (Error) | {ai_sevs.get(\"error\", 0)} | {hu_sevs.get(\"error\", 0)} |')
           print(f'| Medium (Warning) | {ai_sevs.get(\"warning\", 0)} | {hu_sevs.get(\"warning\", 0)} |')
-          print(f'| Low (Note) | {ai_sevs.get(\"note\", 0)} | {hu_sevs.get(\"note\", 0)} |')
           " >> $GITHUB_STEP_SUMMARY
