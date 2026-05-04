@@ -24,10 +24,11 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          # FIX: Access the first element of the array using .[0]
+          # Use .[0] to strictly grab the most recent run from the array
           AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt)
           
+          # Extract values safely
           echo "ai_run_id=$(echo $AI_DATA | jq -r '.[0].databaseId')" >> $GITHUB_OUTPUT
           echo "ai_time_utc=$(echo $AI_DATA | jq -r '.[0].createdAt')" >> $GITHUB_OUTPUT
           
@@ -46,6 +47,7 @@ jobs:
 
       - name: Generate Comparison Dashboard
         env:
+          # Explicitly passing step outputs to environment variables
           AI_TIME_STR: ${{ steps.runs.outputs.ai_time_utc }}
           HU_TIME_STR: ${{ steps.runs.outputs.hu_time_utc }}
         run: |
@@ -55,12 +57,18 @@ jobs:
           from datetime import datetime
 
           def to_ct(iso_str):
-              if not iso_str or iso_str == 'null' or iso_str == '': return 'N/A'
+              # Strip quotes or whitespace that might come from shell environment
+              iso_str = str(iso_str).strip().strip('\"').strip(\"'\")
+              if not iso_str or iso_str == 'None' or iso_str == 'null': 
+                  return 'N/A'
               try:
-                  # Expected format: 2026-05-04T07:47:59Z
-                  utc_dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
-                  return utc_dt.astimezone(pytz.timezone('US/Central')).strftime('%Y-%m-%d %I:%M:%S %p CT')
-              except: return f'Format Error ({iso_str})'
+                  # GitHub format is typically 2026-05-04T07:47:59Z
+                  # We use replace('Z', '+0000') for better compatibility with older python 3.x
+                  utc_dt = datetime.strptime(iso_str.replace('Z', '+0000'), '%Y-%m-%dT%H:%M:%S%z')
+                  ct_tz = pytz.timezone('US/Central')
+                  return utc_dt.astimezone(ct_tz).strftime('%Y-%m-%d %I:%M:%S %p CT')
+              except Exception as e:
+                  return f'Time Format Error'
 
           def get_stats(root_dir):
               total_prs, total_issues = 0, 0
