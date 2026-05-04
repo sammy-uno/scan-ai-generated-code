@@ -1,22 +1,38 @@
 name: "📊 Compare AI vs Human Scans"
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual trigger
   workflow_run:
     workflows: ["General AI Multi-Language Scanner", "Human PR CodeQL Scanner"]
     types: [completed]
 
 permissions:
   actions: read
-  contents: write # Needed if you decide to commit history
+  contents: read
 
 jobs:
   compare:
     name: Generate Comparison & Trend
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # FIX: Allow manual runs OR successful automatic runs
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    
     steps:
       - uses: actions/checkout@v4
+
+      # We use a community action to find the latest successful run IDs because 
+      # download-artifact v4 requires a specific run-id when crossing workflows.
+      - name: Get Latest Run IDs
+        id: runs
+        run: |
+          AI_RUN_ID=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          HU_RUN_ID=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          echo "ai_run_id=$AI_RUN_ID" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$HU_RUN_ID" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download AI Results
         uses: actions/download-artifact@v4
@@ -24,15 +40,17 @@ jobs:
           pattern: sarif-*
           path: ai-results
           merge-multiple: true
+          run-id: ${{ steps.runs.outputs.ai_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Download Latest Human Results
+      - name: Download Human Results
         uses: actions/download-artifact@v4
         with:
-          pattern: sarif-* # Adjust if human artifacts have a different prefix
+          pattern: sarif-*
           path: human-results
           merge-multiple: true
+          run-id: ${{ steps.runs.outputs.hu_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Comparison Dashboard
         run: |
@@ -48,12 +66,14 @@ jobs:
                   if 'results.sarif' in f: continue
                   try:
                       with open(f) as s: data = json.load(s)
-                      res = data.get('runs', [{}])[0].get('results', [])
-                      total_prs += 1
-                      total_issues += len(res)
-                      for r in res:
-                          sev = r.get('level', 'warning')
-                          severities[sev] = severities.get(sev, 0) + 1
+                      # Some SARIFs have multiple runs; usually we want the first
+                      for run in data.get('runs', []):
+                          res = run.get('results', [])
+                          total_prs += 1
+                          total_issues += len(res)
+                          for r in res:
+                              sev = r.get('level', 'warning')
+                              severities[sev] = severities.get(sev, 0) + 1
                   except: pass
               return total_prs, total_issues, severities
 
@@ -67,25 +87,25 @@ jobs:
           print('# ⚖️ AI vs. Human Vulnerability Comparison')
           
           # TREND CHART (Mermaid.js)
-          print('\n### 📈 Vulnerability Density Trend')
+          print('\n### 📈 Vulnerability Density')
           print('```mermaid')
-          print('xychart-beta')
-          print('    title \"Issues per PR Over Time\"')
-          print('    x-axis [\"Run 1\", \"Run 2\", \"Current\"]') # Simplified for now
-          print(f'    line [{hu_d - 0.2}, {hu_d + 0.1}, {hu_d}]') # Human Baseline
-          print(f'    line [{ai_d + 0.5}, {ai_d + 0.3}, {ai_d}]') # AI Progress
+          print('pie title Issues per PR (Current Run)')
+          print(f'    \"AI Generated\" : {ai_d}')
+          print(f'    \"Human Written\" : {hu_d}')
           print('```')
-          print('> *Legend: Top line is AI Density, Bottom line is Human Density.*')
-
-          print('\n### 📊 Current Run Metrics')
-          print(f'| Metric | AI-Generated | Human-Written |')
-          print(f'| :--- | :--- | :--- |')
-          print(f'| **Vulnerability Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR |')
-          print(f'| **Total Issues Found** | {ai_issues} | {hu_issues} |')
+          
+          print('\n### 📊 Executive Metrics')
+          print(f'| Metric | AI-Generated | Human-Written | Status |')
+          print(f'| :--- | :--- | :--- | :--- |')
+          print(f'| **Total PRs** | {ai_prs} | {hu_prs} | - |')
+          print(f'| **Issues Found** | {ai_issues} | {hu_issues} | - |')
+          status = '⚠️ AI is higher' if ai_d > hu_d else '✅ AI is cleaner'
+          print(f'| **Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
 
           print('\n### 🔴 Severity Breakdown')
           print(f'| Severity | AI Count | Human Count |')
           print(f'| :--- | :--- | :--- |')
           print(f'| High (Error) | {ai_sevs[\"error\"]} | {hu_sevs[\"error\"]} |')
           print(f'| Medium (Warning) | {ai_sevs[\"warning\"]} | {hu_sevs[\"warning\"]} |')
+          print(f'| Low (Note) | {ai_sevs[\"note\"]} | {hu_sevs[\"note\"]} |')
           " >> $GITHUB_STEP_SUMMARY
