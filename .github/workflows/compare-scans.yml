@@ -24,21 +24,15 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
-          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
+          # FIX: Access the first element of the array using .[0]
+          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt)
+          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt)
           
-          # Set outputs and also log them to the console for verification
-          AI_TIME=$(echo $AI_DATA | jq -r .databaseId)
-          echo "ai_run_id=$AI_TIME" >> $GITHUB_OUTPUT
-          echo "ai_time_utc=$(echo $AI_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
+          echo "ai_run_id=$(echo $AI_DATA | jq -r '.[0].databaseId')" >> $GITHUB_OUTPUT
+          echo "ai_time_utc=$(echo $AI_DATA | jq -r '.[0].createdAt')" >> $GITHUB_OUTPUT
           
-          HU_TIME=$(echo $HU_DATA | jq -r .databaseId)
-          echo "hu_run_id=$HU_TIME" >> $GITHUB_OUTPUT
-          echo "hu_time_utc=$(echo $HU_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
-          
-          echo "--- DEBUG: Run Metadata ---"
-          echo "AI Run ID: $AI_TIME"
-          echo "HU Run ID: $HU_TIME"
+          echo "hu_run_id=$(echo $HU_DATA | jq -r '.[0].databaseId')" >> $GITHUB_OUTPUT
+          echo "hu_time_utc=$(echo $HU_DATA | jq -r '.[0].createdAt')" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -52,7 +46,6 @@ jobs:
 
       - name: Generate Comparison Dashboard
         env:
-          # Mapping outputs to Env vars again to be absolutely sure Python sees them
           AI_TIME_STR: ${{ steps.runs.outputs.ai_time_utc }}
           HU_TIME_STR: ${{ steps.runs.outputs.hu_time_utc }}
         run: |
@@ -67,8 +60,7 @@ jobs:
                   # Expected format: 2026-05-04T07:47:59Z
                   utc_dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
                   return utc_dt.astimezone(pytz.timezone('US/Central')).strftime('%Y-%m-%d %I:%M:%S %p CT')
-              except Exception as e:
-                  return f'Format Error ({iso_str})'
+              except: return f'Format Error ({iso_str})'
 
           def get_stats(root_dir):
               total_prs, total_issues = 0, 0
