@@ -1,7 +1,7 @@
 name: "📊 Compare AI vs Human Scans"
 
 on:
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch: 
   workflow_run:
     workflows: ["General AI Multi-Language Scanner", "Human PR CodeQL Scanner"]
     types: [completed]
@@ -14,7 +14,6 @@ jobs:
   compare:
     name: Generate Comparison & Trend
     runs-on: ubuntu-latest
-    # FIX: Allow manual runs OR successful automatic runs
     if: |
       github.event_name == 'workflow_dispatch' || 
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
@@ -22,35 +21,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # We use a community action to find the latest successful run IDs because 
-      # download-artifact v4 requires a specific run-id when crossing workflows.
-      - name: Get Latest Run IDs
+      - name: Get Latest Run Details
         id: runs
         run: |
-          AI_RUN_ID=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          HU_RUN_ID=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          echo "ai_run_id=$AI_RUN_ID" >> $GITHUB_OUTPUT
-          echo "hu_run_id=$HU_RUN_ID" >> $GITHUB_OUTPUT
+          # Fetch AI Run Details
+          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
+          AI_ID=$(echo "$AI_DATA" | jq -r '.databaseId')
+          AI_TIME=$(echo "$AI_DATA" | jq -r '.createdAt')
+          
+          # Fetch Human Run Details
+          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
+          HU_ID=$(echo "$HU_DATA" | jq -r '.databaseId')
+          HU_TIME=$(echo "$HU_DATA" | jq -r '.createdAt')
+          
+          echo "ai_run_id=$AI_ID" >> $GITHUB_OUTPUT
+          echo "ai_time=$AI_TIME" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$HU_ID" >> $GITHUB_OUTPUT
+          echo "hu_time=$HU_TIME" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download AI Results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: sarif-*
-          path: ai-results
-          merge-multiple: true
-          run-id: ${{ steps.runs.outputs.ai_run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download All AI Results
+        run: |
+          mkdir -p ai-results
+          # Using GH CLI to bypass Action pagination limits
+          gh run download ${{ steps.runs.outputs.ai_run_id }} -n "sarif-*" -D ai-results || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download Human Results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: sarif-*
-          path: human-results
-          merge-multiple: true
-          run-id: ${{ steps.runs.outputs.hu_run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download All Human Results
+        run: |
+          mkdir -p human-results
+          gh run download ${{ steps.runs.outputs.hu_run_id }} -n "sarif-*" -D human-results || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Comparison Dashboard
         run: |
@@ -58,15 +62,15 @@ jobs:
           import json, glob, os
 
           def get_stats(path_pattern):
+              # Recursive glob to find all SARIFs in subfolders created by GH CLI
               files = glob.glob(path_pattern, recursive=True)
               total_prs = 0
               total_issues = 0
               severities = {'error': 0, 'warning': 0, 'note': 0}
               for f in files:
-                  if 'results.sarif' in f: continue
+                  if os.path.basename(f) == 'results.sarif': continue
                   try:
                       with open(f) as s: data = json.load(s)
-                      # Some SARIFs have multiple runs; usually we want the first
                       for run in data.get('runs', []):
                           res = run.get('results', [])
                           total_prs += 1
@@ -86,21 +90,17 @@ jobs:
 
           print('# ⚖️ AI vs. Human Vulnerability Comparison')
           
-          # TREND CHART (Mermaid.js)
-          print('\n### 📈 Vulnerability Density')
-          print('```mermaid')
-          print('pie title Issues per PR (Current Run)')
-          print(f'    \"AI Generated\" : {ai_d}')
-          print(f'    \"Human Written\" : {hu_d}')
-          print('```')
-          
+          print('\n### 🕒 Data Freshness')
+          print(f'- **AI Scan Last Run:** `${{ steps.runs.outputs.ai_time }}` (ID: ${{ steps.runs.outputs.ai_run_id }})')
+          print(f'- **Human Scan Last Run:** `${{ steps.runs.outputs.hu_time }}` (ID: ${{ steps.runs.outputs.hu_run_id }})')
+
           print('\n### 📊 Executive Metrics')
           print(f'| Metric | AI-Generated | Human-Written | Status |')
           print(f'| :--- | :--- | :--- | :--- |')
-          print(f'| **Total PRs** | {ai_prs} | {hu_prs} | - |')
-          print(f'| **Issues Found** | {ai_issues} | {hu_issues} | - |')
-          status = '⚠️ AI is higher' if ai_d > hu_d else '✅ AI is cleaner'
-          print(f'| **Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
+          print(f'| **Total PRs Found** | {ai_prs} | {hu_prs} | - |')
+          print(f'| **Total Issues Found** | {ai_issues} | {hu_issues} | - |')
+          status = '⚠️ AI density is higher' if ai_d > hu_d else '✅ AI density is lower'
+          print(f'| **Vulnerability Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
 
           print('\n### 🔴 Severity Breakdown')
           print(f'| Severity | AI Count | Human Count |')
@@ -108,4 +108,11 @@ jobs:
           print(f'| High (Error) | {ai_sevs[\"error\"]} | {hu_sevs[\"error\"]} |')
           print(f'| Medium (Warning) | {ai_sevs[\"warning\"]} | {hu_sevs[\"warning\"]} |')
           print(f'| Low (Note) | {ai_sevs[\"note\"]} | {hu_sevs[\"note\"]} |')
+
+          print('\n### 📈 Density Visualization')
+          print('```mermaid')
+          print('pie title Density Ratio (Issues per PR)')
+          print(f'    \"AI Density\" : {ai_d}')
+          print(f'    \"Human Density\" : {hu_d}')
+          print('```')
           " >> $GITHUB_STEP_SUMMARY
