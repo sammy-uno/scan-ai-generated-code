@@ -24,33 +24,37 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
-          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
+          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
+          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
           
-          echo "ai_run_id=$(echo $AI_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
+          # Set outputs and also log them to the console for verification
+          AI_TIME=$(echo $AI_DATA | jq -r .databaseId)
+          echo "ai_run_id=$AI_TIME" >> $GITHUB_OUTPUT
           echo "ai_time_utc=$(echo $AI_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
-          echo "hu_run_id=$(echo $HU_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
+          
+          HU_TIME=$(echo $HU_DATA | jq -r .databaseId)
+          echo "hu_run_id=$HU_TIME" >> $GITHUB_OUTPUT
           echo "hu_time_utc=$(echo $HU_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
+          
+          echo "--- DEBUG: Run Metadata ---"
+          echo "AI Run ID: $AI_TIME"
+          echo "HU Run ID: $HU_TIME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download All Results
         run: |
           mkdir -p ai-results human-results
-          # Download everything. Note: CLI puts each artifact in its own sub-folder.
           gh run download ${{ steps.runs.outputs.ai_run_id }} -D ai-results || true
           gh run download ${{ steps.runs.outputs.hu_run_id }} -D human-results || true
-          
-          echo "--- DEBUG: File Discovery ---"
-          echo "AI SARIFs: $(find ai-results -name '*.sarif' | wc -l)"
-          echo "HU SARIFs: $(find human-results -name '*.sarif' | wc -l)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Comparison Dashboard
         env:
-          AI_TIME_UTC: ${{ steps.runs.outputs.ai_time_utc }}
-          HU_TIME_UTC: ${{ steps.runs.outputs.hu_time_utc }}
+          # Mapping outputs to Env vars again to be absolutely sure Python sees them
+          AI_TIME_STR: ${{ steps.runs.outputs.ai_time_utc }}
+          HU_TIME_STR: ${{ steps.runs.outputs.hu_time_utc }}
         run: |
           pip install pytz
           python3 -c "
@@ -58,18 +62,17 @@ jobs:
           from datetime import datetime
 
           def to_ct(iso_str):
-              if not iso_str or iso_str == 'null': return 'N/A'
+              if not iso_str or iso_str == 'null' or iso_str == '': return 'N/A'
               try:
-                  # Handle '2026-05-01T07:47:59Z'
+                  # Expected format: 2026-05-04T07:47:59Z
                   utc_dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
                   return utc_dt.astimezone(pytz.timezone('US/Central')).strftime('%Y-%m-%d %I:%M:%S %p CT')
-              except: return iso_str
+              except Exception as e:
+                  return f'Format Error ({iso_str})'
 
           def get_stats(root_dir):
               total_prs, total_issues = 0, 0
               sevs = {'error': 0, 'warning': 0, 'note': 0}
-              
-              # Walk through every subfolder created by gh run download
               for root, dirs, files in os.walk(root_dir):
                   for file in files:
                       if file.endswith('.sarif') and file != 'results.sarif':
@@ -91,19 +94,22 @@ jobs:
           ai_prs, ai_issues, ai_sevs = get_stats('ai-results')
           hu_prs, hu_issues, hu_sevs = get_stats('human-results')
 
+          ai_time_ct = to_ct(os.environ.get('AI_TIME_STR'))
+          hu_time_ct = to_ct(os.environ.get('HU_TIME_STR'))
+
           def dens(iss, prs): return round(iss/prs, 2) if prs > 0 else 0
           ai_d, hu_d = dens(ai_issues, ai_prs), dens(hu_issues, hu_prs)
 
           print('# ⚖️ AI vs. Human Vulnerability Comparison')
           print(f'\n### 🕒 Data Freshness (Central Time)')
-          print(f'- **AI Scan Last Run:** `{to_ct(os.environ.get(\"AI_TIME_UTC\"))}`')
-          print(f'- **Human Scan Last Run:** `{to_ct(os.environ.get(\"HU_TIME_UTC\"))}`')
+          print(f'- **AI Scan Last Run:** `{ai_time_ct}`')
+          print(f'- **Human Scan Last Run:** `{hu_time_ct}`')
 
           print('\n### 📊 Executive Metrics')
           print(f'| Metric | AI-Generated | Human-Written | Status |')
           print(f'| :--- | :--- | :--- | :--- |')
-          print(f'| **Total PRs** | {ai_prs} | {hu_prs} | - |')
-          print(f'| **Issues Found** | {ai_issues} | {hu_issues} | - |')
+          print(f'| **Total PRs Found** | {ai_prs} | {hu_prs} | - |')
+          print(f'| **Total Issues Found** | {ai_issues} | {hu_issues} | - |')
           status = '⚠️ AI density is higher' if ai_d > hu_d else '✅ AI density is lower'
           print(f'| **Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
 
