@@ -24,34 +24,26 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          # Use filenames instead of display names to guarantee a match
+          # Fetch AI and Human run metadata using filenames for accuracy
           AI_DATA=$(gh run list --workflow "codeql-scan.yml" --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow "human-codeql-scan.yml" --status success --limit 1 --json databaseId,createdAt)
           
-          # Use .[0] to strictly grab the first object in the array
-          AI_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // "null"')
-          AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "null"')
-          HU_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // "null"')
-          HU_TIME=$(echo "$HU_DATA" | jq -r '.[0].createdAt // "null"')
-
-          echo "ai_run_id=$AI_ID" >> $GITHUB_OUTPUT
-          echo "ai_time_utc=$AI_TIME" >> $GITHUB_OUTPUT
-          echo "hu_run_id=$HU_ID" >> $GITHUB_OUTPUT
-          echo "hu_time_utc=$HU_TIME" >> $GITHUB_OUTPUT
-
-          echo "--- DEBUG RAW DATA ---"
-          echo "AI ID: $AI_ID | Time: $AI_TIME"
-          echo "HU ID: $HU_ID | Time: $HU_TIME"
+          # Extract values into outputs
+          echo "ai_run_id=$(echo $AI_DATA | jq -r '.[0].databaseId // "null"')" >> $GITHUB_OUTPUT
+          echo "ai_time_utc=$(echo $AI_DATA | jq -r '.[0].createdAt // "null"')" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$(echo $HU_DATA | jq -r '.[0].databaseId // "null"')" >> $GITHUB_OUTPUT
+          echo "hu_time_utc=$(echo $HU_DATA | jq -r '.[0].createdAt // "null"')" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download All Results
         run: |
           mkdir -p ai-results human-results
-          # Only attempt download if we have a valid ID
+          # Download AI artifacts if ID is valid
           if [ "${{ steps.runs.outputs.ai_run_id }}" != "null" ]; then
             gh run download ${{ steps.runs.outputs.ai_run_id }} -D ai-results || true
           fi
+          # Download Human artifacts if ID is valid
           if [ "${{ steps.runs.outputs.hu_run_id }}" != "null" ]; then
             gh run download ${{ steps.runs.outputs.hu_run_id }} -D human-results || true
           fi
@@ -65,67 +57,79 @@ jobs:
         run: |
           pip install pytz
           python3 -c "
-          import json, os, pytz
+          import json, os, pytz, glob
           from datetime import datetime
 
           def to_ct(iso_str):
-              iso_str = str(iso_str).strip()
+              iso_str = str(iso_str).strip().strip('\"').strip(\"'\")
               if not iso_str or iso_str in ['None', 'null', '']: 
-                  return 'No Run Found'
+                  return 'No Run Data Found'
               try:
-                  # Expected: 2024-05-04T07:47:59Z
+                  # Parse 2026-05-04T04:54:00Z
                   utc_dt = datetime.strptime(iso_str.replace('Z', '+0000'), '%Y-%m-%dT%H:%M:%S%z')
                   ct_tz = pytz.timezone('US/Central')
                   return utc_dt.astimezone(ct_tz).strftime('%Y-%m-%d %I:%M:%S %p CT')
               except Exception as e:
-                  return f'Time Format Error ({iso_str})'
+                  return f'Time Error ({iso_str})'
 
           def get_stats(root_dir):
+              # Deep recursive search for any .sarif files
+              files = glob.glob(os.path.join(root_dir, '**', '*.sarif'), recursive=True)
               total_prs, total_issues = 0, 0
               sevs = {'error': 0, 'warning': 0, 'note': 0}
-              for root, dirs, files in os.walk(root_dir):
-                  for file in files:
-                      if file.endswith('.sarif') and file != 'results.sarif':
-                          try:
-                              with open(os.path.join(root, file)) as s:
-                                  data = json.load(s)
-                                  runs = data.get('runs', [])
-                                  if not runs: continue
-                                  total_prs += 1
-                                  for run in runs:
-                                      res = run.get('results', [])
-                                      total_issues += len(res)
-                                      for r in res:
-                                          lv = r.get('level', 'warning')
-                                          sevs[lv] = sevs.get(lv, 0) + 1
-                          except: continue
+              
+              for f in files:
+                  if os.path.basename(f) == 'results.sarif': continue
+                  try:
+                      with open(f) as s:
+                          data = json.load(s)
+                          runs = data.get('runs', [])
+                          if not runs: continue
+                          total_prs += 1
+                          for run in runs:
+                              res = run.get('results', [])
+                              total_issues += len(res)
+                              for r in res:
+                                  lv = r.get('level', 'warning')
+                                  sevs[lv] = sevs.get(lv, 0) + 1
+                  except: continue
               return total_prs, total_issues, sevs
 
           ai_prs, ai_issues, ai_sevs = get_stats('ai-results')
           hu_prs, hu_issues, hu_sevs = get_stats('human-results')
 
-          ai_time_ct = to_ct(os.environ.get('AI_TIME_STR'))
-          hu_time_ct = to_ct(os.environ.get('HU_TIME_STR'))
+          ai_time_ct = to_ct(os.getenv('AI_TIME_STR'))
+          hu_time_ct = to_ct(os.getenv('HU_TIME_STR'))
 
-          def dens(iss, prs): return round(iss/prs, 2) if prs > 0 else 0
-          ai_d, hu_d = dens(ai_issues, ai_prs), dens(hu_issues, hu_prs)
+          ai_density = round(ai_issues/ai_prs, 2) if ai_prs > 0 else 0
+          hu_density = round(hu_issues/hu_prs, 2) if hu_prs > 0 else 0
+          status = '⚠️ AI higher' if ai_density > hu_density else '✅ AI lower'
 
-          print('# ⚖️ AI vs. Human Vulnerability Comparison')
-          print(f'\n### 🕒 Data Freshness (Central Time)')
-          print(f'- **AI Scan Last Run:** `{ai_time_ct}`')
-          print(f'- **Human Scan Last Run:** `{hu_time_ct}`')
+          dashboard = f'''# ⚖️ AI vs. Human Vulnerability Comparison
 
-          print('\n### 📊 Executive Metrics')
-          print(f'| Metric | AI-Generated | Human-Written | Status |')
-          print(f'| :--- | :--- | :--- | :--- |')
-          print(f'| **Total PRs Found** | {ai_prs} | {hu_prs} | - |')
-          print(f'| **Total Issues Found** | {ai_issues} | {hu_issues} | - |')
-          status = '⚠️ AI density is higher' if ai_d > hu_d else '✅ AI density is lower'
-          print(f'| **Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |')
+          ### 🕒 Data Freshness (Central Time)
+          - **AI Scan Last Run:** `{ai_time_ct}`
+          - **Human Scan Last Run:** `{hu_time_ct}`
 
-          print('\n### 🔴 Severity Breakdown')
-          print(f'| Severity | AI Count | Human Count |')
-          print(f'| :--- | :--- | :--- |')
-          print(f'| High (Error) | {ai_sevs.get(\"error\", 0)} | {hu_sevs.get(\"error\", 0)} |')
-          print(f'| Medium (Warning) | {ai_sevs.get(\"warning\", 0)} | {hu_sevs.get(\"warning\", 0)} |')
-          " >> $GITHUB_STEP_SUMMARY
+          ### 📊 Executive Metrics
+
+
+          | Metric | AI-Generated | Human-Written | Status |
+          | :--- | :--- | :--- | :--- |
+          | **Total PRs Found** | {ai_prs} | {hu_prs} | - |
+          | **Total Issues Found** | {ai_issues} | {hu_issues} | - |
+          | **Vulnerability Density** | **{ai_density}** issues/PR | **{hu_density}** issues/PR | {status} |
+
+          ### 🔴 Severity Breakdown
+
+
+          | Severity | AI Count | Human Count |
+          | :--- | :--- | :--- |
+          | High (Error) | {ai_sevs.get('error', 0)} | {hu_sevs.get('error', 0)} |
+          | Medium (Warning) | {ai_sevs.get('warning', 0)} | {hu_sevs.get('warning', 0)} |
+          | Low (Note) | {ai_sevs.get('note', 0)} | {hu_sevs.get('note', 0)} |
+          '''
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write(dashboard)
+          "
