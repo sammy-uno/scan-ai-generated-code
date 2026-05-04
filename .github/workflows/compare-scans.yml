@@ -24,13 +24,25 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
+          # Use filenames to guarantee a match
           AI_DATA=$(gh run list --workflow codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow human-codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           
-          echo "ai_run_id=$(echo $AI_DATA | jq -r '.[0].databaseId // "null"')" >> $GITHUB_OUTPUT
-          echo "ai_time_utc=$(echo $AI_DATA | jq -r '.[0].createdAt // "null"')" >> $GITHUB_OUTPUT
-          echo "hu_run_id=$(echo $HU_DATA | jq -r '.[0].databaseId // "null"')" >> $GITHUB_OUTPUT
-          echo "hu_time_utc=$(echo $HU_DATA | jq -r '.[0].createdAt // "null"')" >> $GITHUB_OUTPUT
+          # Extract values
+          AI_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // "null"')
+          AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "null"')
+          HU_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // "null"')
+          HU_TIME=$(echo "$HU_DATA" | jq -r '.[0].createdAt // "null"')
+
+          echo "ai_run_id=$AI_ID" >> $GITHUB_OUTPUT
+          echo "ai_time_utc=$AI_TIME" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$HU_ID" >> $GITHUB_OUTPUT
+          echo "hu_time_utc=$HU_TIME" >> $GITHUB_OUTPUT
+
+          # RESTORED DEBUG LOGS
+          echo "--- DEBUG RAW DATA ---"
+          echo "AI_ID: $AI_ID | AI_TIME: $AI_TIME"
+          echo "HU_ID: $HU_ID | HU_TIME: $HU_TIME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -52,19 +64,20 @@ jobs:
           HU_TIME_STR: ${{ steps.runs.outputs.hu_time_utc }}
         run: |
           pip install pytz
-          python3 -c "
+          python3 << 'EOF'
           import json, os, pytz, glob
           from datetime import datetime
 
           def to_ct(iso_str):
-              iso_str = str(iso_str).strip().strip('\"').strip(\"'\")
+              iso_str = str(iso_str).strip().strip('"').strip("'")
               if not iso_str or iso_str in ['None', 'null', '']: 
                   return 'No Run Data Found'
               try:
+                  # Parse standard ISO format
                   utc_dt = datetime.strptime(iso_str.replace('Z', '+0000'), '%Y-%m-%dT%H:%M:%S%z')
                   ct_tz = pytz.timezone('US/Central')
                   return utc_dt.astimezone(ct_tz).strftime('%Y-%m-%d %I:%M:%S %p CT')
-              except Exception:
+              except Exception as e:
                   return f'Time Error ({iso_str})'
 
           def get_stats(root_dir):
@@ -94,11 +107,11 @@ jobs:
           ai_time_ct = to_ct(os.getenv('AI_TIME_STR'))
           hu_time_ct = to_ct(os.getenv('HU_TIME_STR'))
 
-          ai_density = round(ai_issues/ai_prs, 2) if ai_prs > 0 else 0
-          hu_density = round(hu_issues/hu_prs, 2) if hu_prs > 0 else 0
-          status = '⚠️ AI density is higher' if ai_density > hu_density else '✅ AI density is lower'
+          ai_d = round(ai_issues/ai_prs, 2) if ai_prs > 0 else 0
+          hu_d = round(hu_issues/hu_prs, 2) if hu_prs > 0 else 0
+          status = '⚠️ AI higher' if ai_d > hu_d else '✅ AI lower'
 
-          dashboard = f'''# ⚖️ AI vs. Human Vulnerability Comparison
+          dashboard = f"""# ⚖️ AI vs. Human Vulnerability Comparison
 
           ### 🕒 Data Freshness (Central Time)
           - **AI Scan Last Run:** `{ai_time_ct}`
@@ -106,20 +119,24 @@ jobs:
 
           ### 📊 Executive Metrics
 
+
           | Metric | AI-Generated | Human-Written | Status |
           | :--- | :--- | :--- | :--- |
           | **Total PRs Found** | {ai_prs} | {hu_prs} | - |
           | **Total Issues Found** | {ai_issues} | {hu_issues} | - |
-          | **Vulnerability Density** | **{ai_density}** issues/PR | **{hu_density}** issues/PR | {status} |
+          | **Vulnerability Density** | **{ai_d}** issues/PR | **{hu_d}** issues/PR | {status} |
 
           ### 🔴 Severity Breakdown
+
 
           | Severity | AI Count | Human Count |
           | :--- | :--- | :--- |
           | High (Error) | {ai_sevs.get('error', 0)} | {hu_sevs.get('error', 0)} |
           | Medium (Warning) | {ai_sevs.get('warning', 0)} | {hu_sevs.get('warning', 0)} |
           | Low (Note) | {ai_sevs.get('note', 0)} | {hu_sevs.get('note', 0)} |
-          '''
+          """
 
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+          summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
+          with open(summary_path, 'a') as f:
               f.write(dashboard)
+          EOF
