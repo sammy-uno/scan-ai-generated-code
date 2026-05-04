@@ -1,6 +1,7 @@
 name: "📊 Compare AI vs Human Scans"
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["General AI Multi-Language Scanner", "Human PR CodeQL Scanner"]
     types: [completed]
