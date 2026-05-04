@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   compare:
-    name: Generate Comparison & Trend
+    name: Generate Comparison
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' || 
@@ -24,9 +24,8 @@ jobs:
       - name: Get Latest Run Details
         id: runs
         run: |
-          # Fetch AI and Human run metadata
-          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
-          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.')
+          AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
+          HU_DATA=$(gh run list --workflow "Human PR CodeQL Scanner" --status success --limit 1 --json databaseId,createdAt --jq '.[0]')
           
           echo "ai_run_id=$(echo $AI_DATA | jq -r .databaseId)" >> $GITHUB_OUTPUT
           echo "ai_time_utc=$(echo $AI_DATA | jq -r .createdAt)" >> $GITHUB_OUTPUT
@@ -38,50 +37,55 @@ jobs:
       - name: Download All Results
         run: |
           mkdir -p ai-results human-results
+          # Download everything. Note: CLI puts each artifact in its own sub-folder.
           gh run download ${{ steps.runs.outputs.ai_run_id }} -D ai-results || true
           gh run download ${{ steps.runs.outputs.hu_run_id }} -D human-results || true
           
-          echo "AI Files: $(find ai-results -name '*.sarif' | wc -l)"
-          echo "Human Files: $(find human-results -name '*.sarif' | wc -l)"
+          echo "--- DEBUG: File Discovery ---"
+          echo "AI SARIFs: $(find ai-results -name '*.sarif' | wc -l)"
+          echo "HU SARIFs: $(find human-results -name '*.sarif' | wc -l)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Comparison Dashboard
+        env:
+          AI_TIME_UTC: ${{ steps.runs.outputs.ai_time_utc }}
+          HU_TIME_UTC: ${{ steps.runs.outputs.hu_time_utc }}
         run: |
-          # Ensure pytz is available for timezone conversion
           pip install pytz
-          
           python3 -c "
-          import json, glob, os, pytz
+          import json, os, pytz
           from datetime import datetime
 
           def to_ct(iso_str):
+              if not iso_str or iso_str == 'null': return 'N/A'
               try:
+                  # Handle '2026-05-01T07:47:59Z'
                   utc_dt = datetime.strptime(iso_str, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=pytz.utc)
                   return utc_dt.astimezone(pytz.timezone('US/Central')).strftime('%Y-%m-%d %I:%M:%S %p CT')
               except: return iso_str
 
-          def get_stats(base_dir):
-              search_path = os.path.join(base_dir, '**', '*.sarif')
-              files = glob.glob(search_path, recursive=True)
+          def get_stats(root_dir):
               total_prs, total_issues = 0, 0
               sevs = {'error': 0, 'warning': 0, 'note': 0}
               
-              for f in files:
-                  if os.path.basename(f) == 'results.sarif': continue
-                  try:
-                      with open(f) as s:
-                          data = json.load(s)
-                          runs = data.get('runs', [])
-                          if not runs: continue
-                          total_prs += 1
-                          for run in runs:
-                              res = run.get('results', [])
-                              total_issues += len(res)
-                              for r in res:
-                                  lv = r.get('level', 'warning')
-                                  sevs[lv] = sevs.get(lv, 0) + 1
-                  except: pass
+              # Walk through every subfolder created by gh run download
+              for root, dirs, files in os.walk(root_dir):
+                  for file in files:
+                      if file.endswith('.sarif') and file != 'results.sarif':
+                          try:
+                              with open(os.path.join(root, file)) as s:
+                                  data = json.load(s)
+                                  runs = data.get('runs', [])
+                                  if not runs: continue
+                                  total_prs += 1
+                                  for run in runs:
+                                      res = run.get('results', [])
+                                      total_issues += len(res)
+                                      for r in res:
+                                          lv = r.get('level', 'warning')
+                                          sevs[lv] = sevs.get(lv, 0) + 1
+                          except: continue
               return total_prs, total_issues, sevs
 
           ai_prs, ai_issues, ai_sevs = get_stats('ai-results')
@@ -92,8 +96,8 @@ jobs:
 
           print('# ⚖️ AI vs. Human Vulnerability Comparison')
           print(f'\n### 🕒 Data Freshness (Central Time)')
-          print(f'- **AI Scan Run:** `{to_ct(\"${{ steps.runs.outputs.ai_time_utc }}\")}`')
-          print(f'- **Human Scan Run:** `{to_ct(\"${{ steps.runs.outputs.hu_time_utc }}\")}`')
+          print(f'- **AI Scan Last Run:** `{to_ct(os.environ.get(\"AI_TIME_UTC\"))}`')
+          print(f'- **Human Scan Last Run:** `{to_ct(os.environ.get(\"HU_TIME_UTC\"))}`')
 
           print('\n### 📊 Executive Metrics')
           print(f'| Metric | AI-Generated | Human-Written | Status |')
