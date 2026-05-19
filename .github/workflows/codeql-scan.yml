@@ -40,7 +40,6 @@ jobs:
     env:
       CODEQL_RAM: 12000
     strategy:
-      # CRITICAL SAFEGUARD: Prevents one failed repo scan from canceling the rest of the 500 PR matrix queue
       fail-fast: false
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
@@ -85,7 +84,7 @@ jobs:
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
-            python scripts/parse-results.py
+            python scripts/parse-results.py || true
           fi
 
       - name: Save Artifacts
@@ -115,7 +114,7 @@ jobs:
           total_scanned = 0
           vulnerable_count = 0
           cwe_tracker = {}
-
+          
           for f in all_files:
               fname = os.path.basename(f)
               if fname == 'results.sarif' or '--' not in fname: continue
@@ -138,7 +137,14 @@ jobs:
                       if isinstance(run, dict):
                           for result in run.get('results', []):
                               rule_id = result.get('ruleId', 'Unknown')
-                              locs = result.get('locations', [{}]).get('physicalLocation', {}) if isinstance(result.get('locations'), list) and len(result.get('locations')) > 0 else result.get('locations', {}).get('physicalLocation', {})
+                              
+                              locs_data = result.get('locations', [])
+                              locs = {}
+                              if isinstance(locs_data, list) and len(locs_data) > 0:
+                                  locs = locs_data[0].get('physicalLocation', {}) if isinstance(locs_data[0], dict) else {}
+                              elif isinstance(locs_data, dict):
+                                  locs = locs_data.get('physicalLocation', {})
+                              
                               path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
                               line = locs.get('region', {}).get('startLine', '?')
                               
@@ -156,7 +162,7 @@ jobs:
                           all_rules.extend(tool.get('driver', {}).get('rules', []))
                           for ext in tool.get('extensions', []):
                               all_rules.extend(ext.get('rules', []))
-                              
+                          
                           for rule in all_rules:
                               r_id = rule.get('id')
                               tags = rule.get('properties', {}).get('tags', [])
@@ -170,7 +176,7 @@ jobs:
                                       local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
                   except Exception as ex: 
                       print(f'Metadata extract warning for {fname}: {ex}')
-
+                  
                   total_scanned += 1
                   if len(res) > 0: vulnerable_count += 1
                   
@@ -212,21 +218,21 @@ jobs:
                   table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e:
                   print(f'Error processing {fname}: {e}')
-
+          
           print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
           print(f'- **Total PRs Scanned:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
           
-          print('\n### 🎯 Discovered AI Weaknesses (Top 5 CWE Frequency)')
+          print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
+              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item[1], reverse=True)[:5]:
                   print(f'- **{cwe}**: Found {count} time(s)')
           else:
               print('- No distinct CWE records mapped.')
-
-          print('\n| Repository | PR | AI Tool | Lang | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
+          
+          print('\n| Repository | PR | AI Tool | Lang | CWE Discovered | ⚫ H | ⚪ M | ⚪ L | Total (Files) |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(table_rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
