@@ -138,7 +138,6 @@ jobs:
                           for result in run.get('results', []):
                               rule_id = result.get('ruleId', 'Unknown')
                               
-                              # --- TYPE-SAFE CHECK FOR EMPTY ARRAYS OR MISSING LOCATIONS ---
                               locs_data = result.get('locations', [])
                               locs = {}
                               if isinstance(locs_data, list) and len(locs_data) > 0:
@@ -203,15 +202,15 @@ jobs:
                       else:
                           l += 1
                   
-                  # --- CORRELATED SEVERITY BADGE MAPPING ---
+                  # --- FIX: SINGLE QUOTES IN BADGES FOR INLINE STRING PARSING ---
                   if h > 0:
-                      row_severity_badge = "🔴 High"
+                      row_severity_badge = '🔴 High'
                   elif m > 0:
-                      row_severity_badge = "🟡 Medium"
+                      row_severity_badge = '🟡 Medium'
                   elif l > 0:
-                      row_severity_badge = "🔵 Low"
+                      row_severity_badge = '🔵 Low'
                   else:
-                      row_severity_badge = "🟢 Clean"
+                      row_severity_badge = '🟢 Clean'
                   
                   pr_cwes = set()
                   for r in res:
@@ -251,7 +250,6 @@ jobs:
           else:
               print('- No distinct CWE records mapped.')
           
-          # --- ALIGNED MARKDOWN SEVERITY GRAPH COLORS ---
           print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
           print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(table_rows): print(r)
