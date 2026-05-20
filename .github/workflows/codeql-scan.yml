@@ -138,10 +138,12 @@ jobs:
                           for result in run.get('results', []):
                               rule_id = result.get('ruleId', 'Unknown')
                               
+                              # --- TYPE-SAFE CHECK FOR EMPTY ARRAYS OR MISSING LOCATIONS ---
                               locs_data = result.get('locations', [])
                               locs = {}
                               if isinstance(locs_data, list) and len(locs_data) > 0:
-                                  locs = locs_data[0].get('physicalLocation', {}) if isinstance(locs_data[0], dict) else {}
+                                  first_loc = locs_data[0]
+                                  locs = first_loc.get('physicalLocation', {}) if isinstance(first_loc, dict) else {}
                               elif isinstance(locs_data, dict):
                                   locs = locs_data.get('physicalLocation', {})
                               
@@ -201,6 +203,16 @@ jobs:
                       else:
                           l += 1
                   
+                  # --- CORRELATED SEVERITY BADGE MAPPING ---
+                  if h > 0:
+                      row_severity_badge = "🔴 High"
+                  elif m > 0:
+                      row_severity_badge = "🟡 Medium"
+                  elif l > 0:
+                      row_severity_badge = "🔵 Low"
+                  else:
+                      row_severity_badge = "🟢 Clean"
+                  
                   pr_cwes = set()
                   for r in res:
                       cwes_for_rule = local_cwe_map.get(r.get('ruleId'), set())
@@ -210,12 +222,19 @@ jobs:
                               pr_cwes.add(cwe_id)
                   
                   cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
-                  u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r in res for loc in r.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
+                  
+                  unique_files = set()
+                  for r in res:
+                      for loc in r.get('locations', []):
+                          if isinstance(loc, dict):
+                              u_uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
+                              if u_uri: unique_files.add(u_uri)
+                  u_files = len(unique_files)
                   
                   full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
                   link_md = f'[#{pr_num}]({full_url})'
                   
-                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
+                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {row_severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e:
                   print(f'Error processing {fname}: {e}')
           
@@ -232,7 +251,8 @@ jobs:
           else:
               print('- No distinct CWE records mapped.')
           
-          print('\n| Repository | PR | AI Tool | Lang | CWE Discovered | ⚫ H | ⚪ M | ⚪ L | Total (Files) |')
-          print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
+          # --- ALIGNED MARKDOWN SEVERITY GRAPH COLORS ---
+          print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
+          print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(table_rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
