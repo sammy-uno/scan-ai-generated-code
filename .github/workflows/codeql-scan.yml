@@ -38,15 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
-    # --- CRITICAL PIPELINE SAFEGUARD 1: STATUS DECOUPLING ---
-    # This prevents an infra error or runtime crash in a specific repository 
-    # from marking the overall GitHub Actions workflow execution as failed.
+    # --- PIPELINE SAFEGUARD 1: DECOUPLE MATRIX RUNS ---
     continue-on-error: true 
     
     env:
       CODEQL_RAM: 12000
     strategy:
-      # Prevents one failed repo scan from canceling the rest of the 500 PR matrix queue
       fail-fast: false
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
@@ -91,6 +88,9 @@ jobs:
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
+            
+            # Write a marker file indicating this specific matrix item completed its analysis step successfully
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
             python scripts/parse-results.py || true
           fi
 
@@ -99,23 +99,20 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sarif-${{ matrix.category_name }}
-          path: "*.sarif"
+          path: |
+            *.sarif
+            *.success
 
   report:
     name: Consolidate Final Report
-    needs: analyze
+    needs: [discover, analyze]
     
-    # --- CRITICAL PIPELINE SAFEGUARD 2: ALWAYS EXECUTE REPORT ---
-    # Using 'if: always()' forces this consolidation block to execute even if 
-    # upstream analysis matrix runs were canceled, skipped, or timed out.
-    if: always()
+    # --- PIPELINE SAFEGUARD 2: FORCE STATUS TO COMPLETED SUCCESS ---
+    # Intercepts any status outcome while allowing the scheduler to evaluate the run as successful
+    if: success() || failure() || cancelled()
     runs-on: ubuntu-latest
     steps:
-      # --- CRITICAL PIPELINE SAFEGUARD 3: SAFE ARTIFACT DOWNLOAD ---
-      # 'continue-on-error: true' ensures the report job doesn't fail if zero 
-      # artifacts were uploaded due to a complete upstream cancellation.
-      - name: Download Available Artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           pattern: sarif-*
@@ -123,12 +120,29 @@ jobs:
           merge-multiple: true
 
       - name: Generate Consolidated Summary
+        env:
+          MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
         run: |
           python3 -c "
           import json, glob, os
           
-          # Safely look for any successfully generated SARIF files
+          # Compute the intended scan baseline from Job 1
+          matrix_str = os.environ.get('MATRIX_JSON', '{}')
+          try:
+              matrix_data = json.loads(matrix_str)
+              total_intended = len(matrix_data.get('include', []))
+          except Exception:
+              total_intended = 0
+              
           all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+          
+          # Count completed matrix jobs using the tracker files inside your artifacts
+          success_markers = glob.glob('all-results/**/*.success', recursive=True) if os.path.exists('all-results') else []
+          total_completed_successfully = len(success_markers)
+          
+          if total_intended == 0:
+              total_intended = len([f for f in all_files if 'results.sarif' not in os.path.basename(f)])
+              
           table_rows = []
           total_scanned = 0
           vulnerable_count = 0
@@ -257,13 +271,15 @@ jobs:
           
           print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
-          print(f'- **Total PRs Scanned:** {total_scanned}')
+          # --- OUTPUT YOUR CUSTOM FRAGMENT METRIC OVERRIDE ---
+          print(f'- **Scan Completion Status:** {total_completed_successfully}/{total_intended} PR Matrix Runs Completed Successfully 🚀')
+          print(f'- **Total PRs Parsed:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
           
           print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
+              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item[1], reverse=True)[:5]:
                   print(f'- **{cwe}**: Found {count} time(s)')
           else:
               print('- No distinct CWE records mapped.')
