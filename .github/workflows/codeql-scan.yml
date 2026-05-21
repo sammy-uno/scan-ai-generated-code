@@ -37,9 +37,16 @@ jobs:
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    
+    # --- CRITICAL PIPELINE SAFEGUARD 1: STATUS DECOUPLING ---
+    # This prevents an infra error or runtime crash in a specific repository 
+    # from marking the overall GitHub Actions workflow execution as failed.
+    continue-on-error: true 
+    
     env:
       CODEQL_RAM: 12000
     strategy:
+      # Prevents one failed repo scan from canceling the rest of the 500 PR matrix queue
       fail-fast: false
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
@@ -97,19 +104,31 @@ jobs:
   report:
     name: Consolidate Final Report
     needs: analyze
+    
+    # --- CRITICAL PIPELINE SAFEGUARD 2: ALWAYS EXECUTE REPORT ---
+    # Using 'if: always()' forces this consolidation block to execute even if 
+    # upstream analysis matrix runs were canceled, skipped, or timed out.
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      # --- CRITICAL PIPELINE SAFEGUARD 3: SAFE ARTIFACT DOWNLOAD ---
+      # 'continue-on-error: true' ensures the report job doesn't fail if zero 
+      # artifacts were uploaded due to a complete upstream cancellation.
+      - name: Download Available Artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
+
       - name: Generate Consolidated Summary
         run: |
           python3 -c "
           import json, glob, os
-          all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True))
+          
+          # Safely look for any successfully generated SARIF files
+          all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
           table_rows = []
           total_scanned = 0
           vulnerable_count = 0
@@ -202,7 +221,6 @@ jobs:
                       else:
                           l += 1
                   
-                  # --- FIX: SINGLE QUOTES IN BADGES FOR INLINE STRING PARSING ---
                   if h > 0:
                       row_severity_badge = '🔴 High'
                   elif m > 0:
@@ -245,7 +263,7 @@ jobs:
           
           print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item[1], reverse=True)[:5]:
+              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
                   print(f'- **{cwe}**: Found {count} time(s)')
           else:
               print('- No distinct CWE records mapped.')
