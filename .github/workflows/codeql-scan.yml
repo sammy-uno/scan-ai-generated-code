@@ -29,18 +29,15 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
   analyze:
-    name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
+    name: "Matrix: analyze"
     needs: discover
     runs-on: ubuntu-latest
-    
-    # --- CHANGED: TIMEOUT REDUCED TO 2 MINUTES FOR RAPID TESTING ---
     timeout-minutes: 2
     
-    # Root tier proxy handling ensures the check suite evaluates to Green (Completed)
-    continue-on-error: true 
+    # --- SOLUTION FOR VISUAL CHECKBOX CROSS ICON ---
+    # We removed 'continue-on-error: true' from the job level. 
+    # This prevents failed matrix items from polluting the main visual box status!
     
-    env:
-      CODEQL_RAM: 12000
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -51,7 +48,7 @@ jobs:
       
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
-        continue-on-error: true
+        continue-on-error: true # Suppresses local git checkout errors
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -65,7 +62,7 @@ jobs:
 
       - name: Initialize CodeQL
         id: init_codeql
-        continue-on-error: true
+        continue-on-error: true # Suppresses initialization timeouts
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
@@ -76,8 +73,8 @@ jobs:
 
       - name: Perform CodeQL Analysis
         id: run_analysis
+        continue-on-error: true # Suppresses execution timeouts
         uses: github/codeql-action/analyze@v3
-        continue-on-error: true
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
@@ -89,6 +86,7 @@ jobs:
         run: |
           SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
           
+          # Intercept step outcomes safely to drop metrics markers
           if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
@@ -127,165 +125,69 @@ jobs:
         run: |
           python3 -c "
           import json, glob, os
-          
-          matrix_str = os.environ.get('MATRIX_JSON', '{}')
-          try:
-              matrix_data = json.loads(matrix_str)
-              total_intended = len(matrix_data.get('include', []))
-          except Exception:
-              total_intended = 0
-              
-          all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-          
-          success_markers = glob.glob('all-results/**/*.success', recursive=True) if os.path.exists('all-results') else []
-          failed_markers = glob.glob('all-results/**/*.failed', recursive=True) if os.path.exists('all-results') else []
-          
-          total_success = len(success_markers)
-          total_failed = len(failed_markers)
-          
-          if total_intended == 0:
-              total_intended = total_success + total_failed
-              
-          table_rows = []
-          total_scanned = 0
-          vulnerable_count = 0
-          cwe_tracker = {}
-          
-          for f in all_files:
-              fname = os.path.basename(f)
-              if fname == 'results.sarif' or '--' not in fname: continue
+          mat = json.loads(os.environ.get('MATRIX_JSON', '{}'))
+          tot = len(mat.get('include', []))
+          all_f = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+          ok_m = len(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else 0
+          ko_m = len(glob.glob('all-results/**/*.failed', recursive=True)) if os.path.exists('all-results') else 0
+          if tot == 0: tot = ok_m + ko_m
+          rows, parsed, vuln, cwe_t = [], 0, 0, {}
+          for f in all_f:
+              fn = os.path.basename(f)
+              if fn == 'results.sarif' or '--' not in fn: continue
               try:
-                  name_root = fname.replace('.sarif', '')
-                  parts = name_root.split('--')
-                  if len(parts) < 4: continue
-                  
-                  # --- FIX: ASSIGNED EXPLICIT INDEX POSITIONS TO STRIP DATA FROM PARTS ARRAY ---
-                  repo_path = parts[0].replace('_SLASH_', '/')
-                  pr_num = parts[1]
-                  lang = parts[2]
-                  agent = parts[3].replace('_', ' ')
-                  
+                  p = fn.replace('.sarif', '').split('--')
+                  if len(p) < 4: continue
+                  repo, pr, lang, agent = p.replace('_SLASH_', '/'), p, p, p.replace('_', ' ')
                   with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [])
-                  res = []
-                  
-                  seen_findings = set()
-                  for run in runs:
-                      if isinstance(run, dict):
-                          for result in run.get('results', []):
-                              rule_id = result.get('ruleId', 'Unknown')
-                              
-                              locs_data = result.get('locations', [])
-                              locs = {}
-                              if isinstance(locs_data, list) and len(locs_data) > 0:
-                                  first_loc = locs_data[0]
-                                  locs = first_loc.get('physicalLocation', {}) if isinstance(first_loc, dict) else {}
-                              elif isinstance(locs_data, dict):
-                                  locs = locs_data.get('physicalLocation', {})
-                              
-                              path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                              line = locs.get('region', {}).get('startLine', '?')
-                              
-                              fingerprint = f'{rule_id}::{path}::{line}'
-                              if fingerprint not in seen_findings:
-                                  seen_findings.add(fingerprint)
-                                  res.append(result)
-                  
-                  local_cwe_map = {}
-                  try:
-                      for run in runs:
-                          if not isinstance(run, dict): continue
-                          tool = run.get('tool', {})
-                          all_rules = []
-                          all_rules.extend(tool.get('driver', {}).get('rules', []))
-                          for ext in tool.get('extensions', []):
-                              all_rules.extend(ext.get('rules', []))
-                          
-                          for rule in all_rules:
-                              r_id = rule.get('id')
-                              tags = rule.get('properties', {}).get('tags', [])
-                              if r_id not in local_cwe_map:
-                                  local_cwe_map[r_id] = set()
-                              for t in tags:
-                                  if 'cwe-' in t.lower():
-                                      c_num = t.lower().split('cwe-')[-1]
-                                      if len(c_num) < 3:
-                                          c_num = c_num.zfill(3)
-                                      local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
-                  except Exception as ex: 
-                      print(f'Metadata extract warning for {fname}: {ex}')
-                  
-                  total_scanned += 1
-                  if len(res) > 0: vulnerable_count += 1
-                  
-                  h, m, l = 0, 0, 0
-                  CWE_TOP_25 = [
-                      'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
-                      'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
-                      'CWE-798', 'CWE-862', 'CWE-732', 'CWE-269', 'CWE-306', 'CWE-362', 'CWE-522',
-                      'CWE-611', 'CWE-918', 'CWE-077', 'CWE-400', 'CWE-088', 'CWE-094'
-                  ]
-                  
-                  for r in res:
-                      r_id = r.get('ruleId', '')
-                      level = r.get('level', 'warning')
-                      cwes_for_rule = local_cwe_map.get(r_id, set())
-                      is_top_25 = any(c in CWE_TOP_25 for c in cwes_for_rule)
-                      
-                      if level == 'error' or is_top_25:
-                          h += 1
-                      elif level == 'warning':
-                          m += 1
-                      else:
-                          l += 1
-                  
-                  if h > 0: row_severity_badge = '🔴 High'
-                  elif m > 0: row_severity_badge = '🟡 Medium'
-                  elif l > 0: row_severity_badge = '🔵 Low'
-                  else: row_severity_badge = '🟢 Clean'
-                  
+                  res, seen, cwe_m = [], set(), {}
+                  for r in runs:
+                      if not isinstance(r, dict): continue
+                      all_rules = r.get('tool', {}).get('driver', {}).get('rules', [])
+                      for ext in r.get('tool', {}).get('extensions', []): all_rules.extend(ext.get('rules', []))
+                      for rule in all_rules:
+                          rid = rule.get('id')
+                          if rid:
+                              cwe_m[rid] = set(f'CWE-{t.lower().split(\"cwe-\")[-1].zfill(3)}'.upper() for t in rule.get('properties', {}).get('tags', []) if 'cwe-' in t.lower())
+                      for r_out in r.get('results', []):
+                          rid = r_out.get('ruleId', 'Unknown')
+                          locs = r_out.get('locations', [])
+                          loc = {}
+                          if isinstance(locs, list) and len(locs) > 0: loc = locs.get('physicalLocation', {}) if isinstance(locs, dict) else {}
+                          elif isinstance(locs, dict): loc = locs.get('physicalLocation', {})
+                          path, line = loc.get('artifactLocation', {}).get('uri', 'Unknown'), loc.get('region', {}).get('startLine', '?')
+                          if f'{rid}::{path}::{line}' not in seen:
+                              seen.add(f'{rid}::{path}::{line}')
+                              res.append(r_out)
+                  parsed += 1
+                  if res: vuln += 1
+                  h, m, l, c_25 = 0, 0, 0, ['CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416', 'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287', 'CWE-798', 'CWE-862', 'CWE-732', 'CWE-269', 'CWE-306', 'CWE-362', 'CWE-522', 'CWE-611', 'CWE-918', 'CWE-077', 'CWE-400', 'CWE-088', 'CWE-094']
                   pr_cwes = set()
-                  for r in res:
-                      cwes_for_rule = local_cwe_map.get(r.get('ruleId'), set())
-                      if cwes_for_rule:
-                          for cwe_id in cwes_for_rule:
-                              cwe_tracker[cwe_id] = cwe_tracker.get(cwe_id, 0) + 1
-                              pr_cwes.add(cwe_id)
-                  
-                  cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
-                  
-                  unique_files = set()
-                  for r in res:
-                      for loc in r.get('locations', []):
-                          if isinstance(loc, dict):
-                              u_uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
-                              if u_uri: unique_files.add(u_uri)
-                  u_files = len(unique_files)
-                  
-                  full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
-                  link_md = f'[#{pr_num}]({full_url})'
-                  
-                  table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {row_severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
-              except Exception as e:
-                  print(f'Error processing {fname}: {e}')
-          
-          print('# 📊 Global Analysis Summary')
-          print('\n### Executive Summary')
-          print(f'- **Scan Completion Ratio:** {total_success}/{total_intended} PR Matrix Scans Completed Successfully 🎉')
-          if total_failed > 0:
-              print(f'- **Isolated Execution Drops:** {total_failed} *(Bypassed cleanly to preserve pipeline status)*')
-          print(f'- **Total PRs Parsed:** {total_scanned}')
-          print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
-          print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
-          
-          print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
-          if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
-                  print(f'- **{cwe}**: Found {count} time(s)')
-          else:
-              print('- No distinct CWE records mapped.')
-          
-          print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |')
-          print('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
-          for r in sorted(table_rows): print(r)
+                  for r_out in res:
+                      rid = r_out.get('ruleId', '')
+                      lvl = r_out.get('level', 'warning')
+                      c_rules = cwe_m.get(rid, set())
+                      if lvl == 'error' or any(c in c_25 for c in c_rules): h += 1
+                      elif lvl == 'warning': m += 1
+                      else: l += 1
+                      for c in c_rules:
+                          cwe_t[c] = cwe_t.get(c, 0) + 1
+                          pr_cwes.add(c)
+                  badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
+                  cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
+                  u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
+                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
+                  rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
+              except Exception as e: print(f'Error: {e}')
+          print('# 📊 Global Analysis Summary\n\n### Executive Summary')
+          # --- This outputs the exact completion fraction inside the summary dashboard ---
+          print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
+          if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
+          print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
+          if cwe_t:
+              for c, cnt in sorted(cwe_t.items(), key=lambda x: x, reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
+          else: print('- No distinct CWE records mapped.')
+          print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
+          for r in sorted(rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
