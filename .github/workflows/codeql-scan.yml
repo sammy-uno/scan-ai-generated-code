@@ -21,10 +21,10 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          # --- FIX: MULTILINE DELIMITER FOR GITHUB_OUTPUT ---
+          # --- FIX: MULTILINE DELIMITER FOR GITHUB_OUTPUT WITH CORRECT LANGUAGES ---
           echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
           echo '{"include":[
-            {"repo_name":"antiwork/gumroad","pr_num":"710","language":"python","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--python--OpenAI_Codex"},
+            {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
             {"repo_name":"Skyvern-AI/skyvern","pr_num":"3063","language":"python","agent_name":"OpenAI_Codex","category_name":"Skyvern-AI_SLASH_skyvern--3063--python--OpenAI_Codex"}
           ]}' >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
