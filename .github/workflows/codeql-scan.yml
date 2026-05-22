@@ -37,10 +37,6 @@ jobs:
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
-    # --- PIPELINE SAFEGUARD 1: DECOUPLE MATRIX RUNS ---
-    continue-on-error: true 
-    
     env:
       CODEQL_RAM: 12000
     strategy:
@@ -50,8 +46,11 @@ jobs:
     
     steps:
       - uses: actions/checkout@v5
+      
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
+        # STEP-LEVEL MASKING: Continues execution safely if a third-party checkout drops or fails
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -64,6 +63,8 @@ jobs:
           mkdir -p scripts && cp /tmp/scripts/* scripts/
 
       - name: Initialize CodeQL
+        id: init_codeql
+        continue-on-error: true
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
@@ -73,6 +74,7 @@ jobs:
           queries: security-extended,security-experimental
 
       - name: Perform CodeQL Analysis
+        id: run_analysis
         uses: github/codeql-action/analyze@v3
         continue-on-error: true
         with:
@@ -84,14 +86,18 @@ jobs:
       - name: Create Summary
         if: always()
         run: |
-          if [ -d "sarif-results" ]; then
+          SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          
+          # --- CONDITIONAL TRACKER SEPARATION ---
+          # Check if the analysis engine steps completed without tripping continue-on-error
+          if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
-            
-            # Write a marker file indicating this specific matrix item completed its analysis step successfully
             echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
             python scripts/parse-results.py || true
+          else
+            # Log an explicit failure tracking signature artifact instead of breaking the runner status
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}.failed"
           fi
 
       - name: Save Artifacts
@@ -102,14 +108,12 @@ jobs:
           path: |
             *.sarif
             *.success
+            *.failed
 
   report:
     name: Consolidate Final Report
     needs: [discover, analyze]
-    
-    # --- PIPELINE SAFEGUARD 2: FORCE STATUS TO COMPLETED SUCCESS ---
-    # Intercepts any status outcome while allowing the scheduler to evaluate the run as successful
-    if: success() || failure() || cancelled()
+    # Removed if: always() / if: cancelled() to avoid the upstream cancellation status bubble
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -126,7 +130,6 @@ jobs:
           python3 -c "
           import json, glob, os
           
-          # Compute the intended scan baseline from Job 1
           matrix_str = os.environ.get('MATRIX_JSON', '{}')
           try:
               matrix_data = json.loads(matrix_str)
@@ -136,12 +139,15 @@ jobs:
               
           all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
           
-          # Count completed matrix jobs using the tracker files inside your artifacts
+          # Track explicit tracking files passed by your custom markers
           success_markers = glob.glob('all-results/**/*.success', recursive=True) if os.path.exists('all-results') else []
-          total_completed_successfully = len(success_markers)
+          failed_markers = glob.glob('all-results/**/*.failed', recursive=True) if os.path.exists('all-results') else []
+          
+          total_success = len(success_markers)
+          total_failed = len(failed_markers)
           
           if total_intended == 0:
-              total_intended = len([f for f in all_files if 'results.sarif' not in os.path.basename(f)])
+              total_intended = total_success + total_failed
               
           table_rows = []
           total_scanned = 0
@@ -235,14 +241,10 @@ jobs:
                       else:
                           l += 1
                   
-                  if h > 0:
-                      row_severity_badge = '🔴 High'
-                  elif m > 0:
-                      row_severity_badge = '🟡 Medium'
-                  elif l > 0:
-                      row_severity_badge = '🔵 Low'
-                  else:
-                      row_severity_badge = '🟢 Clean'
+                  if h > 0: row_severity_badge = '🔴 High'
+                  elif m > 0: row_severity_badge = '🟡 Medium'
+                  elif l > 0: row_severity_badge = '🔵 Low'
+                  else: row_severity_badge = '🟢 Clean'
                   
                   pr_cwes = set()
                   for r in res:
@@ -271,8 +273,10 @@ jobs:
           
           print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
-          # --- OUTPUT YOUR CUSTOM FRAGMENT METRIC OVERRIDE ---
-          print(f'- **Scan Completion Status:** {total_completed_successfully}/{total_intended} PR Matrix Runs Completed Successfully 🚀')
+          # --- Renders precise success ratios cleanly ---
+          print(f'- **Scan Completion Status:** {total_success}/{total_intended} Matrix PRs Completed Successfully 🎉')
+          if total_failed > 0:
+              print(f'- **Failed/Canceled Runs:** {total_failed} ⚠️ *(Handled cleanly via workflow isolation)*')
           print(f'- **Total PRs Parsed:** {total_scanned}')
           print(f'- **PRs with Issues:** {vulnerable_count} ⚠️')
           print(f'- **Clean PRs:** {total_scanned - vulnerable_count} ✅')
