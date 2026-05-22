@@ -21,7 +21,6 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          # --- FIX: MULTILINE DELIMITER FOR GITHUB_OUTPUT WITH CORRECT LANGUAGES ---
           echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -33,9 +32,11 @@ jobs:
     name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
     needs: discover
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     
-    # --- HARD PLATFORM SAFEGUARD: CORE SOLUTION FOR CANCELLED STATUS ---
+    # --- CHANGE 1: TIMEOUT REDUCED TO 15 MINUTES ---
+    timeout-minutes: 15
+    
+    # Root tier proxy handling ensures the check suite evaluates to Green (Completed)
     continue-on-error: true 
     
     env:
@@ -91,9 +92,12 @@ jobs:
           if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
+            
+            # --- TRACKING COMPLETED ENTRIES ---
             echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
             python scripts/parse-results.py || true
           else
+            # --- TRACKING FAILED / TIMED OUT ENTRIES ---
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}.failed"
           fi
 
@@ -110,7 +114,9 @@ jobs:
   report:
     name: Consolidate Final Report
     needs: [discover, analyze]
-    if: success() || failure()
+    
+    # --- CHANGE 2: REPORT ALWAYS EXECUTES EVEN ON TIMEOUTS OR FAILURES ---
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -136,6 +142,7 @@ jobs:
               
           all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
           
+          # Load structural metric markers from artifacts
           success_markers = glob.glob('all-results/**/*.success', recursive=True) if os.path.exists('all-results') else []
           failed_markers = glob.glob('all-results/**/*.failed', recursive=True) if os.path.exists('all-results') else []
           
@@ -269,6 +276,7 @@ jobs:
           
           print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
+          # --- CHANGE 3: DISPLAYS DYNAMIC SUCCESS RATIO ON THE DASHBOARD ---
           print(f'- **Scan Completion Ratio:** {total_success}/{total_intended} PR Matrix Scans Completed Successfully 🎉')
           if total_failed > 0:
               print(f'- **Isolated Execution Drops:** {total_failed} *(Bypassed cleanly to preserve pipeline status)*')
@@ -278,7 +286,7 @@ jobs:
           
           print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
+              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item[1], reverse=True)[:5]:
                   print(f'- **{cwe}**: Found {count} time(s)')
           else:
               print('- No distinct CWE records mapped.')
