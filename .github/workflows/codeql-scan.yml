@@ -33,8 +33,8 @@ jobs:
     needs: discover
     runs-on: ubuntu-latest
     
-    # --- CHANGE 1: TIMEOUT REDUCED TO 5 MINUTES ---
-    timeout-minutes: 5
+    # --- CHANGED: TIMEOUT REDUCED TO 2 MINUTES FOR RAPID TESTING ---
+    timeout-minutes: 2
     
     # Root tier proxy handling ensures the check suite evaluates to Green (Completed)
     continue-on-error: true 
@@ -92,12 +92,9 @@ jobs:
           if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
-            
-            # --- TRACKING COMPLETED ENTRIES ---
             echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
             python scripts/parse-results.py || true
           else
-            # --- TRACKING FAILED / TIMED OUT ENTRIES ---
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}.failed"
           fi
 
@@ -114,8 +111,6 @@ jobs:
   report:
     name: Consolidate Final Report
     needs: [discover, analyze]
-    
-    # --- CHANGE 2: REPORT ALWAYS EXECUTES EVEN ON TIMEOUTS OR FAILURES ---
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -142,7 +137,6 @@ jobs:
               
           all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
           
-          # Load structural metric markers from artifacts
           success_markers = glob.glob('all-results/**/*.success', recursive=True) if os.path.exists('all-results') else []
           failed_markers = glob.glob('all-results/**/*.failed', recursive=True) if os.path.exists('all-results') else []
           
@@ -165,10 +159,11 @@ jobs:
                   parts = name_root.split('--')
                   if len(parts) < 4: continue
                   
-                  repo_path = parts.replace('_SLASH_', '/')
-                  pr_num = parts
-                  lang = parts
-                  agent = parts.replace('_', ' ')
+                  # --- FIX: ASSIGNED EXPLICIT INDEX POSITIONS TO STRIP DATA FROM PARTS ARRAY ---
+                  repo_path = parts[0].replace('_SLASH_', '/')
+                  pr_num = parts[1]
+                  lang = parts[2]
+                  agent = parts[3].replace('_', ' ')
                   
                   with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [])
@@ -183,7 +178,7 @@ jobs:
                               locs_data = result.get('locations', [])
                               locs = {}
                               if isinstance(locs_data, list) and len(locs_data) > 0:
-                                  first_loc = locs_data
+                                  first_loc = locs_data[0]
                                   locs = first_loc.get('physicalLocation', {}) if isinstance(first_loc, dict) else {}
                               elif isinstance(locs_data, dict):
                                   locs = locs_data.get('physicalLocation', {})
@@ -276,7 +271,6 @@ jobs:
           
           print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
-          # --- CHANGE 3: DISPLAYS DYNAMIC SUCCESS RATIO ON THE DASHBOARD ---
           print(f'- **Scan Completion Ratio:** {total_success}/{total_intended} PR Matrix Scans Completed Successfully 🎉')
           if total_failed > 0:
               print(f'- **Isolated Execution Drops:** {total_failed} *(Bypassed cleanly to preserve pipeline status)*')
@@ -286,7 +280,7 @@ jobs:
           
           print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item[1], reverse=True)[:5]:
+              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
                   print(f'- **{cwe}**: Found {count} time(s)')
           else:
               print('- No distinct CWE records mapped.')
