@@ -29,7 +29,8 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
   analyze:
-    name: Matrix: analyze
+    # --- FIX: WRAPPED IN QUOTES TO PREVENT BARE COLON SYNTAX ERRORS ---
+    name: "Matrix: analyze"
     needs: discover
     runs-on: ubuntu-latest
     timeout-minutes: 2
