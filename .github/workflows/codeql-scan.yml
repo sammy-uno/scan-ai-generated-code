@@ -21,13 +21,13 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          # --- TEST OVERRIDE: TARGET SPECIFIC PRs ONLY ---
-          # Hardcoding this payload explicitly bypasses 'scripts/ai-scanner.py' for quick debugging
-          JSON_PAYLOAD='{"include":[
+          # --- FIX: MULTILINE DELIMITER FOR GITHUB_OUTPUT ---
+          echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
+          echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"python","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--python--OpenAI_Codex"},
             {"repo_name":"Skyvern-AI/skyvern","pr_num":"3063","language":"python","agent_name":"OpenAI_Codex","category_name":"Skyvern-AI_SLASH_skyvern--3063--python--OpenAI_Codex"}
-          ]}'
-          echo "matrix_data=$JSON_PAYLOAD" >> $GITHUB_OUTPUT
+          ]}' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   analyze:
     name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
@@ -36,8 +36,6 @@ jobs:
     timeout-minutes: 30
     
     # --- HARD PLATFORM SAFEGUARD: CORE SOLUTION FOR CANCELLED STATUS ---
-    # Placing continue-on-error at the root tier of the matrix job forces the 
-    # engine check suite to resolve as Successful even if individual runners fail.
     continue-on-error: true 
     
     env:
@@ -90,14 +88,12 @@ jobs:
         run: |
           SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
           
-          # Verify the step executed without tripping an infra fallback
           if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
             echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
             python scripts/parse-results.py || true
           else
-            # Explicit tracking artifact dropped for the dashboard calculator
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}.failed"
           fi
 
@@ -114,7 +110,6 @@ jobs:
   report:
     name: Consolidate Final Report
     needs: [discover, analyze]
-    # Restored linear check structure to maintain clean backward calculation pass
     if: success() || failure()
     runs-on: ubuntu-latest
     steps:
@@ -141,7 +136,6 @@ jobs:
               
           all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
           
-          # Load our independent marker metrics files from artifact payloads
           success_markers = glob.glob('all-results/**/*.success', recursive=True) if os.path.exists('all-results') else []
           failed_markers = glob.glob('all-results/**/*.failed', recursive=True) if os.path.exists('all-results') else []
           
@@ -275,7 +269,6 @@ jobs:
           
           print('# 📊 Global Analysis Summary')
           print('\n### Executive Summary')
-          # --- RENDER FRACTION COMPILATION METRICS ---
           print(f'- **Scan Completion Ratio:** {total_success}/{total_intended} PR Matrix Scans Completed Successfully 🎉')
           if total_failed > 0:
               print(f'- **Isolated Execution Drops:** {total_failed} *(Bypassed cleanly to preserve pipeline status)*')
@@ -285,7 +278,7 @@ jobs:
           
           print('\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_tracker:
-              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item[1], reverse=True)[:5]:
+              for cwe, count in sorted(cwe_tracker.items(), key=lambda item: item, reverse=True)[:5]:
                   print(f'- **{cwe}**: Found {count} time(s)')
           else:
               print('- No distinct CWE records mapped.')
