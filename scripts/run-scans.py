@@ -1,13 +1,17 @@
 import os
 import json
 import subprocess
-import glob
 
-def run_cmd(cmd, timeout_secs=45):
+def run_cmd(cmd, timeout_secs=300):
     try:
+        # Increased maximum threshold to prevent CodeQL compile cuts
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout_secs)
+        if res.returncode != 0:
+            print(f"Command failed with return code {res.returncode}")
+            print(f"STDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}")
         return res.returncode
     except subprocess.TimeoutExpired:
+        print(f"🛑 CRITICAL: Command timed out after {timeout_secs} seconds.")
         return -1
 
 def main():
@@ -43,21 +47,21 @@ def main():
         run_cmd("cd ./target_src && git config --local filter.lfs.smudge 'git-lfs smudge --skip -- %f'")
         run_cmd("cd ./target_src && git config --local filter.lfs.process 'git-lfs filter-process --skip'")
 
-        # 3. Pull down specific Pull Request trees natively
+        # 3. Pull down specific Pull Request head ref layout natively
         fetch_url = f"https://x-access-token:{gh_token}@://github.com{repo}.git"
         fetch_ref = f"refs/pull/{pr}/head:pr_{pr}"
         
-        fetch_status = run_cmd(f"cd ./target_src && git fetch --depth=1 '{fetch_url}' '{fetch_ref}'", timeout_secs=40)
+        fetch_status = run_cmd(f"cd ./target_src && git fetch --depth=1 '{fetch_url}' '{fetch_ref}'", timeout_secs=120)
         
         analyze_status = -1
         if fetch_status == 0:
             run_cmd(f"cd ./target_src && git checkout 'pr_{pr}'")
             
-            # 4. Run CodeQL compile sequences directly via clean paths
-            db_status = run_cmd(f"'{codeql_bin}' database create './codeql_db_{safe_repo}' --language='{lang}' --source-root=./target_src --overwrite", timeout_secs=45)
+            # --- SCALE UP COMPILE TIMEOUT TO 5 MINUTES PER EXTENSION INTERACTION ---
+            db_status = run_cmd(f"'{codeql_bin}' database create './codeql_db_{safe_repo}' --language='{lang}' --source-root=./target_src --overwrite", timeout_secs=300)
             
             if db_status == 0:
-                analyze_status = run_cmd(f"'{codeql_bin}' database analyze './codeql_db_{safe_repo}' --format=sarif-latest --output='./{safe_repo}--{pr}--{lang}--{agent}.sarif'", timeout_secs=45)
+                analyze_status = run_cmd(f"'{codeql_bin}' database analyze './codeql_db_{safe_repo}' --format=sarif-latest --output='./{safe_repo}--{pr}--{lang}--{agent}.sarif'", timeout_secs=300)
 
         # 5. Drop state artifacts tracking markers based on execution outcome
         if analyze_status == 0 and os.path.exists(f"{safe_repo}--{pr}--{lang}--{agent}.sarif"):
