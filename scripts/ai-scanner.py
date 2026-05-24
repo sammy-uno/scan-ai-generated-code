@@ -10,17 +10,18 @@ def run_command(command, max_retries=2):
     return None
 
 def main():
-    # --- CONFIGURATION (TEST LIMIT TO 50) ---
+    # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 50     # Reduced from 500 to 50 for testing
+    SCAN_LIMIT = 100     
     EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
-    # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0}
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
+        if 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as f: f.write('matrix_data={"include":[]}\n')
         return
 
     df = pd.read_csv(INPUT_CSV)
@@ -31,8 +32,8 @@ def main():
     for _, row in df.iterrows():
         if stats["added"] >= SCAN_LIMIT: break
         
-        repo = row['repo_name']
-        num = str(row['number'])
+        repo = str(row['repo_name']).strip()
+        num = str(row['number']).strip()
         
         if repo in EXCLUDE_REPOS:
             print(f"SKIP: {repo} (Manual Exclude)")
@@ -68,11 +69,11 @@ def main():
         if stats["added"] % 20 == 0: time.sleep(1)
 
     print("\n--- Discovery Summary ---")
-    print(f"✅ Total Added to Matrix: {stats['added']}")
-    print(f"❌ Skipped (Too Large):   {stats['too_big']}")
-    print(f"🚫 Skipped (Excluded):    {stats['excluded']}")
-    print(f"👯 Skipped (Duplicates):  {stats['duplicates']}")
-    print(f"⚠️  Skipped (API Errors): {stats['api_error']}")
+    print(f"✅ Total Added to Payload: {stats['added']}")
+    print(f"❌ Skipped (Too Large):    {stats['too_big']}")
+    print(f"🚫 Skipped (Excluded):     {stats['excluded']}")
+    print(f"👯 Skipped (Duplicates):   {stats['duplicates']}")
+    print(f"⚠️  Skipped (API Errors):  {stats['api_error']}")
     print("-------------------------\n")
 
     output = json.dumps({"include": matrix_include})
