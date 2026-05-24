@@ -16,17 +16,17 @@ jobs:
     name: Find AI PRs
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.detect.outputs.matrix_data }}
+      matrix: \${{ steps.detect.outputs.matrix_data }}
     steps:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
+          echo "matrix_data<<EOF" >> \$GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
             {"repo_name":"Skyvern-AI/skyvern","pr_num":"3063","language":"python","agent_name":"OpenAI_Codex","category_name":"Skyvern-AI_SLASH_skyvern--3063--python--OpenAI_Codex"}
-          ]}' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          ]}' >> \$GITHUB_OUTPUT
+          echo "EOF" >> \$GITHUB_OUTPUT
 
   analyze:
     name: "Matrix: analyze"
@@ -46,8 +46,8 @@ jobs:
       - name: Execute Sequential Scan Loops
         id: run_scans
         env:
-          RAW_MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          RAW_MATRIX_JSON: \${{ needs.discover.outputs.matrix }}
+          GH_TOKEN: \${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
@@ -55,21 +55,20 @@ jobs:
           
           mkdir -p sarif-results
           
-          CODEQL_BIN="${{ steps.init_codeql.outputs.codeql-path }}"
-          if [ -z "$CODEQL_BIN" ]; then
-            CODEQL_BIN="$CODEQL_DIST/codeql"
+          CODEQL_BIN="\${{ steps.init_codeql.outputs.codeql-path }}"
+          if [ -z "\$CODEQL_BIN" ]; then
+            CODEQL_BIN="\$CODEQL_DIST/codeql"
           fi
           
-          # Flat execution line with zero conditional symbols or escaping properties
-          echo "$RAW_MATRIX_JSON" | jq -c '.include[]' | while read -r item; do
-            REPO=$(echo "$item" | jq -r '.repo_name')
-            PR=$(echo "$item" | jq -r '.pr_num')
-            LANG=$(echo "$item" | jq -r '.language')
-            AGENT=$(echo "$item" | jq -r '.agent_name')
-            SAFE_REPO=$(echo "$REPO" | sed 's/\//_SLASH_/g')
+          echo "\$RAW_MATRIX_JSON" | jq -c '.include[]' | while read -r item; do
+            REPO=\((echo "\)item" | jq -r '.repo_name')
+            PR=\((echo "\)item" | jq -r '.pr_num')
+            LANG=\((echo "\)item" | jq -r '.language')
+            AGENT=\((echo "\)item" | jq -r '.agent_name')
+            SAFE_REPO=\((echo "\)REPO" | sed 's/\//_SLASH_/g')
             
             echo "=========================================="
-            echo "🚀 SCANNING: $REPO (#$PR) [$LANG]"
+            echo "🚀 SCANNING: \$REPO (#\(PR) [\)LANG]"
             echo "=========================================="
             
             rm -rf ./target_src
@@ -79,19 +78,25 @@ jobs:
             git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
             git config --local filter.lfs.process "git-lfs filter-process --skip"
             
-            timeout 40s git fetch --depth=1 "https://x-access-token:${GH_TOKEN}@://github.com{REPO}.git" "refs/pull/${PR}/head:pr_${PR}"
-            FETCH_STATUS=$?
+            # --- FIX: DECOUPLED VARIABLE SEGMENTS TO BLIND THE GITHUB EXPRESSION PARSER ---
+            # Breaking this URL string up natively prevents GitHub Actions from stripping your repository strings!
+            TARGET_DOMAIN="github.com"
+            TARGET_URI="https://x-access-token:\${GH_TOKEN}@\({TARGET_DOMAIN}/\){REPO}.git"
+            TARGET_REF="refs/pull/\({PR}/head:pr_\){PR}"
             
-            if [ $FETCH_STATUS -eq 0 ]; then
-              git checkout "pr_${PR}"
+            timeout 40s git fetch --depth=1 "\(TARGET_URI" "\)TARGET_REF"
+            FETCH_STATUS=\$?
+            
+            if [ \$FETCH_STATUS -eq 0 ]; then
+              git checkout "pr_\${PR}"
               cd ..
               
-              timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=./target_src --overwrite
-              DB_STATUS=$?
+              timeout 45s "\$CODEQL_BIN" database create "../codeql_db_\(SAFE_REPO" --language="\)LANG" --source-root=./target_src --overwrite
+              DB_STATUS=\$?
               
-              if [ $DB_STATUS -eq 0 ]; then
-                timeout 45s "$CODEQL_BIN" database analyze "../codeql_db_$SAFE_REPO" --format=sarif-latest --output="../${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif"
-                ANALYZE_STATUS=$?
+              if [ \$DB_STATUS -eq 0 ]; then
+                timeout 45s "\(CODEQL_BIN" database analyze "../codeql_db_\)SAFE_REPO" --format=sarif-latest --output="../\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif"
+                ANALYZE_STATUS=\$?
               else
                 ANALYZE_STATUS=1
               fi
@@ -100,12 +105,12 @@ jobs:
               ANALYZE_STATUS=1
             fi
             
-            if [ $ANALYZE_STATUS -eq 0 ] && [ -f "${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" ]; then
-              echo "success" > "./${SAFE_REPO}--${PR}.success"
-              echo "✅ SUCCESS: $REPO (#$PR)"
+            if [ \$ANALYZE_STATUS -eq 0 ] && [ -f "\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif" ]; then
+              echo "success" > "./\({SAFE_REPO}--\){PR}.success"
+              echo "✅ SUCCESS: \(REPO (#\)PR)"
             else
-              echo "failed" > "./${SAFE_REPO}--${PR}.failed"
-              echo "⚠️ TIMEOUT/FAIL: $REPO (#$PR) - Isolated cleanly"
+              echo "failed" > "./\({SAFE_REPO}--\){PR}.failed"
+              echo "⚠️ TIMEOUT/FAIL: \(REPO (#\)PR) - Isolated cleanly"
             fi
           done
           
@@ -135,7 +140,7 @@ jobs:
 
       - name: Generate Consolidated Summary
         env:
-          MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
+          MATRIX_JSON: \${{ needs.discover.outputs.matrix }}
         run: |
           python3 -c "
           import json, glob, os
@@ -152,7 +157,7 @@ jobs:
               try:
                   p = fn.replace('.sarif', '').split('--')
                   if len(p) < 4: continue
-                  repo, pr, lang, agent = p[0].replace('_SLASH_', '/'), p[1], p[2], p[3].replace('_', ' ')
+                  repo, pr, lang, agent = p.replace('_SLASH_', '/'), p, p, p.replace('_', ' ')
                   with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [])
                   res, seen, cwe_m = [], set(), {}
@@ -168,7 +173,7 @@ jobs:
                           rid = r_out.get('ruleId', 'Unknown')
                           locs = r_out.get('locations', [])
                           loc = {}
-                          if isinstance(locs, list) and len(locs) > 0: loc = locs[0].get('physicalLocation', {}) if isinstance(locs[0], dict) else {}
+                          if isinstance(locs, list) and len(locs) > 0: loc = locs.get('physicalLocation', {}) if isinstance(locs, dict) else {}
                           elif isinstance(locs, dict): loc = locs.get('physicalLocation', {})
                           path, line = loc.get('artifactLocation', {}).get('uri', 'Unknown'), loc.get('region', {}).get('startLine', '?')
                           if f'{rid}::{path}::{line}' not in seen:
@@ -204,3 +209,5 @@ jobs:
           print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(rows): print(r)
           " >> $GITHUB_STEP_SUMMARY
+
+  
