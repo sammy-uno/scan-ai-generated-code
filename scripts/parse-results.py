@@ -15,7 +15,6 @@ def main():
     if not runs:
         return
         
-    # --- BULLETPROOF CWE EXTRACTOR ---
     cwe_map = {}
     try:
         all_rules = []
@@ -42,7 +41,6 @@ def main():
     except Exception as e:
         print(f"Metadata mapping warning: {e}")
 
-    # --- AGGREGATE RESULTS & DEDUPLICATE LINES ---
     consolidated_results = []
     seen_findings = set()
 
@@ -51,8 +49,13 @@ def main():
         for res in run.get('results', []):
             rule_id = res.get('ruleId', 'Unknown')
             
+            # --- FIX: TYPE-SAFE METADATA CONTEXT PARSER ENGAGED ---
             locs_arr = res.get('locations', [])
-            locs = locs_arr[0].get('physicalLocation', {}) if isinstance(locs_arr, list) and len(locs_arr) > 0 else {}
+            locs = {}
+            if isinstance(locs_arr, list) and len(locs_arr) > 0:
+                locs = locs_arr[0].get('physicalLocation', {}) if isinstance(locs_arr[0], dict) else {}
+            elif isinstance(locs_arr, dict):
+                locs = locs_arr.get('physicalLocation', {})
             
             path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
             line = locs.get('region', {}).get('startLine', '?')
@@ -67,7 +70,6 @@ def main():
     if consolidated_results:
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
         
-        # AUTOMATED CWE TOP 25 LOOKUP MATRIX
         CWE_TOP_25 = [
             'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
             'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
@@ -77,7 +79,11 @@ def main():
         
         for res in consolidated_results:
             locs_arr = res.get('locations', [])
-            locs = locs_arr[0].get('physicalLocation', {}) if isinstance(locs_arr, list) and len(locs_arr) > 0 else {}
+            locs = {}
+            if isinstance(locs_arr, list) and len(locs_arr) > 0:
+                locs = locs_arr[0].get('physicalLocation', {}) if isinstance(locs_arr[0], dict) else {}
+            elif isinstance(locs_arr, dict):
+                locs = locs_arr.get('physicalLocation', {})
             
             path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
             line = locs.get('region', {}).get('startLine', '?')
@@ -87,7 +93,6 @@ def main():
             cwes_set = cwe_map.get(rule_id, set())
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             
-            # AUTOMATIC ESCALATION: Check if any of the rule's mapped CWEs fall inside our Top 25
             is_top_25 = any(c in CWE_TOP_25 for c in cwes_set)
             
             if level == 'error' or is_top_25:
