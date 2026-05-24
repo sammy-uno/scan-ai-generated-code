@@ -15,7 +15,6 @@ jobs:
     name: Discover and Trigger Workers
     runs-on: ubuntu-latest
     steps:
-      # --- FIX: CHECKOUT MUST ALWAYS BE THE VERY FIRST STEP ---
       - name: Checkout Utility Repository
         uses: actions/checkout@v4
 
@@ -23,7 +22,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
+          # --- REMOVED CACHE INTERFACES TO BYPASS FILE SCHEMA TRACKING LOOKUPS ---
 
       - name: Install Base Tracking Dependencies
         run: |
