@@ -21,6 +21,7 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
+          # --- CLEAN FIX 1: CLEAR OUTPUT BLOCK BOUNDS ---
           echo "matrix_data<<EOF" >> \$GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -46,6 +47,7 @@ jobs:
       - name: Execute Sequential Scan Loops
         id: run_scans
         env:
+          # --- CLEAN FIX 2: ENSURE CONTEXT DATA PACKETS EXPAND SMOOTHLY ---
           RAW_MATRIX_JSON: \${{ needs.discover.outputs.matrix }}
           GH_TOKEN: \${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -60,7 +62,7 @@ jobs:
             CODEQL_BIN="\$CODEQL_DIST/codeql"
           fi
           
-          # --- CLEAN NATIVE BASH LOOP SYNTAX - ZERO BACKSLASH ESCAPING ---
+          # --- CLEAN FIX 3: NATIVE SYNTAX WITHOUT A SINGLE BACKSLASH PREFIX ---
           COUNT=\((echo "\)RAW_MATRIX_JSON" | jq '.include | length')
           
           for ((i=0; i<COUNT; i++)); do
@@ -82,7 +84,6 @@ jobs:
             git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
             git config --local filter.lfs.process "git-lfs filter-process --skip"
             
-            # Authenticate and pull the exact pull request reference changes natively
             timeout 40s git fetch --depth=1 "https://x-access-token:\({GH_TOKEN}@://github.com\){REPO}.git" "refs/pull/\({PR}/head:pr_\){PR}"
             FETCH_STATUS=\$?
             
@@ -104,7 +105,6 @@ jobs:
               ANALYZE_STATUS=1
             fi
             
-            # Log metrics tracking files cleanly based on execution outcomes
             if [ \$ANALYZE_STATUS -eq 0 ] && [ -f "\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif" ]; then
               echo "success" > "./\({SAFE_REPO}--\){PR}.success"
               echo "✅ SUCCESS: \(REPO (#\)PR)"
@@ -114,7 +114,6 @@ jobs:
             fi
           done
           
-          # Force exit 0 here to tell GitHub this execution box completed successfully
           exit 0
 
       - name: Save Artifacts
@@ -205,7 +204,7 @@ jobs:
           if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
           print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_t:
-            for c, cnt in sorted(cwe_t.items(), key=lambda x: x[1], reverse=True)[:5]: print(f'- {c}: Found {cnt} time(s)')
+              for c, cnt in sorted(cwe_t.items(), key=lambda item: item[1], reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
           else: print('- No distinct CWE records mapped.')
           print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(rows): print(r)
