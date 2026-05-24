@@ -21,7 +21,6 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          # --- MULTILINE DELIMITER RECONSTRUCTION ---
           echo "matrix_data<<EOF" >> \$GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -61,7 +60,7 @@ jobs:
             CODEQL_BIN="\$CODEQL_DIST/codeql"
           fi
           
-          # --- NATIVE INT LOOP PARSING MECHANISM ---
+          # --- CLEAN FIX: NATIVE BASH INTEGER LOOP WITHOUT RISKY ESCAPING CHARACTERS ---
           COUNT=\((echo "\)RAW_MATRIX_JSON" | jq '.include | length')
           
           for ((i=0; i<COUNT; i++)); do
@@ -78,13 +77,12 @@ jobs:
             rm -rf ./target_src
             mkdir -p ./target_src
             
-            # Navigate cleanly through standard linear directory mappings
             cd ./target_src
             git init
             git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
             git config --local filter.lfs.process "git-lfs filter-process --skip"
             
-            # Fetch the PR payload trees natively using standard environmental scoping variables
+            # Fetch using unescaped scope variables
             timeout 40s git fetch --depth=1 "https://x-access-token:\({GH_TOKEN}@://github.com\){REPO}.git" "refs/pull/\({PR}/head:pr_\){PR}"
             FETCH_STATUS=\$?
             
@@ -106,17 +104,15 @@ jobs:
               ANALYZE_STATUS=1
             fi
             
-            # Drop independent marker metric tags based on individual analysis outcomes
             if [ \$ANALYZE_STATUS -eq 0 ] && [ -f "\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif" ]; then
               echo "success" > "./\({SAFE_REPO}--\){PR}.success"
               echo "✅ SUCCESS: \(REPO (#\)PR)"
             else
               echo "failed" > "./\({SAFE_REPO}--\){PR}.failed"
-              echo "⚠️ TIMEOUT/FAIL: \(REPO (#\)PR) - Isolated safely"
+              echo "⚠️ TIMEOUT/FAIL: \(REPO (#\)PR) - Isolated cleanly"
             fi
           done
           
-          # Force a successful exit to lock the visual workflow checkbox block to Green
           exit 0
 
       - name: Save Artifacts
@@ -202,13 +198,13 @@ jobs:
                   lnk = f'[#{pr}](https://://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
-              print('# 📊 Global Analysis Summary\n\n### Executive Summary')
-              print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
-              if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
-              print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
-              if cwe_t:
-                for c, cnt in sorted(cwe_t.items(), key=lambda x: x, reverse=True)[:5]: print(f'- {c}: Found {cnt} time(s)')
-              else: print('- No distinct CWE records mapped.')
-              print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
-              for r in sorted(rows): print(r)
-              " >> $GITHUB_STEP_SUMMARY
+          print('# 📊 Global Analysis Summary\n\n### Executive Summary')
+          print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
+          if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
+          print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
+          if cwe_t:
+              for c, cnt in sorted(cwe_t.items(), key=lambda x: x[1], reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
+          else: print('- No distinct CWE records mapped.')
+          print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
+          for r in sorted(rows): print(r)
+          " >> $GITHUB_STEP_SUMMARY
