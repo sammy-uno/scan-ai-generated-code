@@ -77,9 +77,9 @@ jobs:
               git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
               git config --local filter.lfs.process "git-lfs filter-process --skip"
               
-              # --- FIX: ROBUST STANDARD INTERPOLATION WITHOUT NESTED QUOTING ERRORS ---
-              timeout 40s git fetch --depth=1 "https://x-access-token:${GH_TOKEN}@://github.com{REPO}.git" "refs/pull/${PR}/head:pr_${PR}" || exit 1
-              git checkout "pr_${PR}" || exit 1
+              # --- CORE FIX: REMOVED CURLY BRACES TO BLIND THE GITHUB ACTIONS YAML AGGRESSIVE STRIPPER ---
+              timeout 40s git fetch --depth=1 "https://x-access-token:$GH_TOKEN@://github.com" "refs/pull/$PR/head:pr_$PR" || exit 1
+              git checkout "pr_$PR" || exit 1
               cd ..
               
               timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=./target_src --overwrite || exit 1
