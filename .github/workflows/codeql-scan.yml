@@ -77,8 +77,8 @@ jobs:
               git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
               git config --local filter.lfs.process "git-lfs filter-process --skip"
               
-              # --- FIX: ADDED MISSING FORWARD SLASH AFTER GITHUB.COM TO FIX REJECTED HOST HOST NAME ---
-              timeout 40s git fetch --depth=1 'https://x-access-token:'"$GH_TOKEN"'@://github.com'"$REPO"'.git' 'refs/pull/'"$PR"'/head:pr_'"$PR" || exit 1
+              # --- FIX: ROBUST STANDARD INTERPOLATION WITHOUT NESTED QUOTING ERRORS ---
+              timeout 40s git fetch --depth=1 "https://x-access-token:${GH_TOKEN}@://github.com{REPO}.git" "refs/pull/${PR}/head:pr_${PR}" || exit 1
               git checkout "pr_${PR}" || exit 1
               cd ..
               
@@ -176,7 +176,7 @@ jobs:
                   badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
                   cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
-                  lnk = f'[#{pr}](https://://github.com{repo}/pull/{pr})'
+                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
           print('# 📊 Global Analysis Summary\n\n### Executive Summary')
