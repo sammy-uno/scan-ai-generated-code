@@ -1,0 +1,65 @@
+name: "Isolated AI Scan Worker"
+
+on:
+  repository_dispatch:
+    types: [run-ai-scan]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: Scan ${{ github.event.client_payload.repo_name }} (#${{ github.event.client_payload.pr_num }})
+    runs-on: ubuntu-latest
+    # Individual repository timeout boundaries
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Primary Scripts Root
+        uses: actions/checkout@v4
+
+      - name: Clear Workspace and Checkout Targeted PR
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          GIT_LFS_SKIP_SMUDGE: 1
+        run: |
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+          mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
+          rm -rf ./*
+          gh pr checkout ${{ github.event.client_payload.pr_num }} --repo ${{ github.event.client_payload.repo_name }}
+          mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
+
+      - name: Initialize CodeQL Tooling Engine
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ github.event.client_payload.language }}
+          build-mode: none
+          db-location: ${{ runner.temp }}/codeql_db
+          trap-caching: false
+          queries: security-extended,security-experimental
+
+      - name: Perform CodeQL Analysis
+        id: run_analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/pr:${{ github.event.client_payload.category_name }}"
+          output: sarif-results
+          upload: false
+          wait-for-processing: false
+
+      - name: Process Summary Metrics
+        if: always()
+        run: |
+          if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            # Execute your single PR parse script natively to render the local row
+            python scripts/parse-results.py || true
+          else
+            echo "### ❌ Analysis Failure / Timeout" >> $GITHUB_STEP_SUMMARY
+            echo "The CodeQL analysis engine failed or hit its runtime limit for this repository." >> $GITHUB_STEP_SUMMARY
+          fi
