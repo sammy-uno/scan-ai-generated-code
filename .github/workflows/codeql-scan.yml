@@ -46,7 +46,6 @@ jobs:
       - name: Execute Sequential Scan Loops
         id: run_scans
         env:
-          # --- FIX: SAFE ENVIRONMENTAL MAPPING TO PREVENT JQ PARSING ERRORS ---
           RAW_MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -61,7 +60,6 @@ jobs:
             CODEQL_BIN="$CODEQL_DIST/codeql"
           fi
           
-          # Read cleanly from the mapped environment variable rather than raw text replacements
           echo "$RAW_MATRIX_JSON" | jq -c '.include[]' | while read -r item; do
             REPO=$(echo "$item" | jq -r '.repo_name')
             PR=$(echo "$item" | jq -r '.pr_num')
@@ -79,7 +77,8 @@ jobs:
               git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
               git config --local filter.lfs.process "git-lfs filter-process --skip"
               
-              timeout 40s git fetch --depth=1 "https://x-access-token:${GH_TOKEN}@://github.com{REPO}.git" "refs/pull/${PR}/head:pr_${PR}" || exit 1
+              # --- FIX: SINGLE QUOTES PROTECT SUB-VARIABLES FROM EARLY BALANCING CRASHES ---
+              timeout 40s git fetch --depth=1 'https://x-access-token:'"$GH_TOKEN"'@://github.com'"$REPO"'.git' 'refs/pull/'"$PR"'/head:pr_'"$PR" || exit 1
               git checkout "pr_${PR}" || exit 1
               cd ..
               
@@ -177,7 +176,7 @@ jobs:
                   badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
                   cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
-                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
+                  lnk = f'[#{pr}](https://://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
           print('# 📊 Global Analysis Summary\n\n### Executive Summary')
