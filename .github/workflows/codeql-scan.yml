@@ -21,7 +21,6 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          # --- CLEAN FIX 1: CLEAR OUTPUT BLOCK BOUNDS ---
           echo "matrix_data<<EOF" >> \$GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -47,7 +46,6 @@ jobs:
       - name: Execute Sequential Scan Loops
         id: run_scans
         env:
-          # --- CLEAN FIX 2: ENSURE CONTEXT DATA PACKETS EXPAND SMOOTHLY ---
           RAW_MATRIX_JSON: \${{ needs.discover.outputs.matrix }}
           GH_TOKEN: \${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -62,7 +60,7 @@ jobs:
             CODEQL_BIN="\$CODEQL_DIST/codeql"
           fi
           
-          # --- CLEAN FIX 3: NATIVE SYNTAX WITHOUT A SINGLE BACKSLASH PREFIX ---
+          # CRITICAL FIX: CLEAN BASH VARIABLES AND LOGIC CONTEXT
           COUNT=\((echo "\)RAW_MATRIX_JSON" | jq '.include | length')
           
           for ((i=0; i<COUNT; i++)); do
@@ -84,6 +82,7 @@ jobs:
             git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
             git config --local filter.lfs.process "git-lfs filter-process --skip"
             
+            # Fetch using standard clean environment variable properties
             timeout 40s git fetch --depth=1 "https://x-access-token:\({GH_TOKEN}@://github.com\){REPO}.git" "refs/pull/\({PR}/head:pr_\){PR}"
             FETCH_STATUS=\$?
             
