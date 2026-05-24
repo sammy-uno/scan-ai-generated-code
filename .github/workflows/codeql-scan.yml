@@ -21,6 +21,7 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
+          # --- MULTILINE DELIMITER RECONSTRUCTION FOR ISOLATION RUNS ---
           echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -54,7 +55,7 @@ jobs:
           
           mkdir -p sarif-results
           
-          # Use the absolute tool binary path provided by the initialization step environment
+          # Target absolute tools directory binding strings dynamically
           CODEQL_BIN="${{ steps.init_codeql.outputs.codeql-path }}"
           if [ -z "$CODEQL_BIN" ]; then
             CODEQL_BIN="$CODEQL_DIST/codeql"
@@ -72,11 +73,13 @@ jobs:
             echo "=========================================="
             
             (
-              rm -rf ./target_src && mkdir -p ./target_src && cd ./target_src
+              rm -rf ./target_src && mkdir -p ./target_src
+              
+              # Safely pull down repository delta states into the target_src folder
               timeout 40s gh pr checkout "$PR" --repo "$REPO" || exit 1
               
-              # --- FIX: CALL ABSOLUTE CODEQL ENGINE PATH ---
-              timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=. || exit 1
+              # --- PATH CORRECTION: POINT THE SOURCE ROOT AT THE COPIED PR TREE ---
+              timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=./target_src || exit 1
               timeout 45s "$CODEQL_BIN" database analyze "../codeql_db_$SAFE_REPO" --format=sarif-latest --output="../${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" || exit 1
             )
             LOOP_STATUS=$?
@@ -111,6 +114,7 @@ jobs:
         with:
           name: consolidated-sarif-payloads
           path: all-results
+
       - name: Generate Consolidated Summary
         env:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
@@ -169,7 +173,7 @@ jobs:
                   badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
                   cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
-                  lnk = f'[#{pr}](https://github.com/{repo}/pull/{pr})'
+                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
           print('# 📊 Global Analysis Summary\n\n### Executive Summary')
