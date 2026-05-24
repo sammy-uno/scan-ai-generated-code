@@ -15,6 +15,7 @@ jobs:
     name: Discover and Trigger Workers
     runs-on: ubuntu-latest
     steps:
+      # --- FIX: CHECKOUT MUST ALWAYS BE THE VERY FIRST STEP ---
       - name: Checkout Utility Repository
         uses: actions/checkout@v4
 
@@ -33,7 +34,6 @@ jobs:
         id: detect
         env:
           GITHUB_OUTPUT: ${{ github.output }}
-          # This runs your updated ai_scanner.py to build the matrix data payload string
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           python scripts/ai_scanner.py
@@ -41,7 +41,6 @@ jobs:
       - name: Dispatch Isolated Workers Asynchronously
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # Safely passes the generated JSON string payload right into the dispatch loop context
           MATRIX_DATA: ${{ steps.detect.outputs.matrix_data }}
         run: |
           if [ -z "$MATRIX_DATA" ] || [ "$MATRIX_DATA" = '{"include":[]}' ]; then
@@ -58,7 +57,6 @@ jobs:
 
             echo "🚀 Dispatching dedicated worker for: $REPO (#$PR) [$LANG]"
             
-            # This triggers a decoupled repository_dispatch event natively using the GitHub CLI
             gh api /repos/${{ github.repository }}/dispatches \
               -F event_type=run-ai-scan \
               -F client_payload[repo_name]="$REPO" \
