@@ -198,13 +198,13 @@ jobs:
                   lnk = f'[#{pr}](https://://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
-          print('# 📊 Global Analysis Summary\n\n### Executive Summary')
-          print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
-          if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
-          print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
-          if cwe_t:
+            print('# 📊 Global Analysis Summary\n\n### Executive Summary')
+            print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
+            if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
+            print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
+            if cwe_t:
               for c, cnt in sorted(cwe_t.items(), key=lambda item: item[1], reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
-          else: print('- No distinct CWE records mapped.')
-          print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
-          for r in sorted(rows): print(r)
-          " >> $GITHUB_STEP_SUMMARY
+            else: print('- No distinct CWE records mapped.')
+            print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
+            for r in sorted(rows): print(r)
+            " >> $GITHUB_STEP_SUMMARY
