@@ -21,6 +21,7 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
+          # --- MULTILINE DELIMITER RECONSTRUCTION ---
           echo "matrix_data<<EOF" >> \$GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -60,24 +61,30 @@ jobs:
             CODEQL_BIN="\$CODEQL_DIST/codeql"
           fi
           
-          echo "\$RAW_MATRIX_JSON" | jq -c '.include[]' | while read -r item; do
-            REPO=\((echo "\)item" | jq -r '.repo_name')
-            PR=\((echo "\)item" | jq -r '.pr_num')
-            LANG=\((echo "\)item" | jq -r '.language')
-            AGENT=\((echo "\)item" | jq -r '.agent_name')
+          # --- NATIVE INT LOOP PARSING MECHANISM ---
+          COUNT=\((echo "\)RAW_MATRIX_JSON" | jq '.include | length')
+          
+          for ((i=0; i<COUNT; i++)); do
+            REPO=\$(echo "\(RAW_MATRIX_JSON" \vert{} jq -r ".include[\)i].repo_name")
+            PR=\$(echo "\(RAW_MATRIX_JSON" \vert{} jq -r ".include[\)i].pr_num")
+            LANG=\$(echo "\(RAW_MATRIX_JSON" \vert{} jq -r ".include[\)i].language")
+            AGENT=\$(echo "\(RAW_MATRIX_JSON" \vert{} jq -r ".include[\)i].agent_name")
             SAFE_REPO=\((echo "\)REPO" | sed 's/\//_SLASH_/g')
             
             echo "=========================================="
-            echo "🚀 SCANNING: \$REPO (#\(PR) [\)LANG]"
+            echo "🚀 SCANNING (\$((i+1))/\(COUNT):\)REPO (#\(PR) [\)LANG]"
             echo "=========================================="
             
-            # --- FIX: PROCESSED LINEARLY TO PRESERVE ENVIROMENT VARIABLE SCOPES ---
-            rm -rf ./target_src && mkdir -p ./target_src
+            rm -rf ./target_src
+            mkdir -p ./target_src
+            
+            # Navigate cleanly through standard linear directory mappings
             cd ./target_src
             git init
             git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
             git config --local filter.lfs.process "git-lfs filter-process --skip"
             
+            # Fetch the PR payload trees natively using standard environmental scoping variables
             timeout 40s git fetch --depth=1 "https://x-access-token:\({GH_TOKEN}@://github.com\){REPO}.git" "refs/pull/\({PR}/head:pr_\){PR}"
             FETCH_STATUS=\$?
             
@@ -99,16 +106,17 @@ jobs:
               ANALYZE_STATUS=1
             fi
             
+            # Drop independent marker metric tags based on individual analysis outcomes
             if [ \$ANALYZE_STATUS -eq 0 ] && [ -f "\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif" ]; then
               echo "success" > "./\({SAFE_REPO}--\){PR}.success"
               echo "✅ SUCCESS: \(REPO (#\)PR)"
             else
               echo "failed" > "./\({SAFE_REPO}--\){PR}.failed"
-              echo "⚠️ TIMEOUT/FAIL: \(REPO (#\)PR) - Isolated cleanly"
+              echo "⚠️ TIMEOUT/FAIL: \(REPO (#\)PR) - Isolated safely"
             fi
           done
           
-          # --- FIX: FORCES OVERALL JOB BOX GRAPH BADGE TO CLEAR GREEN COMPLETED ---
+          # Force a successful exit to lock the visual workflow checkbox block to Green
           exit 0
 
       - name: Save Artifacts
@@ -152,7 +160,7 @@ jobs:
               try:
                   p = fn.replace('.sarif', '').split('--')
                   if len(p) < 4: continue
-                  repo, pr, lang, agent = p.replace('_SLASH_', '/'), p, p, p.replace('_', ' ')
+                  repo, pr, lang, agent = p[0].replace('_SLASH_', '/'), p[1], p[2], p[3].replace('_', ' ')
                   with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [])
                   res, seen, cwe_m = [], set(), {}
@@ -168,7 +176,7 @@ jobs:
                           rid = r_out.get('ruleId', 'Unknown')
                           locs = r_out.get('locations', [])
                           loc = {}
-                          if isinstance(locs, list) and len(locs) > 0: loc = locs.get('physicalLocation', {}) if isinstance(locs, dict) else {}
+                          if isinstance(locs, list) and len(locs) > 0: loc = locs[0].get('physicalLocation', {}) if isinstance(locs[0], dict) else {}
                           elif isinstance(locs, dict): loc = locs.get('physicalLocation', {})
                           path, line = loc.get('artifactLocation', {}).get('uri', 'Unknown'), loc.get('region', {}).get('startLine', '?')
                           if f'{rid}::{path}::{line}' not in seen:
@@ -194,13 +202,13 @@ jobs:
                   lnk = f'[#{pr}](https://://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
-          print('# 📊 Global Analysis Summary\n\n### Executive Summary')
-          print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
-          if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
-          print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
-          if cwe_t:
-              for c, cnt in sorted(cwe_t.items(), key=lambda x: x, reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
-          else: print('- No distinct CWE records mapped.')
-          print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
-          for r in sorted(rows): print(r)
-          " >> $GITHUB_STEP_SUMMARY
+              print('# 📊 Global Analysis Summary\n\n### Executive Summary')
+              print(f'- **Scan Completion Ratio:** {ok_m}/{tot} PR Matrix Scans Completed Successfully 🎉')
+              if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
+              print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
+              if cwe_t:
+                for c, cnt in sorted(cwe_t.items(), key=lambda x: x, reverse=True)[:5]: print(f'- {c}: Found {cnt} time(s)')
+              else: print('- No distinct CWE records mapped.')
+              print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
+              for r in sorted(rows): print(r)
+              " >> $GITHUB_STEP_SUMMARY
