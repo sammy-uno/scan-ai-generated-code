@@ -1,7 +1,7 @@
-name: "General AI Multi-Language Scanner"
+name: "General AI Scanner Suite"
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -13,15 +13,15 @@ permissions:
 
 jobs:
   discover:
-    name: Find AI PRs
+    name: 1. Discover Target PR Matrix
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.detect.outputs.matrix_data }}
+      matrix_config: ${{ steps.detect.outputs.matrix_data }}
     steps:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          # --- MULTILINE DELIMITER PROTECTS Payloads ---
+          # --- TEST OVERRIDE: TARGET THE TWO ISOLATED TESTING PRs ONLY ---
           echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -30,25 +30,29 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
   analyze:
-    name: "Matrix: analyze"
+    name: 2. Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }})
     needs: discover
+    if: ${{ needs.discover.outputs.matrix_config != '' && fromJson(needs.discover.outputs.matrix_config).include != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     
-    # --- DELETED continue-on-error FROM HERE TO FIX EXCLAMATION MARKS ---
+    # --- CHANGE 1: TIMEOUT REDUCED TO 5 MINUTES FOR RAPID TESTING ---
+    timeout-minutes: 5
+    
+    # --- HARD PLATFORM SAFEGUARD: GLOBAL STATUS PROTECTION ---
+    # Placing continue-on-error here forces the workflow engine graph board to evaluate 
+    # individual matrix row failures/timeouts as clean, successful pipeline events.
+    continue-on-error: true
     
     strategy:
       fail-fast: false
       max-parallel: 10
-      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.discover.outputs.matrix_config) }}
     
     steps:
-      - uses: actions/checkout@v5
-      
-      - name: Prepare Workspace and Checkout PR
-        id: pr_checkout
-        # --- FIXED: STEP-LEVEL MASKING PREVENTS SIDEBAR WARNING BADGES ---
-        continue-on-error: true
+      - name: Checkout Primary Scripts Root
+        uses: actions/checkout@v4
+
+      - name: Clear Workspace and Checkout Targeted PR
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
@@ -60,9 +64,7 @@ jobs:
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
 
-      - name: Initialize CodeQL
-        id: init_codeql
-        continue-on-error: true
+      - name: Initialize CodeQL Tooling Engine
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
@@ -73,20 +75,17 @@ jobs:
 
       - name: Perform CodeQL Analysis
         id: run_analysis
-        continue-on-error: true
         uses: github/codeql-action/analyze@v3
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
-          upload: false 
-          wait-for-processing: false 
+          upload: false
+          wait-for-processing: false
 
-      - name: Create Summary
+      - name: Process Summary Metrics
         if: always()
         run: |
           SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
-          
-          # --- CONDITIONAL TRACKER METRIC OVERRIDE ---
           if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
@@ -107,21 +106,22 @@ jobs:
             *.failed
 
   report:
-    name: Consolidate Final Report
+    name: 3. Consolidate Final Dashboard
     needs: [discover, analyze]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download Available SARIF Logs
+        uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
 
-      - name: Generate Consolidated Summary
+      - name: Generate Consolidated Summary Table
         env:
-          MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
+          MATRIX_JSON: ${{ needs.discover.outputs.matrix_config }}
         run: |
           python3 -c "
           import json, glob, os
