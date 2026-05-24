@@ -1,10 +1,10 @@
 import os
 import json
 import subprocess
+from urllib.parse import urlparse, urlunparse
 
 def run_cmd(cmd, timeout_secs=300):
     try:
-        # Increased maximum threshold to prevent CodeQL compile cuts
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout_secs)
         if res.returncode != 0:
             print(f"Command failed with return code {res.returncode}")
@@ -29,10 +29,14 @@ def main():
     print(f"Starting sequential execution for {len(items)} repositories...")
 
     for item in items:
-        repo = item.get("repo_name")
-        pr = item.get("pr_num")
-        lang = item.get("language")
-        agent = item.get("agent_name")
+        repo = item.get("repo_name", "").strip()
+        pr = item.get("pr_num", "").strip()
+        lang = item.get("language", "").strip()
+        agent = item.get("agent_name", "").strip()
+        
+        if not repo or not pr:
+            continue
+            
         safe_repo = repo.replace("/", "_SLASH_")
 
         print(f"\n==========================================")
@@ -47,8 +51,13 @@ def main():
         run_cmd("cd ./target_src && git config --local filter.lfs.smudge 'git-lfs smudge --skip -- %f'")
         run_cmd("cd ./target_src && git config --local filter.lfs.process 'git-lfs filter-process --skip'")
 
-        # 3. Pull down specific Pull Request head ref layout natively
-        fetch_url = f"https://x-access-token:{gh_token}@://github.com{repo}.git"
+        # --- FIX: TYPE-SAFE COMPLIANT URL BUILDER ENGINE ---
+        # Explicitly segments authentication components to prevent formatting errors
+        netloc = f"x-access-token:{gh_token}@github.com"
+        path = f"/{repo}.git"
+        url_parts = ('https', netloc, path, '', '', '')
+        fetch_url = urlunparse(url_parts)
+        
         fetch_ref = f"refs/pull/{pr}/head:pr_{pr}"
         
         fetch_status = run_cmd(f"cd ./target_src && git fetch --depth=1 '{fetch_url}' '{fetch_ref}'", timeout_secs=120)
@@ -57,7 +66,7 @@ def main():
         if fetch_status == 0:
             run_cmd(f"cd ./target_src && git checkout 'pr_{pr}'")
             
-            # --- SCALE UP COMPILE TIMEOUT TO 5 MINUTES PER EXTENSION INTERACTION ---
+            # Run CodeQL compile sequences directly via explicit paths
             db_status = run_cmd(f"'{codeql_bin}' database create './codeql_db_{safe_repo}' --language='{lang}' --source-root=./target_src --overwrite", timeout_secs=300)
             
             if db_status == 0:
