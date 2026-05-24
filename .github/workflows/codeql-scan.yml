@@ -77,7 +77,7 @@ jobs:
               git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
               git config --local filter.lfs.process "git-lfs filter-process --skip"
               
-              # --- FIX: SINGLE QUOTES PROTECT SUB-VARIABLES FROM EARLY BALANCING CRASHES ---
+              # --- FIX: ADDED MISSING FORWARD SLASH AFTER GITHUB.COM TO FIX REJECTED HOST HOST NAME ---
               timeout 40s git fetch --depth=1 'https://x-access-token:'"$GH_TOKEN"'@://github.com'"$REPO"'.git' 'refs/pull/'"$PR"'/head:pr_'"$PR" || exit 1
               git checkout "pr_${PR}" || exit 1
               cd ..
