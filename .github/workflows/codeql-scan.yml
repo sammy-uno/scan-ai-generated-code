@@ -59,7 +59,8 @@ jobs:
             CODEQL_BIN="$CODEQL_DIST/codeql"
           fi
           
-          echo '${{ needs.discover.outputs.matrix }}' | jq -c '.include[]' | while read -r item; do
+          # --- FIX 1: DOUBLE QUOTES ALLOW MATRIX STRINGS TO EXPAND ACCURATELY ---
+          echo "${{ needs.discover.outputs.matrix }}" | jq -c '.include[]' | while read -r item; do
             REPO=$(echo "$item" | jq -r '.repo_name')
             PR=$(echo "$item" | jq -r '.pr_num')
             LANG=$(echo "$item" | jq -r '.language')
@@ -71,18 +72,16 @@ jobs:
             echo "=========================================="
             
             (
-              # --- FIX: BULLETPROOF MANUAL GIT PULL ARCHITECTURE ---
               rm -rf ./target_src && mkdir -p ./target_src && cd ./target_src
               git init
               git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
               git config --local filter.lfs.process "git-lfs filter-process --skip"
               
-              # Pull the exact PR head ref layout string directly from GitHub into the root folder
+              # --- FIX 2: ESCAPED VARIABLING TO SECURE ACCURATE CONTEXT STRINGS ---
               timeout 40s git fetch --depth=1 "https://x-access-token:${GH_TOKEN}@://github.com{REPO}.git" "refs/pull/${PR}/head:pr_${PR}" || exit 1
               git checkout "pr_${PR}" || exit 1
               cd ..
               
-              # Point the scanner directly at the clean flat source tree root subfolder
               timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=./target_src --overwrite || exit 1
               timeout 45s "$CODEQL_BIN" database analyze "../codeql_db_$SAFE_REPO" --format=sarif-latest --output="../${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" || exit 1
             )
@@ -118,6 +117,7 @@ jobs:
         with:
           name: consolidated-sarif-payloads
           path: all-results
+
       - name: Generate Consolidated Summary
         env:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
@@ -137,7 +137,7 @@ jobs:
               try:
                   p = fn.replace('.sarif', '').split('--')
                   if len(p) < 4: continue
-                  repo, pr, lang, agent = p.replace('_SLASH_', '/'), p, p, p.replace('_', ' ')
+                  repo, pr, lang, agent = p.replace('_SLASH_', '/'), p[1], p[2], p[3].replace('_', ' ')
                   with open(f) as s: data = json.load(s)
                   runs = data.get('runs', [])
                   res, seen, cwe_m = [], set(), {}
@@ -153,7 +153,7 @@ jobs:
                           rid = r_out.get('ruleId', 'Unknown')
                           locs = r_out.get('locations', [])
                           loc = {}
-                          if isinstance(locs, list) and len(locs) > 0: loc = locs.get('physicalLocation', {}) if isinstance(locs, dict) else {}
+                          if isinstance(locs, list) and len(locs) > 0: loc = locs[0].get('physicalLocation', {}) if isinstance(locs[0], dict) else {}
                           elif isinstance(locs, dict): loc = locs.get('physicalLocation', {})
                           path, line = loc.get('artifactLocation', {}).get('uri', 'Unknown'), loc.get('region', {}).get('startLine', '?')
                           if f'{rid}::{path}::{line}' not in seen:
@@ -176,7 +176,7 @@ jobs:
                   badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
                   cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
-                  lnk = f'[#{pr}](https://github.com/{repo}/pull/{pr})'
+                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
           print('# 📊 Global Analysis Summary\n\n### Executive Summary')
