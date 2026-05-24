@@ -21,6 +21,7 @@ jobs:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
+          # --- MULTILINE DELIMITER PROTECTS Payloads ---
           echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
@@ -33,31 +34,73 @@ jobs:
     needs: discover
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    
+    # --- DELETED continue-on-error FROM HERE TO FIX EXCLAMATION MARKS ---
+    
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
     steps:
       - uses: actions/checkout@v5
+      
+      - name: Prepare Workspace and Checkout PR
+        id: pr_checkout
+        # --- FIXED: STEP-LEVEL MASKING PREVENTS SIDEBAR WARNING BADGES ---
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          GIT_LFS_SKIP_SMUDGE: 1
+        run: |
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+          mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
+          rm -rf ./*
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
 
-      - name: Initialize CodeQL Tooling Engine
+      - name: Initialize CodeQL
         id: init_codeql
+        continue-on-error: true
         uses: github/codeql-action/init@v3
         with:
-          languages: 'ruby, python'
+          languages: ${{ matrix.language }}
           build-mode: none
+          db-location: ${{ runner.temp }}/codeql_db
+          trap-caching: false
+          queries: security-extended,security-experimental
 
-      - name: Execute Sequential Scan Loops
-        id: run_scans
-        env:
-          RAW_MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          CODEQL_BIN: ${{ steps.init_codeql.outputs.codeql-path }}
+      - name: Perform CodeQL Analysis
+        id: run_analysis
+        continue-on-error: true
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/pr:${{ matrix.category_name }}"
+          output: sarif-results
+          upload: false 
+          wait-for-processing: false 
+
+      - name: Create Summary
+        if: always()
         run: |
-          # Clean execution step calling our isolated script file directly
-          python scripts/run-scans.py
+          SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          
+          # --- CONDITIONAL TRACKER METRIC OVERRIDE ---
+          if [ "${{ steps.run_analysis.outcome }}" = "success" ] && [ -d "sarif-results" ]; then
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
+            python scripts/parse-results.py || true
+          else
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}.failed"
+          fi
 
       - name: Save Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: consolidated-sarif-payloads
+          name: sarif-${{ matrix.category_name }}
           path: |
             *.sarif
             *.success
@@ -72,8 +115,9 @@ jobs:
       - uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: consolidated-sarif-payloads
+          pattern: sarif-*
           path: all-results
+          merge-multiple: true
 
       - name: Generate Consolidated Summary
         env:
@@ -141,7 +185,7 @@ jobs:
           if ko_m > 0: print(f'- **Isolated Execution Drops:** {ko_m} *(Bypassed cleanly to preserve pipeline status)*')
           print(f'- **Total PRs Parsed:** {parsed}\n- **PRs with Issues:** {vuln} ⚠️\n- **Clean PRs:** {parsed - vuln} ✅\n\n### Discovered AI Weaknesses (Top 5 CWE Frequency) 🎯')
           if cwe_t:
-              for c, cnt in sorted(cwe_t.items(), key=lambda item: item[1], reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
+              for c, cnt in sorted(cwe_t.items(), key=lambda x: x, reverse=True)[:5]: print(f'- **{c}**: Found {cnt} time(s)')
           else: print('- No distinct CWE records mapped.')
           print('\n| Repository | PR | AI Tool | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |')
           for r in sorted(rows): print(r)
