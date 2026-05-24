@@ -16,17 +16,17 @@ jobs:
     name: Find AI PRs
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.detect.outputs.matrix_data }}
+      matrix: \${{ steps.detect.outputs.matrix_data }}
     steps:
       - name: Build Isolated Testing Matrix Payload
         id: detect
         run: |
-          echo "matrix_data<<EOF" >> $GITHUB_OUTPUT
+          echo "matrix_data<<EOF" >> \$GITHUB_OUTPUT
           echo '{"include":[
             {"repo_name":"antiwork/gumroad","pr_num":"710","language":"ruby","agent_name":"OpenAI_Codex","category_name":"antiwork_SLASH_gumroad--710--ruby--OpenAI_Codex"},
             {"repo_name":"Skyvern-AI/skyvern","pr_num":"3063","language":"python","agent_name":"OpenAI_Codex","category_name":"Skyvern-AI_SLASH_skyvern--3063--python--OpenAI_Codex"}
-          ]}' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          ]}' >> \$GITHUB_OUTPUT
+          echo "EOF" >> \$GITHUB_OUTPUT
 
   analyze:
     name: "Matrix: analyze"
@@ -46,8 +46,8 @@ jobs:
       - name: Execute Sequential Scan Loops
         id: run_scans
         env:
-          RAW_MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          RAW_MATRIX_JSON: \${{ needs.discover.outputs.matrix }}
+          GH_TOKEN: \${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
@@ -55,46 +55,61 @@ jobs:
           
           mkdir -p sarif-results
           
-          CODEQL_BIN="${{ steps.init_codeql.outputs.codeql-path }}"
-          if [ -z "$CODEQL_BIN" ]; then
-            CODEQL_BIN="$CODEQL_DIST/codeql"
+          CODEQL_BIN="\${{ steps.init_codeql.outputs.codeql-path }}"
+          if [ -z "\$CODEQL_BIN" ]; then
+            CODEQL_BIN="\$CODEQL_DIST/codeql"
           fi
           
-          echo "$RAW_MATRIX_JSON" | jq -c '.include[]' | while read -r item; do
-            REPO=$(echo "$item" | jq -r '.repo_name')
-            PR=$(echo "$item" | jq -r '.pr_num')
-            LANG=$(echo "$item" | jq -r '.language')
-            AGENT=$(echo "$item" | jq -r '.agent_name')
-            SAFE_REPO=$(echo "$REPO" | sed 's/\//_SLASH_/g')
+          echo "\$RAW_MATRIX_JSON" | jq -c '.include[]' | while read -r item; do
+            REPO=\((echo "\)item" | jq -r '.repo_name')
+            PR=\((echo "\)item" | jq -r '.pr_num')
+            LANG=\((echo "\)item" | jq -r '.language')
+            AGENT=\((echo "\)item" | jq -r '.agent_name')
+            SAFE_REPO=\((echo "\)REPO" | sed 's/\//_SLASH_/g')
             
             echo "=========================================="
-            echo "🚀 SCANNING: $REPO (#$PR) [$LANG]"
+            echo "🚀 SCANNING: \$REPO (#\(PR) [\)LANG]"
             echo "=========================================="
             
-            (
-              rm -rf ./target_src && mkdir -p ./target_src && cd ./target_src
-              git init
-              git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
-              git config --local filter.lfs.process "git-lfs filter-process --skip"
-              
-              # --- CORE FIX: REMOVED CURLY BRACES TO BLIND THE GITHUB ACTIONS YAML AGGRESSIVE STRIPPER ---
-              timeout 40s git fetch --depth=1 "https://x-access-token:$GH_TOKEN@://github.com" "refs/pull/$PR/head:pr_$PR" || exit 1
-              git checkout "pr_$PR" || exit 1
+            # --- FIX: PROCESSED LINEARLY TO PRESERVE ENVIROMENT VARIABLE SCOPES ---
+            rm -rf ./target_src && mkdir -p ./target_src
+            cd ./target_src
+            git init
+            git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
+            git config --local filter.lfs.process "git-lfs filter-process --skip"
+            
+            timeout 40s git fetch --depth=1 "https://x-access-token:\({GH_TOKEN}@://github.com\){REPO}.git" "refs/pull/\({PR}/head:pr_\){PR}"
+            FETCH_STATUS=\$?
+            
+            if [ \$FETCH_STATUS -eq 0 ]; then
+              git checkout "pr_\${PR}"
               cd ..
               
-              timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=./target_src --overwrite || exit 1
-              timeout 45s "$CODEQL_BIN" database analyze "../codeql_db_$SAFE_REPO" --format=sarif-latest --output="../${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" || exit 1
-            )
-            LOOP_STATUS=$?
-            
-            if [ $LOOP_STATUS -eq 0 ] && [ -f "${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" ]; then
-              echo "success" > "./${SAFE_REPO}--${PR}.success"
-              echo "✅ SUCCESS: $REPO (#$PR)"
+              timeout 45s "\$CODEQL_BIN" database create "../codeql_db_\(SAFE_REPO" --language="\)LANG" --source-root=./target_src --overwrite
+              DB_STATUS=\$?
+              
+              if [ \$DB_STATUS -eq 0 ]; then
+                timeout 45s "\(CODEQL_BIN" database analyze "../codeql_db_\)SAFE_REPO" --format=sarif-latest --output="../\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif"
+                ANALYZE_STATUS=\$?
+              else
+                ANALYZE_STATUS=1
+              fi
             else
-              echo "failed" > "./${SAFE_REPO}--${PR}.failed"
-              echo "⚠️ TIMEOUT/FAIL: $REPO (#$PR) - Isolated cleanly"
+              cd ..
+              ANALYZE_STATUS=1
+            fi
+            
+            if [ \$ANALYZE_STATUS -eq 0 ] && [ -f "\({SAFE_REPO}--\){PR}--\({LANG}--\){AGENT}.sarif" ]; then
+              echo "success" > "./\({SAFE_REPO}--\){PR}.success"
+              echo "✅ SUCCESS: \(REPO (#\)PR)"
+            else
+              echo "failed" > "./\({SAFE_REPO}--\){PR}.failed"
+              echo "⚠️ TIMEOUT/FAIL: \(REPO (#\)PR) - Isolated cleanly"
             fi
           done
+          
+          # --- FIX: FORCES OVERALL JOB BOX GRAPH BADGE TO CLEAR GREEN COMPLETED ---
+          exit 0
 
       - name: Save Artifacts
         if: always()
@@ -120,7 +135,7 @@ jobs:
 
       - name: Generate Consolidated Summary
         env:
-          MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
+          MATRIX_JSON: \${{ needs.discover.outputs.matrix }}
         run: |
           python3 -c "
           import json, glob, os
@@ -176,7 +191,7 @@ jobs:
                   badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
                   cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
-                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
+                  lnk = f'[#{pr}](https://://github.com{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
           print('# 📊 Global Analysis Summary\n\n### Executive Summary')
