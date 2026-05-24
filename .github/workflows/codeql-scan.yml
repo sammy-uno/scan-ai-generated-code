@@ -36,8 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # This downloads and adds the official standalone CodeQL binary to the path
       - name: Initialize CodeQL Tooling Engine
+        id: init_codeql
         uses: github/codeql-action/init@v3
         with:
           languages: 'ruby, python'
@@ -54,6 +54,12 @@ jobs:
           
           mkdir -p sarif-results
           
+          # Use the absolute tool binary path provided by the initialization step environment
+          CODEQL_BIN="${{ steps.init_codeql.outputs.codeql-path }}"
+          if [ -z "$CODEQL_BIN" ]; then
+            CODEQL_BIN="$CODEQL_DIST/codeql"
+          fi
+          
           echo '${{ needs.discover.outputs.matrix }}' | jq -c '.include[]' | while read -r item; do
             REPO=$(echo "$item" | jq -r '.repo_name')
             PR=$(echo "$item" | jq -r '.pr_num')
@@ -69,12 +75,9 @@ jobs:
               rm -rf ./target_src && mkdir -p ./target_src && cd ./target_src
               timeout 40s gh pr checkout "$PR" --repo "$REPO" || exit 1
               
-              # --- FIX: CALL BINARY DIRECTLY VIA WORKSPACE PATH ENGINES ---
-              # Changed 'gh codeql' to 'codeql' to run the natively bundled executable 
-              timeout 45s codeql database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=. || exit 1
-              
-              # Execute analysis and compile results file output
-              timeout 45s codeql database analyze "../codeql_db_$SAFE_REPO" --format=sarif-latest --output="../${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" || exit 1
+              # --- FIX: CALL ABSOLUTE CODEQL ENGINE PATH ---
+              timeout 45s "$CODEQL_BIN" database create "../codeql_db_$SAFE_REPO" --language="$LANG" --source-root=. || exit 1
+              timeout 45s "$CODEQL_BIN" database analyze "../codeql_db_$SAFE_REPO" --format=sarif-latest --output="../${SAFE_REPO}--${PR}--${LANG}--${AGENT}.sarif" || exit 1
             )
             LOOP_STATUS=$?
             
@@ -166,7 +169,7 @@ jobs:
                   badge = '🔴 High' if h > 0 else '🟡 Medium' if m > 0 else '🔵 Low' if l > 0 else '🟢 Clean'
                   cwes_d = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
                   u_files = len(set(loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri') for r_out in res for loc in r_out.get('locations', []) if isinstance(loc, dict) and loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')))
-                  lnk = f'[#{pr}](https://github.com{repo}/pull/{pr})'
+                  lnk = f'[#{pr}](https://github.com/{repo}/pull/{pr})'
                   rows.append(f'| {repo} | {lnk} | {agent} | {lang} | {badge} | **{cwes_d}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
               except Exception as e: print(f'Error: {e}')
           print('# 📊 Global Analysis Summary\n\n### Executive Summary')
