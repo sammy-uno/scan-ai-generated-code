@@ -28,5 +28,6 @@ CWE_TOP_25 = \[
 
 In the final summary scan report, I am also reporting the Top 5 CWE found when scanning the PRs.
 
+
 <img width="1886" height="1061" alt="AI PRs Analysis Summary" src="https://github.com/user-attachments/assets/3356d5f5-d085-4605-ae3e-ff3cbf175572" />
 
