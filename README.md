@@ -1,3 +1,5 @@
+<h2>Progress Update 5/26/2026</h2>
+
 I made good progress and I was able to fix the severity of vulnerabilities raised by CodeQL.
 
 First of all, I tested different types of CodeQL scanning queries.
