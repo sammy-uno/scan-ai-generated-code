@@ -12,8 +12,9 @@ def main():
     print(f"Total matching active run SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
-    ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
-    human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
+    # --- FIX 2: TRACK TOTAL SCANNED RUNNERS TO ACCOUNT FOR 100% CLEAN REPOSITORIES ---
+    ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
+    human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     comparison_rows = []
     
     CWE_TOP_25 = [
@@ -132,6 +133,7 @@ def main():
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
             target = human_metrics if is_human else ai_metrics
+            target["scanned_prs"] += 1 # Logs the evaluation run even if total issues are 0
             target["total"] += len(res)
             target["high"] += h
             target["medium"] += m
@@ -152,10 +154,10 @@ def main():
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        out.write('| Evaluation Group | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Vulnerable PRs | Distinct CWEs Found |\n')
-        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        out.write(f'| 🤖 **AI Generated Code** | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {ai_metrics["vuln_prs"]} | {len(ai_metrics["cwes"])} |\n')
-        out.write(f'| 👨‍💻 **Human Manual Audits** | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {human_metrics["vuln_prs"]} | {len(human_metrics["cwes"])} |\n\n')
+        out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
+        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        out.write(f'| 🤖 **AI Generated Code** | {ai_metrics["scanned_prs"]} | {ai_metrics["vuln_prs"]} | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {len(ai_metrics["cwes"])} |\n')
+        out.write(f'| 👨‍💻 **Human Manual Audits** | {human_metrics["scanned_prs"]} | {human_metrics["vuln_prs"]} | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {len(human_metrics["cwes"])} |\n\n')
         
         out.write('### 📝 Detailed Side-by-Side Run Log\n')
         out.write('| Repository | Pull Request | Scan Source Profile | Language | Overall Severity | CWEs Discovered | 🔴 H | 🟡 M | 🔵 L | Total Bugs |\n')
