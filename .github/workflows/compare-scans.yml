@@ -26,7 +26,10 @@ jobs:
             const fs = require('fs');
             const path = require('path');
             
-            console.log("🔍 Scanning repository workspace run history for 'sarif-*' payload packages...");
+            console.log("==================================================");
+            console.log("🔍 DIAGNOSTIC ARTIFACT DOWNLOAD HARVESTER STARTED");
+            console.log("==================================================");
+            
             mkdirSyncRecursive('all-results');
 
             const response = await github.rest.actions.listArtifactsForRepo({
@@ -35,12 +38,16 @@ jobs:
               per_page: 100
             });
 
+            console.log(`[API RESPONSE] Total raw artifacts listed in repo pool: ${response.data.artifacts.length}`);
             const artifacts = response.data.artifacts.filter(art => art.name.startsWith('sarif-'));
-            console.log(`🎯 Located ${artifacts.length} target matching artifact archives in storage pool.`);
+            console.log(`[FILTER MATCH] Total matched 'sarif-*' packages: ${artifacts.length}`);
 
             for (const artifact of artifacts) {
               try {
-                console.log(`📥 Streaming download for archive packet: ${artifact.name}`);
+                console.log(`\n--- Processing Package: ${artifact.name} (ID: ${artifact.id}) ---`);
+                console.log(` -> Size on disk context: ${artifact.size_in_bytes} bytes`);
+                console.log(` -> Associated Workflow Run ID: ${artifact.workflow_run ? artifact.workflow_run.id : 'N/A'}`);
+                
                 const zip = await github.rest.actions.downloadArtifact({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -51,12 +58,21 @@ jobs:
                 const targetDir = path.join('all-results', artifact.name);
                 mkdirSyncRecursive(targetDir);
                 const zipPath = path.join(targetDir, 'artifact.zip');
+                
                 fs.writeFileSync(zipPath, Buffer.from(zip.data));
+                console.log(` -> Successfully wrote downloaded zip to disk path: ${zipPath}`);
+                
                 execSync(`unzip -o "${zipPath}" -d "${targetDir}" && rm "${zipPath}"`);
+                console.log(` -> Unzipped successfully. Directory contents:`, fs.readdirSync(targetDir));
               } catch (err) {
-                console.log(`⚠️ Failed to securely ingest archive packet ${artifact.name}: ${err.message}`);
+                console.log(` ❌ Ingestion error for archive package ${artifact.name}: ${err.message}`);
               }
             }
+
+            console.log("\n==================================================");
+            console.log("📊 ROOT TARGET SEED DIRECTORY VERIFICATION LOG:");
+            console.log("Root directory 'all-results' contents:", fs.existsSync('all-results') ? fs.readdirSync('all-results') : 'FOLDER NOT CREATED');
+            console.log("==================================================");
 
             function mkdirSyncRecursive(dir) {
               if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
