@@ -3,7 +3,10 @@ import glob
 import os
 
 def main():
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    # --- FIX 1: ACCURATELY TARGET FLAT FILE PAYLOADS MERGED DIRECTLY IN THE FOLDER ---
+    all_files = sorted(glob.glob('all-results/*.sarif')) if os.path.exists('all-results') else []
+    ok_m = len(glob.glob('all-results/*.success')) if os.path.exists('all-results') else 0
+    ko_m = len(glob.glob('all-results/*.failed')) if os.path.exists('all-results') else 0
     
     # Tracking repositories side by side
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
@@ -23,7 +26,6 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        # --- FIX: PROACTIVE DISCOVERY DETERMINES THE ORIGIN WITHOUT ARBITRARY STRING SPLITS ---
         is_human = "Human_Auditor" in fname or fname.startswith("human--")
         
         try:
@@ -32,7 +34,7 @@ def main():
             if len(parts) < 3: 
                 continue
                 
-            # Safely resolve path indices without array out-of-bounds crashes
+            # --- FIX 2: RE-ESTABLISH EXPLICIT NUMERIC INDEX ACCESS ARRAYS MATCHING BASE SUMMARY ---
             repo_path = parts[0].replace('_SLASH_', '/')
             pr_num = parts[1]
             lang = parts[2]
@@ -46,7 +48,7 @@ def main():
             seen_findings = set()
             local_cwe_map = {}
             
-            # 1. Map rules to CWE tags safely
+            # Map rules to CWE tags safely
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -65,7 +67,7 @@ def main():
                             c_num = t.lower().split('cwe-')[-1]
                             local_cwe_map[r_id].add(f'CWE-{c_num.zfill(3)}'.upper())
 
-            # 2. Extract and deduplicate unique findings across all sub-locations
+            # Extract and deduplicate unique findings across all sub-locations
             for run in runs:
                 if isinstance(run, dict):
                     for result in run.get('results', []):
@@ -97,7 +99,6 @@ def main():
                         if is_new_finding:
                             res.append(result)
 
-            # 3. Apply the exact same severity metrics calculations 
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
@@ -120,7 +121,7 @@ def main():
 
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
-            # 4. Increment the target tracker dictionaries accurately
+            # Increment the target tracker dictionaries accurately
             target = human_metrics if is_human else ai_metrics
             target["total"] += len(res)
             target["high"] += h
