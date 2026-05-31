@@ -9,7 +9,7 @@ env:
 permissions:
   contents: read
   security-events: write
-  actions: write
+  actions: read
 
 jobs:
   compare:
@@ -19,92 +19,16 @@ jobs:
       - name: Checkout Primary Scripts Root
         uses: actions/checkout@v4
 
-      - name: Fetch Current Active Scanner Artifacts Pool
-        uses: actions/github-script@v7
+      # --- CLEAN NATIVE BULLETPROOF MULTI-DOWNLOAD ENGINE ---
+      # This pulls down EVERY active artifact in the repo pool simultaneously
+      # flat into the target directory without using complex API run ID guesses.
+      - name: Download Available Artifacts Pool
+        uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            
-            console.log("🔍 Dynamic Workflow Triage Engine Activated...");
-            mkdirSyncRecursive('all-results');
-
-            // 1. Fetch workflows dynamically by their exact 'name' string to resolve the correct internal API system IDs
-            const allWorkflows = await github.rest.actions.listRepoWorkflows({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-
-            const aiWorkflow = allWorkflows.data.workflows.find(w => w.name === "General AI Multi-Language Scanner" || w.path.endsWith('codeql-scan.yml'));
-            const humanWorkflow = allWorkflows.data.workflows.find(w => w.name === "Human CodeQL Scan Auditing" || w.path.endsWith('human-codeql-scan.yml'));
-
-            const targetRunIds = [];
-
-            // 2. Fetch the absolute latest completed run ID matching our system profiles explicitly
-            if (aiWorkflow) {
-              const aiRuns = await github.rest.actions.listWorkflowRuns({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: aiWorkflow.id,
-                status: 'completed',
-                per_page: 1
-              });
-              if (aiRuns.data.workflow_runs.length > 0) {
-                targetRunIds.push(aiRuns.data.workflow_runs[0].id);
-                console.log(`🤖 Target AI Workflow Run Verified: ${aiRuns.data.workflow_runs[0].id}`);
-              }
-            }
-
-            if (humanWorkflow) {
-              const humanRuns = await github.rest.actions.listWorkflowRuns({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: humanWorkflow.id,
-                status: 'completed',
-                per_page: 1
-              });
-              if (humanRuns.data.workflow_runs.length > 0) {
-                targetRunIds.push(humanRuns.data.workflow_runs[0].id);
-                console.log(`👨‍💻 Target Human Workflow Run Verified: ${humanRuns.data.workflow_runs[0].id}`);
-              }
-            }
-
-            // 3. Download and unpack only the current active run artifacts pool
-            for (const runId of targetRunIds) {
-              const response = await github.rest.actions.listWorkflowRunArtifacts({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: runId
-              });
-
-              const artifacts = response.data.artifacts.filter(art => art.name.startsWith('sarif-'));
-              
-              for (const artifact of artifacts) {
-                try {
-                  console.log(`📥 Downloading Active Package: ${artifact.name}`);
-                  const zip = await github.rest.actions.downloadArtifact({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    artifact_id: artifact.id,
-                    archive_format: 'zip',
-                  });
-
-                  const targetDir = path.join('all-results', artifact.name);
-                  mkdirSyncRecursive(targetDir);
-                  fs.writeFileSync(path.join(targetDir, 'artifact.zip'), Buffer.from(zip.data));
-                  execSync(`unzip -o "${path.join(targetDir, 'artifact.zip')}" -d "${targetDir}" && rm "${path.join(targetDir, 'artifact.zip')}"`);
-                } catch (err) {
-                  console.log(`⚠️ Ingestion failed for ${artifact.name}: ${err.message}`);
-                }
-              }
-            }
-
-            function mkdirSyncRecursive(dir) {
-              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            }
-            function execSync(cmd) {
-              require('child_process').execSync(cmd, { stdio: 'ignore' });
-            }
+          pattern: sarif-*
+          path: all-results
+          merge-multiple: true
 
       - name: Run Global Comparison Engine
         run: |
