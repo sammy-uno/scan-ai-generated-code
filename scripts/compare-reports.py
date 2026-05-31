@@ -1,13 +1,23 @@
 import json
 import glob
 import os
+import sys
 
 def main():
-    # 1. Use absolute recursive search matching the archive extraction path layout
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    # Absolute recursive search path pattern mapping the zip extraction boundaries
+    search_path = os.path.join('all-results', '**', '*.sarif')
+    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
-    print(f"--- Comparison Engine Diagnostics ---")
-    print(f"Total SARIF payload files discovered in cache pool: {len(all_files)}")
+    # --- VERBOSE CONSOLE DEBUGGING INTERFACES ACTIVATED ---
+    print("==========================================")
+    print("🖥️ COMPARISON ENGINE DIAGNOSTICS LOG")
+    print("==========================================")
+    print(f"Current Working Dir Path Context: {os.getcwd()}")
+    print(f"Checking if 'all-results' folder path exists: {os.path.exists('all-results')}")
+    if os.path.exists('all-results'):
+        print(f"Direct raw contents of 'all-results' directory: {os.listdir('all-results')}")
+    print(f"Total target SARIF metric logs matched by glob path: {len(all_files)}")
+    print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
@@ -22,18 +32,18 @@ def main():
 
     for f in all_files:
         fname = os.path.basename(f)
+        print(f"Processing candidate log tracking instance: {fname}")
+        
         if fname == 'results.sarif' or '--' not in fname: 
+            print(f" -> Skipping helper placeholder or root file layout: {fname}")
             continue
 
-        # Proactive scanning origin type routing
         is_human = "Human_Auditor" in fname or "human--" in fname
         
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
             
-            # --- FIX: DYNAMIC INDEX LOOKUP INSTEAD OF FIXED STRING POSITION GUESSING ---
-            # Locate the repository path segment block string matching _SLASH_
             slash_idx = -1
             for idx, p_segment in enumerate(parts):
                 if "_SLASH_" in p_segment:
@@ -41,10 +51,9 @@ def main():
                     break
             
             if slash_idx == -1:
-                print(f"⚠️ Warning: Could not resolve repository token markers for file {fname}")
+                print(f" ⚠️ Skipping file: Cannot locate repository serialization token inside name: {fname}")
                 continue
                 
-            # Safely calculate elements relative to the location of the repository block token
             repo_path = parts[slash_idx].replace('_SLASH_', '/')
             pr_num = parts[slash_idx + 1] if (slash_idx + 1) < len(parts) else "Unknown"
             lang = parts[slash_idx + 2] if (slash_idx + 2) < len(parts) else "Unknown"
@@ -54,7 +63,6 @@ def main():
             else:
                 agent = parts[slash_idx + 3].replace('_', ' ') if (slash_idx + 3) < len(parts) else "AI Tool"
 
-            # Open and parse SARIF contents
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
@@ -63,7 +71,6 @@ def main():
             seen_findings = set()
             local_cwe_map = {}
             
-            # Map rules properties to targets
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -82,7 +89,6 @@ def main():
                             c_num = t.lower().split('cwe-')[-1]
                             local_cwe_map[r_id].add(f'CWE-{c_num.zfill(3)}'.upper())
 
-            # Extract distinct unique issues using multi-location verification loops
             for run in runs:
                 if isinstance(run, dict):
                     for result in run.get('results', []):
@@ -136,7 +142,6 @@ def main():
 
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
-            # Record group statistics variables cleanly
             target = human_metrics if is_human else ai_metrics
             target["total"] += len(res)
             target["high"] += h
@@ -148,12 +153,12 @@ def main():
                 target["cwes"].add(cwe)
 
             scan_source = "Human Scan" if is_human else f"AI Run ({agent})"
+            print(f" -> Successfully parsed metrics for {repo_path} [Issues Found: {len(res)}]")
             comparison_rows.append(f'| {repo_path} | [#{pr_num}](https://github.com{repo_path}/pull/{pr_num}) | {scan_source} | {lang} | {severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} |')
 
         except Exception as e:
-            print(f"❌ Critical structural evaluation crash for filename {fname}: {e}")
+            print(f" ❌ Critical parsing error encountered for {fname}: {e}")
 
-    # Build and print Markdown text table matrix
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
@@ -169,6 +174,8 @@ def main():
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         for row in sorted(comparison_rows):
             out.write(f'{row}\n')
+            
+    print(f"\n📊 Diagnostics Complete. Comparison summary written to environment panel.")
 
 if __name__ == "__main__":
     main()
