@@ -3,10 +3,7 @@ import glob
 import os
 
 def main():
-    # --- FIX 1: ACCURATELY TARGET FLAT FILE PAYLOADS MERGED DIRECTLY IN THE FOLDER ---
     all_files = sorted(glob.glob('all-results/*.sarif')) if os.path.exists('all-results') else []
-    ok_m = len(glob.glob('all-results/*.success')) if os.path.exists('all-results') else 0
-    ko_m = len(glob.glob('all-results/*.failed')) if os.path.exists('all-results') else 0
     
     # Tracking repositories side by side
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
@@ -26,20 +23,29 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
+        # Proactive type detection
         is_human = "Human_Auditor" in fname or fname.startswith("human--")
         
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
-            if len(parts) < 3: 
-                continue
-                
-            # --- FIX 2: RE-ESTABLISH EXPLICIT NUMERIC INDEX ACCESS ARRAYS MATCHING BASE SUMMARY ---
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            lang = parts[2]
-            agent = parts[3].replace('_', ' ') if len(parts) > 3 else ("Human" if is_human else "AI")
             
+            # --- FIX: ADAPTIVE DESERIALIZATION PREVENTS STRING INDEXERRORS ---
+            if fname.startswith("human--"):
+                # Handle the 3-hyphen human format: human--repo_path--pr_num--lang
+                if len(parts) < 4: continue
+                repo_path = parts[1].replace('_SLASH_', '/')
+                pr_num = parts[2]
+                lang = parts[3]
+                agent = "Human Auditor"
+            else:
+                # Handle the standard 4-part format: repo_path--pr_num--lang--agent_name
+                if len(parts) < 4: continue
+                repo_path = parts[0].replace('_SLASH_', '/')
+                pr_num = parts[1]
+                lang = parts[2]
+                agent = parts[3].replace('_', ' ')
+
             with open(f) as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
