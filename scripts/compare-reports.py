@@ -3,13 +3,13 @@ import glob
 import os
 
 def main():
-    search_path = os.path.join('all-results', '**', '*.sarif')
-    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
+    # Targets files flat inside the root folder (matching merge-multiple: true)
+    all_files = sorted(glob.glob('all-results/*.sarif')) if os.path.exists('all-results') else []
     
     print("==========================================")
     print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
     print("==========================================")
-    print(f"Total matching active run SARIF logs found: {len(all_files)}")
+    print(f"Total matching flat SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
@@ -28,13 +28,14 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        # --- FIX: ROBUST ORIGIN CLASSIFICATION MAPS HUMAN LOG PATTERNS ACCURATELY ---
+        # --- RE-ESTABLISHED ROBUST ROUTING SCOPE FOR MAY 19TH BALANCED SYNCHRONIZATION ---
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
 
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
             
+            # Locate the repository path index dynamically via token detection
             slash_idx = -1
             for idx, p_segment in enumerate(parts):
                 if "_SLASH_" in p_segment:
