@@ -3,7 +3,7 @@ import glob
 import os
 
 def main():
-    # Targets files flat inside the root folder (matching merge-multiple: true)
+    # Targets files flat inside the root folder context
     all_files = sorted(glob.glob('all-results/*.sarif')) if os.path.exists('all-results') else []
     
     print("==========================================")
@@ -28,7 +28,6 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        # --- RE-ESTABLISHED ROBUST ROUTING SCOPE FOR MAY 19TH BALANCED SYNCHRONIZATION ---
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
 
         try:
