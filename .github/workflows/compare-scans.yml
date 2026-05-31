@@ -19,7 +19,6 @@ jobs:
       - name: Checkout Primary Scripts Root
         uses: actions/checkout@v4
 
-      # --- FIX: REPLACES BRITTLE DOWNLOAD ACTION WITH DYNAMIC HISTORICAL HARVESTER ---
       - name: Fetch Historical Scanner Run Artifacts Pool
         uses: actions/github-script@v7
         with:
@@ -30,7 +29,6 @@ jobs:
             console.log("🔍 Scanning repository workspace run history for 'sarif-*' payload packages...");
             mkdirSyncRecursive('all-results');
 
-            // 1. Fetch available artifact metadata list from the remote repository
             const response = await github.rest.actions.listArtifactsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -40,7 +38,6 @@ jobs:
             const artifacts = response.data.artifacts.filter(art => art.name.startsWith('sarif-'));
             console.log(`🎯 Located ${artifacts.length} target matching artifact archives in storage pool.`);
 
-            // 2. Download and unpack files flat directly into the target folder context
             for (const artifact of artifacts) {
               try {
                 console.log(`📥 Streaming download for archive packet: ${artifact.name}`);
@@ -51,10 +48,11 @@ jobs:
                   archive_format: 'zip',
                 });
 
-                // Write and unzip using standard shell utilities to force flat layout mapping
-                const zipPath = path.join('all-results', `${artifact.name}.zip`);
+                const targetDir = path.join('all-results', artifact.name);
+                mkdirSyncRecursive(targetDir);
+                const zipPath = path.join(targetDir, 'artifact.zip');
                 fs.writeFileSync(zipPath, Buffer.from(zip.data));
-                execSync(`unzip -o "${zipPath}" -d all-results/ && rm "${zipPath}"`);
+                execSync(`unzip -o "${zipPath}" -d "${targetDir}" && rm "${zipPath}"`);
               } catch (err) {
                 console.log(`⚠️ Failed to securely ingest archive packet ${artifact.name}: ${err.message}`);
               }
