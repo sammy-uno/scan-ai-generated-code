@@ -12,7 +12,6 @@ def main():
     print(f"Total matching active run SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
-    # --- FIX 2: TRACK TOTAL SCANNED RUNNERS TO ACCOUNT FOR 100% CLEAN REPOSITORIES ---
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     comparison_rows = []
@@ -29,8 +28,9 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        is_human = "Human_Auditor" in fname or "human--" in fname
-        
+        # --- FIX: ROBUST ORIGIN CLASSIFICATION MAPS HUMAN LOG PATTERNS ACCURATELY ---
+        is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
+
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
@@ -133,7 +133,7 @@ def main():
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
             target = human_metrics if is_human else ai_metrics
-            target["scanned_prs"] += 1 # Logs the evaluation run even if total issues are 0
+            target["scanned_prs"] += 1
             target["total"] += len(res)
             target["high"] += h
             target["medium"] += m
@@ -164,6 +164,3 @@ def main():
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         for row in sorted(comparison_rows):
             out.write(f'{row}\n')
-
-if __name__ == "__main__":
-    main()
