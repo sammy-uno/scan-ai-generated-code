@@ -1,16 +1,22 @@
 import json
 import glob
 import os
+import sys
 
 def main():
-    # --- CORE FIX: RECURSIVE SEARCH LOOKS DEEP INTO ZIP EXTRACTION DIRECTORIES ---
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     print("==========================================")
-    print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
+    print("🖥️ PYTHON COMPARISON LOGIC DIAGNOSTICS")
     print("==========================================")
-    print(f"Total matching active run SARIF logs found: {len(all_files)}")
+    print(f"Current System Python Work Dir Context: {os.getcwd()}")
+    print(f"Verifying if 'all-results' folder path exists: {os.path.exists('all-results')}")
+    if os.path.exists('all-results'):
+        print(f"Root contents of 'all-results' directory: {os.listdir('all-results')}")
+    print(f"Total target files matched by recursive glob query: {len(all_files)}")
+    if len(all_files) > 0:
+        print(f"Matched file paths lists: {all_files}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
@@ -26,10 +32,14 @@ def main():
 
     for f in all_files:
         fname = os.path.basename(f)
+        print(f"🔎 Scanning matched file instance: {fname} (Full Path: {f})")
+        
         if fname == 'results.sarif' or '--' not in fname: 
+            print(f" -> Skipping helper placeholder or root file file context formatting rule.")
             continue
 
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
+        print(f" -> Origin Routing Assessment: {'👨‍💻 HUMAN AUDIT' if is_human else '🤖 AI SCANNED'}")
 
         try:
             name_root = fname.replace('.sarif', '')
@@ -42,6 +52,7 @@ def main():
                     break
             
             if slash_idx == -1:
+                print(f" ⚠️ Skipping file: Could not find the mandatory '_SLASH_' token block in string: {fname}")
                 continue
                 
             repo_path = parts[slash_idx].replace('_SLASH_', '/')
@@ -52,6 +63,8 @@ def main():
                 agent = "Human Auditor"
             else:
                 agent = parts[slash_idx + 3].replace('_', ' ') if (slash_idx + 3) < len(parts) else "AI Tool"
+
+            print(f" -> Successfully mapped filename properties: {repo_path} #{pr_num} | Lang: {lang} | Model: {agent}")
 
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
@@ -144,10 +157,11 @@ def main():
                 target["cwes"].add(cwe)
 
             scan_source = "Human Scan" if is_human else f"AI Run ({agent})"
+            print(f" -> successfully accumulated row data metrics context. Issues count: {len(res)}")
             comparison_rows.append(f'| {repo_path} | [#{pr_num}](https://github.com{repo_path}/pull/{pr_num}) | {scan_source} | {lang} | {severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} |')
 
         except Exception as e:
-            print(f"Error evaluating artifact {fname}: {e}")
+            print(f" ❌ Critical loop runtime parsing error encountered for file name {fname}: {e}")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -164,3 +178,8 @@ def main():
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         for row in sorted(comparison_rows):
             out.write(f'{row}\n')
+            
+    print(f"\n📊 Diagnostics execution finalized completely.")
+
+if __name__ == "__main__":
+    main()
