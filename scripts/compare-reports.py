@@ -3,12 +3,10 @@ import glob
 import os
 
 def main():
-    # --- FIX 1: RECURSIVE GLOB TO AUTOMATICALLY SCAN DEEP SUBFOLDERS FROM THE ARCHIVE POOL ---
+    # Recursive glob safely pulls fanned artifacts from nested download directories
     all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    ok_m = len(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else 0
-    ko_m = len(glob.glob('all-results/**/*.failed', recursive=True)) if os.path.exists('all-results') else 0
     
-    # Tracking repositories side by side
+    # Tracking metrics structures
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
     
@@ -26,30 +24,29 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        # Proactive scan context type detection
         is_human = "Human_Auditor" in fname or fname.startswith("human--")
         
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
             
-            # --- FIX 2: ADAPTIVE DESERIALIZATION PREVENTS STRING INDEXERRORS ON DEEP RUNS ---
+            # --- CORE FIX: EXPLICIT ARRAY INDEX BRACKETS ENFORCED ---
             if fname.startswith("human--"):
-                # Handle the 3-hyphen human format: human--repo_path--pr_num--lang
+                # Human file structure: human--repo_path--pr_num--lang.sarif
                 if len(parts) < 4: continue
                 repo_path = parts[1].replace('_SLASH_', '/')
                 pr_num = parts[2]
                 lang = parts[3]
                 agent = "Human Auditor"
             else:
-                # Handle the standard 4-part format: repo_path--pr_num--lang--agent_name
+                # Automated file structure: repo_path--pr_num--lang--agent_name.sarif
                 if len(parts) < 4: continue
                 repo_path = parts[0].replace('_SLASH_', '/')
                 pr_num = parts[1]
                 lang = parts[2]
                 agent = parts[3].replace('_', ' ')
 
-            with open(f) as s: 
+            with open(f, 'r') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
             res = []
@@ -57,7 +54,7 @@ def main():
             seen_findings = set()
             local_cwe_map = {}
             
-            # Map rules to CWE tags safely
+            # Map rule definitions to CWE numbers safely
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -76,7 +73,7 @@ def main():
                             c_num = t.lower().split('cwe-')[-1]
                             local_cwe_map[r_id].add(f'CWE-{c_num.zfill(3)}'.upper())
 
-            # Extract and deduplicate unique findings across all sub-locations
+            # Extract unique structural issues across multi-line sub-locations
             for run in runs:
                 if isinstance(run, dict):
                     for result in run.get('results', []):
@@ -130,7 +127,7 @@ def main():
 
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
-            # Increment the target tracker dictionaries accurately
+            # Aggregate group statistics
             target = human_metrics if is_human else ai_metrics
             target["total"] += len(res)
             target["high"] += h
@@ -147,7 +144,7 @@ def main():
         except Exception as e:
             print(f'Error processing comparison payload for {fname}: {e}')
 
-    # Output report summaries natively to the actions dashboard window
+    # Generate the Markdown step summary dashboard output
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
