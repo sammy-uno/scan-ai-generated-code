@@ -3,13 +3,14 @@ import glob
 import os
 
 def main():
-    # Targets files flat inside the root folder context
-    all_files = sorted(glob.glob('all-results/*.sarif')) if os.path.exists('all-results') else []
+    # --- CORE FIX: RECURSIVE SEARCH LOOKS DEEP INTO ZIP EXTRACTION DIRECTORIES ---
+    search_path = os.path.join('all-results', '**', '*.sarif')
+    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     print("==========================================")
     print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
     print("==========================================")
-    print(f"Total matching flat SARIF logs found: {len(all_files)}")
+    print(f"Total matching active run SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
@@ -34,7 +35,6 @@ def main():
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
             
-            # Locate the repository path index dynamically via token detection
             slash_idx = -1
             for idx, p_segment in enumerate(parts):
                 if "_SLASH_" in p_segment:
