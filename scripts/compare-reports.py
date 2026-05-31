@@ -3,7 +3,10 @@ import glob
 import os
 
 def main():
-    all_files = sorted(glob.glob('all-results/*.sarif')) if os.path.exists('all-results') else []
+    # --- FIX 1: RECURSIVE GLOB TO AUTOMATICALLY SCAN DEEP SUBFOLDERS FROM THE ARCHIVE POOL ---
+    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    ok_m = len(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else 0
+    ko_m = len(glob.glob('all-results/**/*.failed', recursive=True)) if os.path.exists('all-results') else 0
     
     # Tracking repositories side by side
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
@@ -23,14 +26,14 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        # Proactive type detection
+        # Proactive scan context type detection
         is_human = "Human_Auditor" in fname or fname.startswith("human--")
         
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
             
-            # --- FIX: ADAPTIVE DESERIALIZATION PREVENTS STRING INDEXERRORS ---
+            # --- FIX 2: ADAPTIVE DESERIALIZATION PREVENTS STRING INDEXERRORS ON DEEP RUNS ---
             if fname.startswith("human--"):
                 # Handle the 3-hyphen human format: human--repo_path--pr_num--lang
                 if len(parts) < 4: continue
