@@ -1,74 +1,167 @@
-      - name: Fetch Current Active Scanner Artifacts Pool
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
+import json
+import glob
+import os
+
+def main():
+    search_path = os.path.join('all-results', '**', '*.sarif')
+    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
+    
+    print("==========================================")
+    print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
+    print("==========================================")
+    print(f"Total matching active run SARIF logs found: {len(all_files)}")
+    print("==========================================\n")
+
+    ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
+    human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "vuln_prs": 0, "cwes": set()}
+    comparison_rows = []
+    
+    CWE_TOP_25 = [
+        'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
+        'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
+        'CWE-798', 'CWE-862', 'CWE-732', 'CWE-269', 'CWE-306', 'CWE-362', 'CWE-522',
+        'CWE-611', 'CWE-918', 'CWE-077', 'CWE-400', 'CWE-088', 'CWE-094'
+    ]
+
+    for f in all_files:
+        fname = os.path.basename(f)
+        if fname == 'results.sarif' or '--' not in fname: 
+            continue
+
+        is_human = "Human_Auditor" in fname or "human--" in fname
+        
+        try:
+            name_root = fname.replace('.sarif', '')
+            parts = name_root.split('--')
             
-            console.log("🔍 Locating the most recent completed pipeline runs...");
-            mkdirSyncRecursive('all-results');
+            slash_idx = -1
+            for idx, p_segment in enumerate(parts):
+                if "_SLASH_" in p_segment:
+                    slash_idx = idx
+                    break
+            
+            if slash_idx == -1:
+                continue
+                
+            repo_path = parts[slash_idx].replace('_SLASH_', '/')
+            pr_num = parts[slash_idx + 1] if (slash_idx + 1) < len(parts) else "Unknown"
+            lang = parts[slash_idx + 2] if (slash_idx + 2) < len(parts) else "Unknown"
+            
+            if is_human:
+                agent = "Human Auditor"
+            else:
+                agent = parts[slash_idx + 3].replace('_', ' ') if (slash_idx + 3) < len(parts) else "AI Tool"
 
-            // 1. Find the latest completed Automated Scan run ID
-            const aiRuns = await github.rest.actions.listWorkflowRuns({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'codeql-scan.yml', // Targets your main workflow filename
-              status: 'completed',
-              per_page: 1
-            });
+            with open(f, 'r', encoding='utf-8') as s: 
+                data = json.load(s)
+            runs = data.get('runs', [])
+            res = []
+            
+            seen_findings = set()
+            local_cwe_map = {}
+            
+            for run in runs:
+                if not isinstance(run, dict): continue
+                tool = run.get('tool', {})
+                all_rules = []
+                all_rules.extend(tool.get('driver', {}).get('rules', []))
+                for ext in tool.get('extensions', []):
+                    all_rules.extend(ext.get('rules', []))
+                
+                for rule in all_rules:
+                    r_id = rule.get('id')
+                    tags = rule.get('properties', {}).get('tags', [])
+                    if r_id not in local_cwe_map:
+                        local_cwe_map[r_id] = set()
+                    for t in tags:
+                        if 'cwe-' in t.lower():
+                            c_num = t.lower().split('cwe-')[-1]
+                            local_cwe_map[r_id].add(f'CWE-{c_num.zfill(3)}'.upper())
 
-            // 2. Find the latest completed Human Scan run ID
-            const humanRuns = await github.rest.actions.listWorkflowRuns({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'human-codeql-scan.yml', // Targets your human workflow filename
-              status: 'completed',
-              per_page: 1
-            });
+            for run in runs:
+                if isinstance(run, dict):
+                    for result in run.get('results', []):
+                        rule_id = result.get('ruleId', 'Unknown')
+                        locs_arr = result.get('locations', [])
+                        
+                        is_new_finding = False
+                        if isinstance(locs_arr, list) and len(locs_arr) > 0:
+                            for loc_entry in locs_arr:
+                                if not isinstance(loc_entry, dict): continue
+                                locs = loc_entry.get('physicalLocation', {})
+                                path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                                line = locs.get('region', {}).get('startLine', '?')
+                                
+                                fingerprint = f'{rule_id}::{path}::{line}'
+                                if fingerprint not in seen_findings:
+                                    seen_findings.add(fingerprint)
+                                    is_new_finding = True
+                        elif isinstance(locs_arr, dict):
+                            locs = locs_arr.get('physicalLocation', {})
+                            path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                            line = locs.get('region', {}).get('startLine', '?')
+                            
+                            fingerprint = f'{rule_id}::{path}::{line}'
+                            if fingerprint not in seen_findings:
+                                seen_findings.add(fingerprint)
+                                is_new_finding = True
+                                
+                        if is_new_finding:
+                            res.append(result)
 
-            const targetRunIds = [];
-            if (aiRuns.data.workflow_runs.length > 0) {
-              targetRunIds.push(aiRuns.data.workflow_runs[0].id);
-              console.log(`🤖 Found active AI Scan Run ID: ${aiRuns.data.workflow_runs[0].id}`);
-            }
-            if (humanRuns.data.workflow_runs.length > 0) {
-              targetRunIds.push(humanRuns.data.workflow_runs[0].id);
-              console.log(`👨‍💻 Found active Human Scan Run ID: ${humanRuns.data.workflow_runs[0].id}`);
-            }
+            h, m, l = 0, 0, 0
+            pr_cwes = set()
+            for r in res:
+                r_id = r.get('ruleId', '')
+                level = r.get('level', 'warning')
+                cwes_for_rule = local_cwe_map.get(r_id, set())
+                is_top_25 = any(c in CWE_TOP_25 for c in cwes_for_rule)
+                
+                if level == 'error' or is_top_25: h += 1
+                elif level == 'warning': m += 1
+                else: l += 1
+                
+                for cwe in cwes_for_rule:
+                    pr_cwes.add(cwe)
 
-            // 3. Download artifacts specifically linked to these active runs only
-            for (const runId of targetRunIds) {
-              const response = await github.rest.actions.listWorkflowRunArtifacts({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: runId
-              });
+            if h > 0: severity_badge = '🔴 High'
+            elif m > 0: severity_badge = '🟡 Medium'
+            elif l > 0: severity_badge = '🔵 Low'
+            else: severity_badge = '🟢 Clean'
 
-              const artifacts = response.data.artifacts.filter(art => art.name.startsWith('sarif-'));
-              
-              for (const artifact of artifacts) {
-                try {
-                  console.log(`📥 Ingesting active run file: ${artifact.name}`);
-                  const zip = await github.rest.actions.downloadArtifact({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    artifact_id: artifact.id,
-                    archive_format: 'zip',
-                  });
+            cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
+            
+            target = human_metrics if is_human else ai_metrics
+            target["total"] += len(res)
+            target["high"] += h
+            target["medium"] += m
+            target["low"] += l
+            if len(res) > 0: 
+                target["vuln_prs"] += 1
+            for cwe in pr_cwes: 
+                target["cwes"].add(cwe)
 
-                  const targetDir = path.join('all-results', artifact.name);
-                  mkdirSyncRecursive(targetDir);
-                  fs.writeFileSync(path.join(targetDir, 'artifact.zip'), Buffer.from(zip.data));
-                  execSync(`unzip -o "${path.join(targetDir, 'artifact.zip')}" -d "${targetDir}" && rm "${path.join(targetDir, 'artifact.zip')}"`);
-                } catch (err) {
-                  console.log(`⚠️ Skip packet download error for ${artifact.name}: ${err.message}`);
-                }
-              }
-            }
+            scan_source = "Human Scan" if is_human else f"AI Run ({agent})"
+            comparison_rows.append(f'| {repo_path} | [#{pr_num}](https://github.com{repo_path}/pull/{pr_num}) | {scan_source} | {lang} | {severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} |')
 
-            function mkdirSyncRecursive(dir) {
-              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            }
-            function execSync(cmd) {
-              require('child_process').execSync(cmd, { stdio: 'ignore' });
-            }
+        except Exception as e:
+            print(f"Error evaluating artifact {fname}: {e}")
+
+    summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
+    with open(summary_file, 'w', encoding='utf-8') as out:
+        out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
+        
+        out.write('### ⚔️ High-Level Group Comparison\n')
+        out.write('| Evaluation Group | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Vulnerable PRs | Distinct CWEs Found |\n')
+        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        out.write(f'| 🤖 **AI Generated Code** | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {ai_metrics["vuln_prs"]} | {len(ai_metrics["cwes"])} |\n')
+        out.write(f'| 👨‍💻 **Human Manual Audits** | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {human_metrics["vuln_prs"]} | {len(human_metrics["cwes"])} |\n\n')
+        
+        out.write('### 📝 Detailed Side-by-Side Run Log\n')
+        out.write('| Repository | Pull Request | Scan Source Profile | Language | Overall Severity | CWEs Discovered | 🔴 H | 🟡 M | 🔵 L | Total Bugs |\n')
+        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        for row in sorted(comparison_rows):
+            out.write(f'{row}\n')
+
+if __name__ == "__main__":
+    main()
