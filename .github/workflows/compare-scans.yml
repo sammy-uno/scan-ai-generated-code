@@ -26,8 +26,8 @@ jobs:
           mkdir -p all-results
           echo "🔍 Fetching all repository artifact archives matching profile..."
           
-          # --- FIX: USE --PAGINATE TO SECURELY INDIGEST EVERY REPO FILE METADATA PACKET ---
-          ARTIFACTS_JSON=$(gh api /repos/${{ github.repository }}/artifacts --paginate)
+          # --- FIX: CORE ENDPOINT PATH CORRECTED BY INJECTING THE /ACTIONS PROPERTIES MARKER ---
+          ARTIFACTS_JSON=$(gh api "/repos/${{ github.repository }}/actions/artifacts" --paginate)
           
           # Loop through matched names and stream zip extraction blocks directly
           echo "$ARTIFACTS_JSON" | jq -c '.artifacts[] | select(.name | startswith("sarif-"))' | while read -r art; do
