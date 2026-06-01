@@ -140,9 +140,12 @@ def main():
     ai_freshness = convert_to_central_time(ai_raw_time)
     human_freshness = convert_to_central_time(human_raw_time)
 
-    # --- FIX: FULLY DOCK SERVER_URL PREFIX AND ENFORCE SEPARATOR SLASHES TO RESOLVE HYPERLINKS ---
     ai_link = f"{server_url}/{repo_name}/actions/runs/{ai_run_id}" if ai_run_id != "null" else "#"
     human_link = f"{server_url}/{repo_name}/actions/runs/{human_run_id}" if human_run_id != "null" else "#"
+
+    # --- DYNAMIC CWE DENSITY RATIO COMPUTATION MODULE ---
+    ai_density = round(ai_metrics["total"] / ai_metrics["scanned_prs"], 2) if ai_metrics["scanned_prs"] > 0 else 0.0
+    human_density = round(human_metrics["total"] / human_metrics["scanned_prs"], 2) if human_metrics["scanned_prs"] > 0 else 0.0
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -153,10 +156,11 @@ def main():
         out.write(f'- Human Scan Last Run: `{human_freshness}`\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
-        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["vuln_prs"]} | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {len(ai_metrics["cwes"])} |\n')
-        out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["vuln_prs"]} | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {len(human_metrics["cwes"])} |\n\n')
+        # --- FIXED: ADDED CWE DENSITY COLUMN INTO MARKDOWN TABLE TEMPLATE ---
+        out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | CWE Density (Issues/PR) | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
+        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["vuln_prs"]} | {ai_metrics["total"]} | **{ai_density}** | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {len(ai_metrics["cwes"])} |\n')
+        out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["vuln_prs"]} | {human_metrics["total"]} | **{human_density}** | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {len(human_metrics["cwes"])} |\n\n')
         
         out.write('### 🔗 Detailed Actions Summaries\n')
         out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** [Go to Actions Run #{ai_run_id}]({ai_link}) 🔍\n')
