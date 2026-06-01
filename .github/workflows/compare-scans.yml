@@ -16,18 +16,17 @@ jobs:
     name: Aggregate and Compare Results
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Primary Scripts Root
+      - name: Checkout Primary Utility Scripts Root
         uses: actions/checkout@v4
 
       - name: Fetch Current Active Scanner Artifacts Pool
-        id: harvester
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
             
-            console.log("🔍 Querying exact runtime file profiles and execution timestamps...");
+            console.log("🔍 Extracting current workflow timestamps and downloading artifacts...");
             mkdirSyncRecursive('all-results');
 
             const aiRuns = await github.rest.actions.listWorkflowRuns({
@@ -53,18 +52,18 @@ jobs:
             if (aiRuns.data.workflow_runs.length > 0) {
               const run = aiRuns.data.workflow_runs[0];
               targetRunIds.push(run.id);
-              aiTime = run.created_at; // Extracts raw ISO time (e.g. 2026-06-01T00:00:00Z)
+              aiTime = run.created_at;
               console.log(`🤖 AI Workflow Run: ${run.id} | Executed At: ${aiTime}`);
             }
 
             if (humanRuns.data.workflow_runs.length > 0) {
               const run = humanRuns.data.workflow_runs[0];
               targetRunIds.push(run.id);
-              humanTime = run.created_at; // Extracts raw ISO time
+              humanTime = run.created_at;
               console.log(`👨‍💻 Human Workflow Run: ${run.id} | Executed At: ${humanTime}`);
             }
 
-            // Export timestamps cleanly to environment variables
+            // Export timestamps globally so any subsequent step reads them automatically
             core.exportVariable('AI_RUN_TIME', aiTime);
             core.exportVariable('HUMAN_RUN_TIME', humanTime);
 
@@ -89,8 +88,9 @@ jobs:
 
                   const targetDir = path.join('all-results', artifact.name);
                   mkdirSyncRecursive(targetDir);
-                  fs.writeFileSync(path.join(targetDir, 'artifact.zip'), Buffer.from(zip.data));
-                  execSync(`unzip -o "${path.join(targetDir, 'artifact.zip')}" -d "${targetDir}" && rm "${path.join(targetDir, 'artifact.zip')}"`);
+                  const zipPath = path.join(targetDir, 'artifact.zip');
+                  fs.writeFileSync(zipPath, Buffer.from(zip.data));
+                  execSync(`unzip -o "${zipPath}" -d "${targetDir}" && rm "${zipPath}"`);
                 } catch (err) {
                   console.log(`⚠️ Ingestion failed for ${artifact.name}: ${err.message}`);
                 }
@@ -105,8 +105,6 @@ jobs:
             }
 
       - name: Run Global Comparison Engine
-        env:
-          AI_RUN_TIME: ${{ env.AI_RUN_TIME }}
-          HUMAN_RUN_TIME: ${{ env.HUMAN_RUN_TIME }}
+        # --- FIXED: REMOVED BLANK STEP-LEVEL TEMPLATE OVERRIDES TO RESTORE ENVIRONMENT VARIABLES ---
         run: |
           python scripts/compare-reports.py
