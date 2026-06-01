@@ -19,21 +19,20 @@ def get_file_central_time(file_path):
         return "N/A"
 
 def main():
-    # Targets files flat inside the folder context matching merge-multiple
-    search_path = os.path.join('all-results', '*.sarif')
-    all_files = sorted(glob.glob(search_path)) if os.path.exists('all-results') else []
+    # --- FIXED: RECURSIVE DEEP MATCH LOOKS ACROSS INFRASTRUCTURE ZIP FOLDERS ---
+    search_path = os.path.join('all-results', '**', '*.sarif')
+    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     print("==========================================")
     print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
     print("==========================================")
-    print(f"Total matching flat SARIF logs found: {len(all_files)}")
+    print(f"Total matching run SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     comparison_rows = []
     
-    # Track discrete time structures for both scanner profiles
     ai_freshness = "Not Available (No Run Recorded)"
     human_freshness = "Not Available (No Run Recorded)"
     
@@ -51,7 +50,6 @@ def main():
 
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
         
-        # --- FIXED: EXTRACTS RUN FRESHNESS DIRECTLY FROM FILE METADATA MODTIMES ---
         if is_human and human_freshness.startswith("Not Available"):
             human_freshness = get_file_central_time(f)
         elif not is_human and ai_freshness.startswith("Not Available"):
@@ -71,13 +69,13 @@ def main():
                 continue
                 
             repo_path = parts[slash_idx].replace('_SLASH_', '/')
-            pr_num = parts[slash_idx + 1]
-            lang = parts[slash_idx + 2]
+            pr_num = parts[slash_idx + 1] if (slash_idx + 1) < len(parts) else "Unknown"
+            lang = parts[slash_idx + 2] if (slash_idx + 2) < len(parts) else "Unknown"
             
             if is_human:
                 agent = "Human Auditor"
             else:
-                agent = parts[slash_idx + 3].replace('_', ' ')
+                agent = parts[slash_idx + 3].replace('_', ' ') if (slash_idx + 3) < len(parts) else "AI Tool"
 
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
