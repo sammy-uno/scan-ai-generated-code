@@ -19,34 +19,38 @@ jobs:
       - name: Checkout Primary Utility Scripts Root
         uses: actions/checkout@v4
 
-      - name: Fetch Current Active Scanner Artifacts Pool
-        env:
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+      # --- YOUR EXACT WORKING RUN DETAILS STEP RESTORED COMPLETELY ---
+      - name: Get Latest Run Details
+        id: runs
         run: |
-          mkdir -p all-results
-          echo "🔍 Querying recent execution timelines using native GitHub CLI..."
-          
-          # --- RESTORED: ENFORCES YOUR VALID ARTIFACT EXTRACTION SELECTORS TARGETING EXACT FILES ---
+          # Use filenames to guarantee a match
           AI_DATA=$(gh run list --workflow codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow human-codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           
-          echo "Raw AI Metadata: $AI_DATA"
-          echo "Raw Human Metadata: $HU_DATA"
-          
-          # --- YOUR EXACT CHOSEN SELECTORS RE-ESTABLISHED FOR TRUE SYNCHRONIZATION ---
-          AI_RUN_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // empty')
-          AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "N/A"')
-          
-          HU_RUN_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // empty')
-          HU_TIME=$(echo "$HU_DATA" | jq -r '.[0].createdAt // "N/A"')
-          
-          echo "Processed AI Run ID: $AI_RUN_ID | Time: $AI_TIME"
-          echo "Processed Human Run ID: $HU_RUN_ID | Time: $HU_TIME"
-          
-          # Export variables globally to the environment context
-          echo "AI_RUN_TIME=$AI_TIME" >> $GITHUB_ENV
-          echo "HUMAN_RUN_TIME=$HU_TIME" >> $GITHUB_ENV
-          
+          # Extract values
+          AI_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // "null"')
+          AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "null"')
+          HU_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // "null"')
+          HU_TIME=$(echo "$HU_DATA" | jq -r '.[0].createdAt // "null"')
+
+          echo "ai_run_id=$AI_ID" >> $GITHUB_OUTPUT
+          echo "ai_time_utc=$AI_TIME" >> $GITHUB_OUTPUT
+          echo "hu_run_id=$HU_ID" >> $GITHUB_OUTPUT
+          echo "hu_time_utc=$HU_TIME" >> $GITHUB_OUTPUT
+
+          # RESTORED DEBUG LOGS
+          echo "--- DEBUG RAW DATA ---"
+          echo "AI_ID: $AI_ID | AI_TIME: $AI_TIME"
+          echo "HU_ID: $HU_ID | HU_TIME: $HU_TIME"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Target Run Artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_RUN_ID: ${{ steps.runs.outputs.ai_run_id }}
+          HU_RUN_ID: ${{ steps.runs.outputs.hu_run_id }}
+        run: |
           # Download and unpack only the files belonging to those two specific run IDs
           for RUN_ID in $AI_RUN_ID $HU_RUN_ID; do
             if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ] || [ "$RUN_ID" = "" ]; then
@@ -69,7 +73,7 @@ jobs:
 
       - name: Run Global Comparison Engine
         env:
-          AI_RUN_TIME: ${{ env.AI_RUN_TIME }}
-          HUMAN_RUN_TIME: ${{ env.HUMAN_RUN_TIME }}
+          AI_RUN_TIME: ${{ steps.runs.outputs.ai_time_utc }}
+          HUMAN_RUN_TIME: ${{ steps.runs.outputs.hu_time_utc }}
         run: |
           python scripts/compare-reports.py
