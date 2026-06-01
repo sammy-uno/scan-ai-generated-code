@@ -4,23 +4,23 @@ import os
 from datetime import datetime, timedelta, timezone
 
 def convert_to_central_time(iso_str):
-    if not iso_str or iso_str == "N/A":
-        return "N/A"
+    if not iso_str or iso_str == "N/A" or "T" not in iso_str:
+        return "Not Available (No Run Recorded)"
     try:
-        # Parse the standard ISO Z-timestamp from GitHub API
+        # Parse the standard ISO Z-timestamp from GitHub API natively
         utc_dt = datetime.strptime(iso_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
         
         # Calculate Central Daylight Time offset (CDT / UTC-5)
-        # June automatically falls within Daylight Savings Time bounds
         ct_offset = timedelta(hours=-5)
         central_dt = utc_dt + ct_offset
         
         return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CDT")
-    except Exception:
+    except Exception as ex:
+        print(f"Timestamp conversion parsing log notice: {ex}")
         return iso_str
 
 def main():
-    # Ingest runtime environment timestamps from parent workflow
+    # Ingest runtime environment timestamps from parent workflow cleanly
     ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
     human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
     
@@ -176,7 +176,7 @@ def main():
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
         
-        # --- FIXED: ACCURATELY DOCK HISTORICAL SCAN FRESHNESS TIMESTAMPS AS REQUESTED ---
+        # --- FIXED HISTORICAL WORKFLOW RUN FRESHNESS TIMESTAMPS ---
         out.write(f'- 🤖 **Latest AI Scanner Run Freshness:** `{ai_freshness}`\n')
         out.write(f'- 👨‍💻 **Latest Human Auditor Run Freshness:** `{human_freshness}`\n\n')
         
