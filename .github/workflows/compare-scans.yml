@@ -19,7 +19,6 @@ jobs:
       - name: Checkout Primary Utility Scripts Root
         uses: actions/checkout@v4
 
-      # --- YOUR WORKING RUN DETAILS STEP FULLY CORRECTED ---
       - name: Get Latest Run Details
         id: runs
         run: |
@@ -31,7 +30,6 @@ jobs:
           echo "Raw AI Metadata: $AI_DATA"
           echo "Raw Human Metadata: $HU_DATA"
           
-          # --- CORE FIX: ENFORCES EXPLICIT INDEX BRACKET RULES TO PREVENT ARRAY SPLITTING ---
           AI_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // "null"')
           AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "null"')
           HU_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // "null"')
@@ -54,7 +52,6 @@ jobs:
           AI_RUN_ID: ${{ steps.runs.outputs.ai_run_id }}
           HU_RUN_ID: ${{ steps.runs.outputs.hu_run_id }}
         run: |
-          # Download and unpack only the files belonging to those two specific run IDs
           for RUN_ID in $AI_RUN_ID $HU_RUN_ID; do
             if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ] || [ "$RUN_ID" = "" ]; then
               continue
@@ -78,5 +75,8 @@ jobs:
         env:
           AI_RUN_TIME: ${{ steps.runs.outputs.ai_time_utc }}
           HUMAN_RUN_TIME: ${{ steps.runs.outputs.hu_time_utc }}
+          AI_RUN_ID: ${{ steps.runs.outputs.ai_run_id }}
+          HUMAN_RUN_ID: ${{ steps.runs.outputs.hu_run_id }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           python scripts/compare-reports.py
