@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 def convert_to_central_time(iso_str):
-    if not iso_str or iso_str == "N/A" or "T" not in iso_str:
+    if not iso_str or iso_str == "N/A" or iso_str == "null" or "T" not in iso_str:
         return "Not Available (No Run Recorded)"
     try:
         # Standardize GitHub API ISO timestamp string formatting
@@ -21,6 +21,7 @@ def convert_to_central_time(iso_str):
         return iso_str
 
 def main():
+    # Ingest the environment variables mapped from the workflow output step
     ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
     human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
     
