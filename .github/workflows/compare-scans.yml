@@ -19,7 +19,6 @@ jobs:
       - name: Checkout Primary Utility Scripts Root
         uses: actions/checkout@v4
 
-      # --- FIXED: NATIVE GH CLI INLINE BLOCK FETCHES HISTORICAL FILES SAFELY ---
       - name: Fetch Historical Scanner Run Artifacts Pool
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -27,8 +26,8 @@ jobs:
           mkdir -p all-results
           echo "🔍 Fetching all repository artifact archives matching profile..."
           
-          # Query the global repository artifact pool metadata array directly
-          ARTIFACTS_JSON=$(gh api /repos/${{ github.repository }}/artifacts --per-page 100)
+          # --- FIX: USE --PAGINATE TO SECURELY INDIGEST EVERY REPO FILE METADATA PACKET ---
+          ARTIFACTS_JSON=$(gh api /repos/${{ github.repository }}/artifacts --paginate)
           
           # Loop through matched names and stream zip extraction blocks directly
           echo "$ARTIFACTS_JSON" | jq -c '.artifacts[] | select(.name | startswith("sarif-"))' | while read -r art; do
