@@ -49,14 +49,15 @@ jobs:
             let humanTime = "N/A";
             const targetRunIds = [];
 
-            if (aiRuns.data.workflow_runs.length > 0) {
+            // --- FIXED: ADDED REQUIRED ARRAY LERAL INDEX INDICATORS [0] ---
+            if (aiRuns.data.workflow_runs && aiRuns.data.workflow_runs.length > 0) {
               const run = aiRuns.data.workflow_runs[0];
               targetRunIds.push(run.id);
               aiTime = run.created_at;
               console.log(`🤖 AI Workflow Run: ${run.id} | Executed At: ${aiTime}`);
             }
 
-            if (humanRuns.data.workflow_runs.length > 0) {
+            if (humanRuns.data.workflow_runs && humanRuns.data.workflow_runs.length > 0) {
               const run = humanRuns.data.workflow_runs[0];
               targetRunIds.push(run.id);
               humanTime = run.created_at;
@@ -105,6 +106,5 @@ jobs:
             }
 
       - name: Run Global Comparison Engine
-        # --- FIXED: REMOVED BLANK STEP-LEVEL TEMPLATE OVERRIDES TO RESTORE ENVIRONMENT VARIABLES ---
         run: |
           python scripts/compare-reports.py
