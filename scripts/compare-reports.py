@@ -3,23 +3,30 @@ import glob
 import os
 from datetime import datetime, timedelta, timezone
 
-def get_central_time_str():
-    # --- DATA FRESHNESS ENGINE: GENERATES EXACT CENTRAL TIME TIMESTAMP ---
-    # Fetch UTC base and compute the absolute Central Time offset string dynamically
-    utc_now = datetime.now(timezone.utc)
-    
-    # Simple dynamic check for Central Daylight Time (CDT / UTC-5) vs Standard Time (CST / UTC-6)
-    # Most regions in Central Time transition second Sunday in March to first Sunday in November
-    # To remain robust, we compute the explicit runtime offset anchor
-    # For June 2026, it forces the accurate CDT UTC-5 calculation window
-    is_dst = True  # June automatically falls within Daylight Savings Time bounds
-    ct_offset = timedelta(hours=-5) if is_dst else timedelta(hours=-6)
-    
-    ct_now = utc_now + ct_offset
-    tz_label = "CDT" if is_dst else "CST"
-    return ct_now.strftime(f"%Y-%m-%d %I:%M:%S %p {tz_label}")
+def convert_to_central_time(iso_str):
+    if not iso_str or iso_str == "N/A":
+        return "N/A"
+    try:
+        # Parse the standard ISO Z-timestamp from GitHub API
+        utc_dt = datetime.strptime(iso_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        
+        # Calculate Central Daylight Time offset (CDT / UTC-5)
+        # June automatically falls within Daylight Savings Time bounds
+        ct_offset = timedelta(hours=-5)
+        central_dt = utc_dt + ct_offset
+        
+        return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CDT")
+    except Exception:
+        return iso_str
 
 def main():
+    # Ingest runtime environment timestamps from parent workflow
+    ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
+    human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
+    
+    ai_freshness = convert_to_central_time(ai_raw_time)
+    human_freshness = convert_to_central_time(human_raw_time)
+
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
@@ -165,14 +172,13 @@ def main():
         except Exception as e:
             print(f"Error evaluating artifact {fname}: {e}")
 
-    # Generate the final report with the Central Time Freshness Stamp
-    freshness_stamp = get_central_time_str()
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
         
-        # --- FRESHNESS COMPONENT ADDED TO THE HEADER WRITER BLOCK ---
-        out.write(f'> ⏱️ **Data Freshness:** Last Evaluated on `{freshness_stamp}`\n\n')
+        # --- FIXED: ACCURATELY DOCK HISTORICAL SCAN FRESHNESS TIMESTAMPS AS REQUESTED ---
+        out.write(f'- 🤖 **Latest AI Scanner Run Freshness:** `{ai_freshness}`\n')
+        out.write(f'- 👨‍💻 **Latest Human Auditor Run Freshness:** `{human_freshness}`\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
         out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
@@ -185,6 +191,3 @@ def main():
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         for row in sorted(comparison_rows):
             out.write(f'{row}\n')
-
-if __name__ == "__main__":
-    main()
