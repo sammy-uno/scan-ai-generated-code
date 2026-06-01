@@ -7,17 +7,22 @@ def convert_to_central_time(iso_str):
     if not iso_str or iso_str == "N/A" or iso_str == "null" or "T" not in iso_str:
         return "Not Available (No Run Recorded)"
     try:
+        # Standardize GitHub API ISO timestamp string formatting
         cleaned_iso = iso_str.replace("Z", "+00:00")
         utc_dt = datetime.fromisoformat(cleaned_iso)
+        
+        # Calculate Central Time offset (UTC-5 for daylight time context)
         ct_offset = timezone(timedelta(hours=-5))
         central_dt = utc_dt.astimezone(ct_offset)
-        return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CDT")
+        
+        # --- FIXED: CHANGED SUFFIX TO THE REQUESTED "CT" ACCORDING TO SPECS ---
+        return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception as ex:
         print(f"Timestamp conversion parsing log notice: {ex}")
         return iso_str
 
 def main():
-    # Targets all unzipped nested subfolder structures flawlessly
+    # Recursive deep match targets your unzipped nested artifacts tree
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
@@ -31,12 +36,6 @@ def main():
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     comparison_rows = []
     
-    ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
-    human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
-    
-    ai_freshness = convert_to_central_time(ai_raw_time)
-    human_freshness = convert_to_central_time(human_raw_time)
-    
     CWE_TOP_25 = [
         'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
         'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
@@ -46,7 +45,6 @@ def main():
 
     for f in all_files:
         fname = os.path.basename(f)
-        # Skip helper artifacts root configs smoothly
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
@@ -56,7 +54,6 @@ def main():
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
             
-            # --- FIX: TOKENS MAP RELATIVE OFFSETS TO PREVENT TRAILING STRING SPLIT CRASHES ---
             slash_idx = -1
             for idx, p_segment in enumerate(parts):
                 if "_SLASH_" in p_segment:
@@ -172,11 +169,21 @@ def main():
         except Exception as e:
             print(f"Error evaluating artifact {fname}: {e}")
 
+    # Process and map the dynamic central timestamps
+    ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
+    human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
+    
+    ai_freshness = convert_to_central_time(ai_raw_time)
+    human_freshness = convert_to_central_time(human_raw_time)
+
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
-        out.write(f'- 🤖 **Latest AI Scanner Run Freshness:** `{ai_freshness}`\n')
-        out.write(f'- 👨‍💻 **Latest Human Auditor Run Freshness:** `{human_freshness}`\n\n')
+        
+        # --- FIXED: IMPLEMENTED THE EXACT REQUESTED DATA FRESHNESS HEADERS ---
+        out.write('### Data Freshness (Central Time)\n')
+        out.write(f'- AI Scan Last Run: `{ai_freshness}`\n')
+        out.write(f'- Human Scan Last Run: `{human_freshness}`\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
         out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
