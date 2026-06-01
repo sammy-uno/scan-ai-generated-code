@@ -68,13 +68,13 @@ def main():
                 continue
                 
             repo_path = parts[slash_idx].replace('_SLASH_', '/')
-            pr_num = parts[slash_idx + 1] if (slash_idx + 1) < len(parts) else "Unknown"
-            lang = parts[slash_idx + 2] if (slash_idx + 2) < len(parts) else "Unknown"
+            pr_num = parts[slash_idx + 1]
+            lang = parts[slash_idx + 2]
             
             if is_human:
                 agent = "Human Auditor"
             else:
-                agent = parts[slash_idx + 3].replace('_', ' ') if (slash_idx + 3) < len(parts) else "AI Tool"
+                agent = parts[slash_idx + 3].replace('_', ' ')
 
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
@@ -175,8 +175,6 @@ def main():
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
-        
-        # --- FIXED HISTORICAL WORKFLOW RUN FRESHNESS TIMESTAMPS ---
         out.write(f'- 🤖 **Latest AI Scanner Run Freshness:** `{ai_freshness}`\n')
         out.write(f'- 👨‍💻 **Latest Human Auditor Run Freshness:** `{human_freshness}`\n\n')
         
@@ -189,5 +187,9 @@ def main():
         out.write('### 📝 Detailed Side-by-Side Run Log\n')
         out.write('| Repository | Pull Request | Scan Source Profile | Language | Overall Severity | CWEs Discovered | 🔴 H | 🟡 M | 🔵 L | Total Bugs |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        for row in sorted(comparison_rows):
-            out.write(f'{row}\n')
+        
+        if comparison_rows:
+            for row in sorted(comparison_rows):
+                out.write(f'{row}\n')
+        else:
+            out.write('| N/A | N/A | No active artifacts processed | N/A | N/A | N/A | 0 | 0 | 0 | 0 |\n')
