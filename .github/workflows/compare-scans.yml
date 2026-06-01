@@ -20,62 +20,55 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fetch Current Active Scanner Artifacts Pool
+        id: harvester
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
             
-            console.log("==================================================");
-            console.log("🔍 LIVE RUN ARTIFACT HARVESTER ENGAGED");
-            console.log("==================================================");
-            
+            console.log("🔍 Querying exact runtime file profiles and execution timestamps...");
             mkdirSyncRecursive('all-results');
 
-            // 1. Fetch workflows dynamically from the repository configuration
-            const allWorkflows = await github.rest.actions.listRepoWorkflows({
+            const aiRuns = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
-              repo: context.repo.repo
+              repo: context.repo.repo,
+              workflow_id: 'codeql-scan.yml', 
+              status: 'completed',
+              per_page: 1
             });
 
-            // Locate workflows by checking both path and name baselines
-            const aiWorkflow = allWorkflows.data.workflows.find(w => w.path.endsWith('codeql-scan.yml'));
-            const humanWorkflow = allWorkflows.data.workflows.find(w => w.path.endsWith('human-codeql-scan.yml'));
+            const humanRuns = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'human-codeql-scan.yml', 
+              status: 'completed',
+              per_page: 1
+            });
 
+            let aiTime = "N/A";
+            let humanTime = "N/A";
             const targetRunIds = [];
 
-            // 2. Query the SINGLE most recent COMPLETED execution run ID for each pipeline
-            if (aiWorkflow) {
-              const aiRuns = await github.rest.actions.listWorkflowRuns({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: aiWorkflow.id,
-                status: 'completed',
-                per_page: 1
-              });
-              if (aiRuns.data.workflow_runs.length > 0) {
-                targetRunIds.push(aiRuns.data.workflow_runs[0].id);
-                console.log(`🤖 Latest Completed AI Run ID: ${aiRuns.data.workflow_runs[0].id}`);
-              }
+            if (aiRuns.data.workflow_runs.length > 0) {
+              const run = aiRuns.data.workflow_runs[0];
+              targetRunIds.push(run.id);
+              aiTime = run.created_at; // Extracts raw ISO time (e.g. 2026-06-01T00:00:00Z)
+              console.log(`🤖 AI Workflow Run: ${run.id} | Executed At: ${aiTime}`);
             }
 
-            if (humanWorkflow) {
-              const humanRuns = await github.rest.actions.listWorkflowRuns({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: humanWorkflow.id,
-                status: 'completed',
-                per_page: 1
-              });
-              if (humanRuns.data.workflow_runs.length > 0) {
-                targetRunIds.push(humanRuns.data.workflow_runs[0].id);
-                console.log(`👨‍💻 Latest Completed Human Run ID: ${humanRuns.data.workflow_runs[0].id}`);
-              }
+            if (humanRuns.data.workflow_runs.length > 0) {
+              const run = humanRuns.data.workflow_runs[0];
+              targetRunIds.push(run.id);
+              humanTime = run.created_at; // Extracts raw ISO time
+              console.log(`👨‍💻 Human Workflow Run: ${run.id} | Executed At: ${humanTime}`);
             }
 
-            // 3. Download and unpack ONLY the files belonging to those two specific runs
+            // Export timestamps cleanly to environment variables
+            core.exportVariable('AI_RUN_TIME', aiTime);
+            core.exportVariable('HUMAN_RUN_TIME', humanTime);
+
             for (const runId of targetRunIds) {
-              console.log(`\n📥 Fetching active artifact data structures for Run ID: ${runId}`);
               const response = await github.rest.actions.listWorkflowRunArtifacts({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -83,11 +76,10 @@ jobs:
               });
 
               const artifacts = response.data.artifacts.filter(art => art.name.startsWith('sarif-'));
-              console.log(` -> Found ${artifacts.length} matching packages inside this run container.`);
               
               for (const artifact of artifacts) {
                 try {
-                  console.log(` -> Unpacking: ${artifact.name}`);
+                  console.log(`📥 Downloading Active Package: ${artifact.name}`);
                   const zip = await github.rest.actions.downloadArtifact({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -97,18 +89,13 @@ jobs:
 
                   const targetDir = path.join('all-results', artifact.name);
                   mkdirSyncRecursive(targetDir);
-                  const zipPath = path.join(targetDir, 'artifact.zip');
-                  fs.writeFileSync(zipPath, Buffer.from(zip.data));
-                  execSync(`unzip -o "${zipPath}" -d "${targetDir}" && rm "${zipPath}"`);
+                  fs.writeFileSync(path.join(targetDir, 'artifact.zip'), Buffer.from(zip.data));
+                  execSync(`unzip -o "${path.join(targetDir, 'artifact.zip')}" -d "${targetDir}" && rm "${path.join(targetDir, 'artifact.zip')}"`);
                 } catch (err) {
-                  console.log(` ❌ Failed to ingest archive ${artifact.name}: ${err.message}`);
+                  console.log(`⚠️ Ingestion failed for ${artifact.name}: ${err.message}`);
                 }
               }
             }
-
-            console.log("\n==================================================");
-            console.log("📊 TARGET RUN SEEDING COMPLETE.");
-            console.log("==================================================");
 
             function mkdirSyncRecursive(dir) {
               if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -118,5 +105,8 @@ jobs:
             }
 
       - name: Run Global Comparison Engine
+        env:
+          AI_RUN_TIME: ${{ env.AI_RUN_TIME }}
+          HUMAN_RUN_TIME: ${{ env.HUMAN_RUN_TIME }}
         run: |
           python scripts/compare-reports.py
