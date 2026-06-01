@@ -135,13 +135,14 @@ def main():
     ai_run_id = os.environ.get('AI_RUN_ID', 'null')
     human_run_id = os.environ.get('HUMAN_RUN_ID', 'null')
     repo_name = os.environ.get('REPO_NAME', 'Unknown')
+    server_url = os.environ.get('SERVER_URL', 'https://github.com')
     
     ai_freshness = convert_to_central_time(ai_raw_time)
     human_freshness = convert_to_central_time(human_raw_time)
 
-    # --- FIX: ADDED REQUISITE IN-LINE SEPARATOR SLASH TO RESTORE STABLE HYPERLINKS ---
-    ai_link = f"https://github.com{repo_name}/actions/runs/{ai_run_id}" if ai_run_id != "null" else "#"
-    human_link = f"https://github.com{repo_name}/actions/runs/{human_run_id}" if human_run_id != "null" else "#"
+    # --- FIX: FULLY DOCK SERVER_URL PREFIX AND ENFORCE SEPARATOR SLASHES TO RESOLVE HYPERLINKS ---
+    ai_link = f"{server_url}/{repo_name}/actions/runs/{ai_run_id}" if ai_run_id != "null" else "#"
+    human_link = f"{server_url}/{repo_name}/actions/runs/{human_run_id}" if human_run_id != "null" else "#"
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
