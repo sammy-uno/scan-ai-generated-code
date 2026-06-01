@@ -3,42 +3,39 @@ import glob
 import os
 from datetime import datetime, timedelta, timezone
 
-def convert_to_central_time(iso_str):
-    if not iso_str or iso_str == "N/A" or "T" not in iso_str:
-        return "Not Available (No Run Recorded)"
+def get_file_central_time(file_path):
+    if not os.path.exists(file_path):
+        return "N/A"
     try:
-        # Parse the standard ISO Z-timestamp from GitHub API natively
-        utc_dt = datetime.strptime(iso_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        # Fetch file modification timestamp natively from filesystem
+        mtime = os.path.getmtime(file_path)
+        utc_dt = datetime.fromtimestamp(mtime, tz=timezone.utc)
         
-        # Calculate Central Daylight Time offset (CDT / UTC-5)
+        # Central Daylight Time offset (CDT / UTC-5)
         ct_offset = timedelta(hours=-5)
         central_dt = utc_dt + ct_offset
-        
         return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CDT")
-    except Exception as ex:
-        print(f"Timestamp conversion parsing log notice: {ex}")
-        return iso_str
+    except Exception:
+        return "N/A"
 
 def main():
-    # Ingest runtime environment timestamps from parent workflow cleanly
-    ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
-    human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
-    
-    ai_freshness = convert_to_central_time(ai_raw_time)
-    human_freshness = convert_to_central_time(human_raw_time)
-
-    search_path = os.path.join('all-results', '**', '*.sarif')
-    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
+    # Targets files flat inside the folder context matching merge-multiple
+    search_path = os.path.join('all-results', '*.sarif')
+    all_files = sorted(glob.glob(search_path)) if os.path.exists('all-results') else []
     
     print("==========================================")
     print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
     print("==========================================")
-    print(f"Total matching active run SARIF logs found: {len(all_files)}")
+    print(f"Total matching flat SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     comparison_rows = []
+    
+    # Track discrete time structures for both scanner profiles
+    ai_freshness = "Not Available (No Run Recorded)"
+    human_freshness = "Not Available (No Run Recorded)"
     
     CWE_TOP_25 = [
         'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
@@ -52,8 +49,14 @@ def main():
         if fname == 'results.sarif' or '--' not in fname: 
             continue
 
-        is_human = "Human_Auditor" in fname or "human--" in fname or "human-" in f.lower()
+        is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
         
+        # --- FIXED: EXTRACTS RUN FRESHNESS DIRECTLY FROM FILE METADATA MODTIMES ---
+        if is_human and human_freshness.startswith("Not Available"):
+            human_freshness = get_file_central_time(f)
+        elif not is_human and ai_freshness.startswith("Not Available"):
+            ai_freshness = get_file_central_time(f)
+
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
