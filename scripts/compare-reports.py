@@ -130,7 +130,6 @@ def main():
         except Exception as e:
             print(f"Error evaluating artifact properties: {e}")
 
-    # Fetch configuration details for custom links construction
     ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
     human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
     ai_run_id = os.environ.get('AI_RUN_ID', 'null')
@@ -140,7 +139,7 @@ def main():
     ai_freshness = convert_to_central_time(ai_raw_time)
     human_freshness = convert_to_central_time(human_raw_time)
 
-    # Dynamic workflow links structure construction
+    # --- FIX: ADDED REQUISITE IN-LINE SEPARATOR SLASH TO RESTORE STABLE HYPERLINKS ---
     ai_link = f"https://github.com{repo_name}/actions/runs/{ai_run_id}" if ai_run_id != "null" else "#"
     human_link = f"https://github.com{repo_name}/actions/runs/{human_run_id}" if human_run_id != "null" else "#"
 
@@ -158,7 +157,6 @@ def main():
         out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["vuln_prs"]} | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {len(ai_metrics["cwes"])} |\n')
         out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["vuln_prs"]} | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {len(human_metrics["cwes"])} |\n\n')
         
-        # --- FIXED: REPLACED LOG TABLE WITH THE REQUESTED WORKFLOW SUMMARY LINKS LINKS RE-TARGETS ---
         out.write('### 🔗 Detailed Actions Summaries\n')
         out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** [Go to Actions Run #{ai_run_id}]({ai_link}) 🔍\n')
         out.write(f'- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** [Go to Actions Run #{human_run_id}]({human_link}) 🔍\n')
