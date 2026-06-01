@@ -9,10 +9,8 @@ def convert_to_central_time(iso_str):
     try:
         cleaned_iso = iso_str.replace("Z", "+00:00")
         utc_dt = datetime.fromisoformat(cleaned_iso)
-        
         ct_offset = timezone(timedelta(hours=-5))
         central_dt = utc_dt.astimezone(ct_offset)
-        
         return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception as ex:
         print(f"Timestamp conversion parsing log notice: {ex}")
@@ -23,14 +21,13 @@ def main():
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     print("==========================================")
-    print("🖥️ COMPARISON ENGINE RE-DOCK METRICS LOG")
+    print("🖥Trace: RE-DOCK METRICS COMPARISON ENGINE")
     print("==========================================")
     print(f"Total matching target files found on disk: {len(all_files)}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
-    comparison_rows = []
     
     CWE_TOP_25 = [
         'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
@@ -47,28 +44,6 @@ def main():
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname or "human--" in f
 
         try:
-            name_root = fname.replace('.sarif', '')
-            parts = name_root.split('--')
-            
-            slash_idx = -1
-            for idx, p_segment in enumerate(parts):
-                if "_SLASH_" in p_segment:
-                    slash_idx = idx
-                    break
-            
-            if slash_idx == -1:
-                continue
-                
-            repo_path = parts[slash_idx].replace('_SLASH_', '/')
-            pr_num = parts[slash_idx + 1] if (slash_idx + 1) < len(parts) else "Unknown"
-            lang = parts[slash_idx + 2] if (slash_idx + 2) < len(parts) else "Unknown"
-            
-            if is_human:
-                agent = "Human Auditor"
-            else:
-                agent_val = parts[slash_idx + 3] if (slash_idx + 3) < len(parts) else ""
-                agent = agent_val.replace('_', ' ') if (agent_val and agent_val != "") else "AI Tool"
-
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
@@ -141,13 +116,6 @@ def main():
                 for cwe in cwes_for_rule:
                     pr_cwes.add(cwe)
 
-            if h > 0: severity_badge = '🔴 High'
-            elif m > 0: severity_badge = '🟡 Medium'
-            elif l > 0: severity_badge = '🔵 Low'
-            else: severity_badge = '🟢 Clean'
-
-            cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
-            
             target = human_metrics if is_human else ai_metrics
             target["scanned_prs"] += 1
             target["total"] += len(res)
@@ -159,17 +127,22 @@ def main():
             for cwe in pr_cwes: 
                 target["cwes"].add(cwe)
 
-            scan_source = "Human Scan" if is_human else f"AI Run ({agent})"
-            comparison_rows.append(f'| {repo_path} | [#{pr_num}](https://github.com{repo_path}/pull/{pr_num}) | {scan_source} | {lang} | {severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} |')
-
         except Exception as e:
-            print(f"Error evaluating artifact {fname}: {e}")
+            print(f"Error evaluating artifact properties: {e}")
 
+    # Fetch configuration details for custom links construction
     ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
     human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
+    ai_run_id = os.environ.get('AI_RUN_ID', 'null')
+    human_run_id = os.environ.get('HUMAN_RUN_ID', 'null')
+    repo_name = os.environ.get('REPO_NAME', 'Unknown')
     
     ai_freshness = convert_to_central_time(ai_raw_time)
     human_freshness = convert_to_central_time(human_raw_time)
+
+    # Dynamic workflow links structure construction
+    ai_link = f"https://github.com{repo_name}/actions/runs/{ai_run_id}" if ai_run_id != "null" else "#"
+    human_link = f"https://github.com{repo_name}/actions/runs/{human_run_id}" if human_run_id != "null" else "#"
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -182,19 +155,13 @@ def main():
         out.write('### ⚔️ High-Level Group Comparison\n')
         out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        # --- FIXED: IMPLEMENTED SPECIFIED TEXT LABELS FOR THE GROUPS MATRIX TRACK ---
         out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["vuln_prs"]} | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {len(ai_metrics["cwes"])} |\n')
         out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["vuln_prs"]} | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {human_metrics["low"]} | {len(human_metrics["cwes"])} |\n\n')
         
-        out.write('### 📝 Detailed Side-by-Side Run Log\n')
-        out.write('| Repository | Pull Request | Scan Source Profile | Language | Overall Severity | CWEs Discovered | 🔴 H | 🟡 M | 🔵 L | Total Bugs |\n')
-        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        
-        if comparison_rows:
-            for row in sorted(comparison_rows):
-                out.write(f'{row}\n')
-        else:
-            out.write('| N/A | N/A | No active artifacts processed | N/A | N/A | N/A | 0 | 0 | 0 | 0 |\n')
+        # --- FIXED: REPLACED LOG TABLE WITH THE REQUESTED WORKFLOW SUMMARY LINKS LINKS RE-TARGETS ---
+        out.write('### 🔗 Detailed Actions Summaries\n')
+        out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** [Go to Actions Run #{ai_run_id}]({ai_link}) 🔍\n')
+        out.write(f'- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** [Go to Actions Run #{human_run_id}]({human_link}) 🔍\n')
 
 if __name__ == "__main__":
     main()
