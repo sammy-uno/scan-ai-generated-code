@@ -7,22 +7,18 @@ def convert_to_central_time(iso_str):
     if not iso_str or iso_str == "N/A" or iso_str == "null" or "T" not in iso_str:
         return "Not Available (No Run Recorded)"
     try:
-        # Standardize GitHub API ISO timestamp string formatting
         cleaned_iso = iso_str.replace("Z", "+00:00")
         utc_dt = datetime.fromisoformat(cleaned_iso)
         
-        # Calculate Central Time offset (UTC-5 for daylight time context)
         ct_offset = timezone(timedelta(hours=-5))
         central_dt = utc_dt.astimezone(ct_offset)
         
-        # --- FIXED: CHANGED SUFFIX TO THE REQUESTED "CT" ACCORDING TO SPECS ---
         return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception as ex:
         print(f"Timestamp conversion parsing log notice: {ex}")
         return iso_str
 
 def main():
-    # Recursive deep match targets your unzipped nested artifacts tree
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
@@ -169,7 +165,6 @@ def main():
         except Exception as e:
             print(f"Error evaluating artifact {fname}: {e}")
 
-    # Process and map the dynamic central timestamps
     ai_raw_time = os.environ.get('AI_RUN_TIME', 'N/A')
     human_raw_time = os.environ.get('HUMAN_RUN_TIME', 'N/A')
     
@@ -178,9 +173,9 @@ def main():
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
-        out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
+        # --- FIXED: IMPLEMENTED NEW EXACT HEADER TITLE STRING ---
+        out.write('# ⚖️ AI vs. Human Vulnerability Comparison\n\n')
         
-        # --- FIXED: IMPLEMENTED THE EXACT REQUESTED DATA FRESHNESS HEADERS ---
         out.write('### Data Freshness (Central Time)\n')
         out.write(f'- AI Scan Last Run: `{ai_freshness}`\n')
         out.write(f'- Human Scan Last Run: `{human_freshness}`\n\n')
