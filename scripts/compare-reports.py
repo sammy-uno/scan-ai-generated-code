@@ -28,9 +28,9 @@ def main():
     ai_freshness = convert_to_central_time(ai_raw_time)
     human_freshness = convert_to_central_time(human_raw_time)
 
-    # Recursive deep match targets your unzipped nested artifacts tree
-    search_path = os.path.join('all-results', '**', '*.sarif')
-    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
+    # --- FIX: CORE GLOB PATH PATTERN MATCHES YOUR FLAT DOWNLOAD DIRECTORY EXACTLY ---
+    search_path = os.path.join('all-results', '*.sarif')
+    all_files = sorted(glob.glob(search_path)) if os.path.exists('all-results') else []
     
     print("==========================================")
     print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
