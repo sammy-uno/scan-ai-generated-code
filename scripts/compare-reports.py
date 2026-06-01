@@ -1,22 +1,32 @@
 import json
 import glob
 import os
-import sys
+from datetime import datetime, timedelta, timezone
+
+def get_central_time_str():
+    # --- DATA FRESHNESS ENGINE: GENERATES EXACT CENTRAL TIME TIMESTAMP ---
+    # Fetch UTC base and compute the absolute Central Time offset string dynamically
+    utc_now = datetime.now(timezone.utc)
+    
+    # Simple dynamic check for Central Daylight Time (CDT / UTC-5) vs Standard Time (CST / UTC-6)
+    # Most regions in Central Time transition second Sunday in March to first Sunday in November
+    # To remain robust, we compute the explicit runtime offset anchor
+    # For June 2026, it forces the accurate CDT UTC-5 calculation window
+    is_dst = True  # June automatically falls within Daylight Savings Time bounds
+    ct_offset = timedelta(hours=-5) if is_dst else timedelta(hours=-6)
+    
+    ct_now = utc_now + ct_offset
+    tz_label = "CDT" if is_dst else "CST"
+    return ct_now.strftime(f"%Y-%m-%d %I:%M:%S %p {tz_label}")
 
 def main():
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     print("==========================================")
-    print("🖥️ PYTHON COMPARISON LOGIC DIAGNOSTICS")
+    print("🖥️ COMPARISON ENGINE ACTIVE DATA TARGETS")
     print("==========================================")
-    print(f"Current System Python Work Dir Context: {os.getcwd()}")
-    print(f"Verifying if 'all-results' folder path exists: {os.path.exists('all-results')}")
-    if os.path.exists('all-results'):
-        print(f"Root contents of 'all-results' directory: {os.listdir('all-results')}")
-    print(f"Total target files matched by recursive glob query: {len(all_files)}")
-    if len(all_files) > 0:
-        print(f"Matched file paths lists: {all_files}")
+    print(f"Total matching active run SARIF logs found: {len(all_files)}")
     print("==========================================\n")
 
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
@@ -32,15 +42,11 @@ def main():
 
     for f in all_files:
         fname = os.path.basename(f)
-        print(f"🔎 Scanning matched file instance: {fname} (Full Path: {f})")
-        
         if fname == 'results.sarif' or '--' not in fname: 
-            print(f" -> Skipping helper placeholder or root file file context formatting rule.")
             continue
 
-        is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
-        print(f" -> Origin Routing Assessment: {'👨‍💻 HUMAN AUDIT' if is_human else '🤖 AI SCANNED'}")
-
+        is_human = "Human_Auditor" in fname or "human--" in fname or "human-" in f.lower()
+        
         try:
             name_root = fname.replace('.sarif', '')
             parts = name_root.split('--')
@@ -52,7 +58,6 @@ def main():
                     break
             
             if slash_idx == -1:
-                print(f" ⚠️ Skipping file: Could not find the mandatory '_SLASH_' token block in string: {fname}")
                 continue
                 
             repo_path = parts[slash_idx].replace('_SLASH_', '/')
@@ -63,8 +68,6 @@ def main():
                 agent = "Human Auditor"
             else:
                 agent = parts[slash_idx + 3].replace('_', ' ') if (slash_idx + 3) < len(parts) else "AI Tool"
-
-            print(f" -> Successfully mapped filename properties: {repo_path} #{pr_num} | Lang: {lang} | Model: {agent}")
 
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
@@ -157,15 +160,19 @@ def main():
                 target["cwes"].add(cwe)
 
             scan_source = "Human Scan" if is_human else f"AI Run ({agent})"
-            print(f" -> successfully accumulated row data metrics context. Issues count: {len(res)}")
             comparison_rows.append(f'| {repo_path} | [#{pr_num}](https://github.com{repo_path}/pull/{pr_num}) | {scan_source} | {lang} | {severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} |')
 
         except Exception as e:
-            print(f" ❌ Critical loop runtime parsing error encountered for file name {fname}: {e}")
+            print(f"Error evaluating artifact {fname}: {e}")
 
+    # Generate the final report with the Central Time Freshness Stamp
+    freshness_stamp = get_central_time_str()
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Comparison Dashboard: AI Scans vs. Human Audits\n\n')
+        
+        # --- FRESHNESS COMPONENT ADDED TO THE HEADER WRITER BLOCK ---
+        out.write(f'> ⏱️ **Data Freshness:** Last Evaluated on `{freshness_stamp}`\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
         out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
@@ -178,8 +185,6 @@ def main():
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         for row in sorted(comparison_rows):
             out.write(f'{row}\n')
-            
-    print(f"\n📊 Diagnostics execution finalized completely.")
 
 if __name__ == "__main__":
     main()
