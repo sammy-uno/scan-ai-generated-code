@@ -26,19 +26,22 @@ jobs:
           mkdir -p all-results
           echo "🔍 Querying recent execution timelines using native GitHub CLI..."
           
-          # --- RESTORED: YOUR EXACT GH RUN LIST ENGINE TUNED TO THE EXACT MAIN WORKFLOW FILENAMES ---
+          # Run your native CLI workflows tracking checks
           AI_DATA=$(gh run list --workflow codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow human-codeql-scan.yml --status success --limit 1 --json databaseId,createdAt)
           
           echo "Raw AI Metadata: $AI_DATA"
           echo "Raw Human Metadata: $HU_DATA"
           
-          # Safely parse out the IDs and createdAt ISO strings using jq syntax queries
+          # --- FIX: REPLICATED TYPE-SAFE LIST LOOKUPS TARGETING THE FIRST ELEMENTS ---
           AI_RUN_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // empty')
           AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "N/A"')
           
           HU_RUN_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // empty')
           HU_TIME=$(echo "$HU_DATA" | jq -r '.[0].createdAt // "N/A"')
+          
+          echo "Processed AI Run ID: $AI_RUN_ID | Time: $AI_TIME"
+          echo "Processed Human Run ID: $HU_RUN_ID | Time: $HU_TIME"
           
           # Export variables globally to the environment context
           echo "AI_RUN_TIME=$AI_TIME" >> $GITHUB_ENV
@@ -46,7 +49,7 @@ jobs:
           
           # Download and unpack only the files belonging to those two specific run IDs
           for RUN_ID in $AI_RUN_ID $HU_RUN_ID; do
-            if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ] || [ "$RUN_ID" = "" ]; then
               continue
             fi
             
