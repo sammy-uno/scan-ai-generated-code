@@ -9,7 +9,7 @@ env:
 permissions:
   contents: read
   security-events: write
-  actions: read
+  actions: write
 
 jobs:
   compare:
@@ -19,14 +19,32 @@ jobs:
       - name: Checkout Primary Utility Scripts Root
         uses: actions/checkout@v4
 
-      # --- FIXED: NATIVE RECURSIVE DOWNLOAD ENGINE BYPASSES API INDICES ---
-      - name: Download Available Artifacts Pool
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          pattern: sarif-*
-          path: all-results
-          merge-multiple: true
+      # --- FIXED: NATIVE GH CLI INLINE BLOCK FETCHES HISTORICAL FILES SAFELY ---
+      - name: Fetch Historical Scanner Run Artifacts Pool
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          mkdir -p all-results
+          echo "🔍 Fetching all repository artifact archives matching profile..."
+          
+          # Query the global repository artifact pool metadata array directly
+          ARTIFACTS_JSON=$(gh api /repos/${{ github.repository }}/artifacts --per-page 100)
+          
+          # Loop through matched names and stream zip extraction blocks directly
+          echo "$ARTIFACTS_JSON" | jq -c '.artifacts[] | select(.name | startswith("sarif-"))' | while read -r art; do
+            ART_ID=$(echo "$art" | jq -r '.id')
+            ART_NAME=$(echo "$art" | jq -r '.name')
+            
+            echo "📥 Downloading and extracting archive package: $ART_NAME (ID: $ART_ID)"
+            mkdir -p "all-results/$ART_NAME"
+            
+            # Stream the binary download payload into a temporary zip container natively
+            gh api "/repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > "all-results/$ART_NAME/pack.zip"
+            
+            # Extract flatly into the target folder tier context
+            unzip -o "all-results/$ART_NAME/pack.zip" -d "all-results/$ART_NAME"
+            rm -f "all-results/$ART_NAME/pack.zip"
+          done
 
       - name: Run Global Comparison Engine
         run: |
