@@ -48,7 +48,7 @@ Human developers are primarily associated with systemic architectural vulnerabil
 Empirical evaluations of the AIDev dataset [15] reveal a severe gap in AI code safety, uncovering a phenomenon characterized as the Agent "Confidence Trap":
 * **Human PR Balance:** Human engineers demonstrate strong architectural and contextual awareness during code modification. When human pull requests are rejected, it is typically due to complex or unrefined code implementation, but when merged, their contributions successfully reduce the overall vulnerability density of the codebase.
 * **Agent "Confidence Trap":** Conversely, autonomous agents often generate code that is cosmetically clean, passes local test pipelines, and exhibits high model confidence. Because the code appears pristine, maintainers frequently merge agentic refactoring pull requests without detecting underlying risks; empirical static analysis using the Bandit security scanner revealed that 4.7% of the modified files within merged agent PRs silently introduced new security vulnerabilities that human reviewers missed entirely. Despite these security regressions, the overall developer acceptance rate remained high, with 73.5% of the analyzed agentic PRs successfully merged into open-source repositories.
-
+  
 ### References
 
 [^1]: Li, H., Zhang, H., & Hassan, A. E. (2026). AIDev: Studying AI Coding Agents on GitHub. *Proceedings of the 23rd International Conference on Mining Software Repositories (MSR '26)*. ACM. https://doi.org/10.1145/3793302.3797249
