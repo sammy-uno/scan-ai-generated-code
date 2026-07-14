@@ -34,7 +34,7 @@ The comparative analysis below outlines the disparities in pull request merge su
 
 <img src="pull_requests_metrics_on_500+star_repos.png" alt="Pull Requests Metrics between AI Agents and Human PRs on 500+ start repos" width="800">
 
-<img src="pull_requests_metrics_on_500+star_repos.png" alt="Pull Requests Metrics between AI Agents and Human PRs on 500+ start repos" width="600">
+<img src="pull_requests_metrics_on_500+star_repos.png" alt="Pull Requests Metrics between AI Agents and Human PRs on 500+ start repos" width="700">
 
 The human merge-to-rejection ratio stands at a highly efficient 5.45:1, meaning nearly 5.5 human pull requests are successfully integrated into the codebase for every single rejection. Conversely, the AI agent ratio drops sharply to 1.92:1, indicating that maintainers must reject an agentic patch for nearly every two successful integrations, drastically increasing review overhead [8].
 
