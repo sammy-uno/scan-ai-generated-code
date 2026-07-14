@@ -80,3 +80,5 @@ Empirical evaluations of the AIDev dataset [15] reveal a severe gap in AI code s
 [^14]: Hasan, S. M. M., Rabbi, M. F., & Zibran, M. (2026). The Quiet Contributions: Insights into AI-Generated Silent Pull Requests. *arXiv*. https://arxiv.org/pdf/2601.21102
 
 [^15]: Almukhtar, M., Ghammam, A., & Ming, H. (2026). Quality and Security Signals in AI-Generated Python Refactoring Pull Requests. *arXiv*. https://arxiv.org/pdf/2605.21453
+
+
