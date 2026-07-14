@@ -78,6 +78,7 @@ Empirical evaluations of the AIDev dataset [[15]](#ref-15) reveal a severe gap i
 [13] <a id="ref-13"></a> Siddiq, M. L., Zhao, X., Lopes, V. C., Casey, B., & Santos, J. C. S. (2026). Security in the age of AI teammates: An empirical study of agentic pull requests on GitHub. *arXiv*. https://arxiv.org
 
 [14] <a id="ref-14"></a> Hasan, S. M M., Rabbi, M. F., & Zibran, M. (2026). The quiet contributions: Insights into AI-generated silent pull requests. *arXiv*. https://arxiv.org
+
 [15] <a id="ref-15"></a> Almukhtar, M., Ghammam, A., & Ming, H. (2026). Quality and security signals in AI-generated Python refactoring pull requests. *arXiv*. https://arxiv.org
 
 
