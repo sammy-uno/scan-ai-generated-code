@@ -41,7 +41,7 @@ An evaluation of security-related pull request rejections in repositories with o
 * **Net Security Value:** At an ecosystem level, human interventions generate a massive net vulnerability reduction of 1,316 fixes, whereas agentic updates introduce a net increase of 98 vulnerabilities, prompting maintainers to enforce much stricter security guardrails [11].
 
 ## Core Vulnerabilities: Human vs. Agent
-Comparative analyses [10] [12] of Common Weakness Enumeration (CWE) classifications reveal distinct architectural profiles between human-authored and agent-generated software contributions. Although the overall distribution of vulnerability classes remains broadly consistent across both groups, AI agents display an increased propensity for generating unique, highly repetitive technical flaws.
+Comparative analyses [^10] [^12] of Common Weakness Enumeration (CWE) classifications reveal distinct architectural profiles between human-authored and agent-generated software contributions. Although the overall distribution of vulnerability classes remains broadly consistent across both groups, AI agents display an increased propensity for generating unique, highly repetitive technical flaws.
 
 Human developers are primarily associated with systemic architectural vulnerabilities, such as Complex Authentication Flaws (CWE-306), multi-file race conditions, and delicate logic or state exploits. In contrast, autonomous AI agents are far more prone to localized algorithmic and input processing errors, most notably Regular Expression Denial of Service (ReDoS), Path Traversal (CWE-22), and Improper Input Validation (CWE-20).
 
