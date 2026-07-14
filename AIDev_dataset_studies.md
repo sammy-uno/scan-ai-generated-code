@@ -50,6 +50,7 @@ Empirical evaluations of the AIDev dataset [[15]](#ref-15) reveal a severe gap i
 * **Agent "Confidence Trap":** Conversely, autonomous agents often generate code that is cosmetically clean, passes local test pipelines, and exhibits high model confidence. Because the code appears pristine, maintainers frequently merge agentic refactoring pull requests without detecting underlying risks; empirical static analysis using the Bandit security scanner revealed that 4.7% of the modified files within merged agent PRs silently introduced new security vulnerabilities that human reviewers missed entirely. Despite these security regressions, the overall developer acceptance rate remained high, with 73.5% of the analyzed agentic PRs successfully merged into open-source repositories.
   
 ### References
+
 [1] <a id="ref-1"></a> Li, H., Zhang, H., & Hassan, A. E. (2026). AIDev: Studying AI coding agents on GitHub. *Proceedings of the 23rd International Conference on Mining Software Repositories (MSR '26)*. ACM. https://doi.org
 [2] <a id="ref-2"></a> Ehsani, R., Pathak, S., Rawal, S., Al Mujahid, A., Imran, M. M., & Chatterjee, P. (2026). Where do AI coding agents fail? An empirical study of failed agentic pull requests in GitHub. *arXiv*. https://arxiv.org
 [3] <a id="ref-3"></a> Ogenrwot, D., & Businge, J. (2026). AgenticFlict: A large-scale dataset of merge conflicts in AI coding agent pull requests on GitHub. *arXiv*. https://arxiv.org
