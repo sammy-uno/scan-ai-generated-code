@@ -6,7 +6,9 @@ The AIDev dataset serves as a comprehensive empirical research framework trackin
 The AIDev dataset is publicly hosted on Hugging Face in Parquet format. It comprehensively tracks code contributions, review timelines, and acceptance metrics across five core commercial and open-source agent ecosystems: OpenAI Codex, Devin, GitHub Copilot, Cursor, and Claude Code.
 
 The dataset comprises: 
-
+* 932,791 Agent-authored pull requests (Agentic-PRs)
+* 116,211 Distinct GitHub repositories
+* 72,189 Human developers interacting with AI teammates
 
 
 **1. Diversity of weakness:**
