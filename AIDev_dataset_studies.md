@@ -1,5 +1,4 @@
 # AIDev dataset literature review 
-> **Authors:** *Hammond Pearce, Baleegh Ahmad, Benjamin Tan, Brendan Dolan-Gavitt, and Ramesh Karri*
 
 <br/>
 
