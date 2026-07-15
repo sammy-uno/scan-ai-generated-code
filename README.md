@@ -1,4 +1,5 @@
 # Progress Update 7/14/2026
+<br/>
 
 Over the past few weeks, I reviewed the research papers recommended by Dr. Jiang regarding the security vulnerabilities in Agentic vs. Human Pull Requests (PRs). 
 A summary of the key findings from these studies can be found in this document [Literature Review](literature_review.md). 
