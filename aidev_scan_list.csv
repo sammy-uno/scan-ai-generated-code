@@ -1,501 +1,501 @@
 repo_name,number,title,primary_language,agent_name,repo_stars,pr_loc
-Skyvern-AI/skyvern,3063,Add skyvern_project table,python,OpenAI_Codex,13976,0
-prebid/Prebid.js,13698,Core: use uuid for bid ids,javascript,OpenAI_Codex,1467,0
-Mail-0/Zero,1871,Fix workflow result passing between steps,javascript,Devin,9132,0
-mendableai/firecrawl,1896,feat(python-sdk): implement missing crawl_entire_domain parameter,javascript,Devin,43970,0
-antiwork/flexile,680,Add issue assignment policy to CONTRIBUTING.md,ruby,Devin,665,0
-liveblocks/liveblocks,2557,Add documentation for resolveUsers 50-user batch limit,javascript,Devin,4100,0
-mendableai/firecrawl,1895,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin,43970,0
-prebid/Prebid.js,13695,e2e tests: extend webdriver session timeouts,javascript,OpenAI_Codex,1467,0
-crewAIInc/crewAI,3243,Fix #3242: Add reasoning parameter to LLM class to disable reasoning mode,python,Devin,35096,0
-Pimzino/claude-code-spec-workflow,27,Fix docs and tests for updated command set,javascript,OpenAI_Codex,869,0
-reown-com/appkit,4741,feat: add native SOL payment asset for Solana network,javascript,Devin,5202,0
-mendableai/firecrawl,1894,fix: convert timeout from milliseconds to seconds in Python SDK,javascript,Devin,43970,0
-Pimzino/claude-code-spec-workflow,26,Fix setup command test list,javascript,OpenAI_Codex,869,0
-taiga-family/taiga-ui,11485,fix(kit): combo box stringify function not being called after update,javascript,Copilot,3672,0
-mendableai/firecrawl,1893,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus (ENG-3029),javascript,Devin,43970,0
-zwave-js/zwave-js,8020,Fix: Mark node as asleep when compat query times out,javascript,Copilot,826,0
-microsoft/genaiscript,1808,Fix generateImage returning undefined and enable Azure OpenAI image editing with proper URL construction,javascript,Copilot,2742,0
-zwave-js/zwave-js,8019,Fix throttled firmware update progress events jumping back and forth,javascript,Copilot,826,0
-zwave-js/zwave-js,8018,feat: Add configuration parameter support to SmartStart provisioning entries,javascript,Copilot,826,0
-zwave-js/zwave-js,8017,Disable SmartStart provisioning entries after 5 failed inclusion attempts,javascript,Copilot,826,0
-mendableai/firecrawl,1892,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus,javascript,Devin,43970,0
-calcom/cal.com,22814,refactor: convert getShouldServeCache to CacheService with dependency injection,javascript,Devin,37399,0
-streamich/memfs,1124,feat: refactor core classes to src/core/ directory,javascript,Copilot,1919,0
-3rdIteration/btcrecover,617,Add OpenCL Multibit test,python,OpenAI_Codex,742,0
-taiga-family/taiga-ui,11478,fix(experimental): `TuiExpand` double content projection causing duplicate child instantiations,javascript,Copilot,3672,0
-BerriAI/litellm,13125,feat(helm): Enhance Helm chart for ArgoCD integration and external resources,python,Claude_Code,26663,0
-liam-hq/liam,2790,Improve deepModeling.ts error handling: implement immediate error recording and workflow stopping,javascript,Devin,4194,0
-liam-hq/liam,2789,feat: unify WorkflowState type with createAnnotations,javascript,Devin,4194,0
-microsoft/vscode-pull-request-github,7466,Add loading spinner to Cancel Coding Agent button,javascript,Copilot,2421,0
-microsoft/vscode-pull-request-github,7465,Show loading indicator when clicking on commits in timeline,javascript,Copilot,2421,0
-liam-hq/liam,2788,Replace dummy 'User Name' with real user data in timeline items,javascript,Devin,4194,0
-valkey-io/valkey-glide,4515,Fix resource leak in TLS test teardown by properly resetting client references,java,Copilot,538,0
-microsoft/vscode-pull-request-github,7464,Fix unexpected cursor icon for commit links in PR webview,javascript,Copilot,2421,0
-crewAIInc/crewAI,3241,Add LangDB AI Gateway documentation to observability section,python,Devin,35096,0
-liam-hq/liam,2786,feat: refactor CopyButton component to be reusable and apply to SQL tab,javascript,Devin,4194,0
-liam-hq/liam,2782,Rename Schema Updates tab to SQL tab,javascript,Devin,4194,0
-djlint/djLint,1354,Add support for `.djlint.toml` configuration files,python,Copilot,810,0
-remotion-dev/remotion,5544,docs: Add webcodecs/get-partial-audio-data to sidebars.ts,javascript,Copilot,23319,0
-novuhq/novu,8820,Update dashboard layout docs links,javascript,Cursor,37349,0
-crewAIInc/crewAI,3239,feat: implement Fast Apply edit_file tool,python,Devin,35096,0
-OWASP/wrongsecrets,2127,Add GitHub Pages static preview system for PR reviews,java,Copilot,1336,0
-microsoft/genaiscript,1807,Implement stream option support in PromptArgs with proper LLM call propagation,javascript,Copilot,2742,0
-liam-hq/liam,2778,🔥 Remove unnecessary buildingSchemaVersionId from LangGraph annotations,javascript,Devin,4194,0
-BerriAI/litellm,13122,Add GCS bucket caching support,python,OpenAI_Codex,26663,0
-YunaiV/ruoyi-vue-pro,909,Optimize readme file,java,Cursor,32556,0
-liam-hq/liam,2777,fix: update schemaDesignTool to directly update workflow state,javascript,Devin,4194,0
-novuhq/novu,8818,fix(dashboard): Update dashboard translation doc links,javascript,Cursor,37349,0
-duneanalytics/spellbook,8572,Add tx_index and block_number to dex.trades,python,Cursor,1369,0
-YunaiV/ruoyi-vue-pro,908,优化 README.md 文档结构和格式，提升用户体验,java,Copilot,32556,0
-liam-hq/liam,2776,Fix LangGraph retry mechanism for designSchemaNode,javascript,Devin,4194,0
-liam-hq/liam,2774,fix: prevent infinite retry loops in designSchema routing,javascript,Devin,4194,0
-liam-hq/liam,2773,feat: improve Use Existing Schema feature with error constants and Japanese localization,javascript,Devin,4194,0
-DestinyItemManager/DIM,11277,Codex/extract weapon data in structured json,javascript,OpenAI_Codex,2099,0
-YunaiV/ruoyi-vue-pro,907,优化代码：修复TODO注释，清理导入语句，移除冗余注释,java,Copilot,32556,0
-saleor/saleor,18009,Fix grammar errors and verb consistency in GraphQL mutation descriptions,python,Copilot,21862,0
-saleor/saleor,18008,Add comprehensive GraphQL API documentation structure,python,Copilot,21862,0
-stanford-crfm/levanter,1115,Fix lockfile issue in ray TPU,python,OpenAI_Codex,628,0
-halo-dev/halo,7645,[WIP] Request to reduce SQL query count for homepage posts.,java,Copilot,36165,0
-Significant-Gravitas/AutoGPT,10483,fix(backend): Fix LLM blocks call tracking,python,Claude_Code,177379,0
-liam-hq/liam,2770,feat: increase default recursion limit from 20 to 100,javascript,Devin,4194,0
-liam-hq/liam,2769,Remove boilerplate log messages from AI workflow nodes,javascript,Devin,4194,0
-ryokun6/ryos,243,Investigate mobile top resize drag lock,javascript,Cursor,558,0
-ryokun6/ryos,242,Fix mobile macosx theme window occlusion,javascript,Cursor,558,0
-primer/react,6416,Migrate SelectPanel tests from Jest to Vitest,javascript,Copilot,3613,0
-Mail-0/Zero,1870,feat: sync threadId to ZeroAgent via WebSocket for multi-tab support,javascript,Devin,9132,0
-liam-hq/liam,2766,Improve schemaDesignTool prompts for one-shot success,javascript,Devin,4194,0
-mendableai/firecrawl,1888,Fix SSL certificate verification error in AsyncFirecrawlApp,javascript,Devin,43970,0
-siteboon/claudecodeui,129,feat: Enhanced Claude Code UI with Complete Transparency,javascript,Claude_Code,2576,0
-binarywang/WxJava,3663,[WIP] 【企业微信】获取审批模板详情异常:Expected BEGIN_OBJECT but was BEGIN_ARRAY,java,Copilot,31663,0
-Kiln-AI/Kiln,463,Fix ruff command and lint issues,python,OpenAI_Codex,4015,0
-AgentOps-AI/agentops,1183,Update README.md with latest AgentOps integrations and features,python,Devin,4722,0
-datahub-project/datahub,14258,Upgrade docusaurus documentation website to v3,java,Cursor,10890,0
-3rdIteration/btcrecover,615,Switch scrypt to wallycore,python,OpenAI_Codex,742,0
-BerriAI/litellm,13110,Add user activity metrics and UI tab,python,Cursor,26663,0
-lordmauve/pgzero,366,Add Windows and macOS test runs,python,OpenAI_Codex,575,0
-mendableai/firecrawl,1886,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin,43970,0
-opral/monorepo,3660,Remove LIX branding from HTML Diff landing page,javascript,OpenAI_Codex,1542,0
-antiwork/flexile,670,Remove line break tags from homepage to fix responsive formatting,ruby,Devin,665,0
-mendableai/firecrawl,1885,Add database fallback to crawl errors endpoint,javascript,Devin,43970,0
-antiwork/flexile,669,Update Pay Contractors section to highlight 190+ countries support,ruby,Devin,665,0
-crewAIInc/crewAI,3237,Fix Windows path length issue in memory storage,python,Devin,35096,0
-mendableai/firecrawl,1884,N-API Go html-to-markdown,javascript,Claude_Code,43970,0
-antiwork/gumroad,710,Allow decimal values in Search Purchase charge_amount parameter,ruby,Devin,6643,0
-cartography-cncf/cartography,1737,feat: Add ingestion from disk for Trivy,python,OpenAI_Codex,3491,0
-3rdIteration/btcrecover,614,Fix outer_iterations to avoid zero,python,OpenAI_Codex,742,0
-mendableai/firecrawl,1883,fix(go): add mutex to prevent concurrent access issues in html-to-markdown,javascript,Claude_Code,43970,0
-ruvnet/claude-flow,523,🎯 Maestro Comprehensive Workflow Guide + Code Quality Integration,javascript,Claude_Code,4630,0
-stanford-crfm/levanter,1114,Use DecodeState for generation tracking,python,OpenAI_Codex,628,0
-567-labs/instructor,1754,fix: add BEDROCK_MISTRAL_JSON mode for Mistral models that don't support system messages,python,Devin,11095,0
-antiwork/gumroad,708,Update Payouts nav icon from solid-currency-dollar to bank,ruby,Devin,6643,0
-onetimesecret/onetimesecret,1577,Replace custom rate limiting logic,ruby,Claude_Code,2447,0
-strapi/documentation,2621,Improve GraphQL queries explanations (Flat vs. Relay-style),javascript,OpenAI_Codex,1151,0
-Kiln-AI/Kiln,461,Add developer content check workflow,python,OpenAI_Codex,4015,0
-ruvnet/claude-flow,519,"Alpha.78: Agent System Fix, Hooks Improvements & GitHub CLI Safety",javascript,Claude_Code,4630,0
-AgentOps-AI/agentops,1182,Create Custom LiteLLM Callback Handler Maintained by AgentOps,python,Devin,4722,0
-antiwork/flexile,664,Remove user_leads table and all associated code via migration,ruby,Devin,665,0
-antiwork/flexile,663,Remove time_entries table and all associated code,ruby,Devin,665,0
-AgentOps-AI/agentops,1181,Restructure README.md to showcase AgentOps tool and popular projects,python,Devin,4722,0
-prebid/Prebid.js,13689,Test suite: clean up tests not setting shouldClearNativeTimers,javascript,OpenAI_Codex,1467,0
-ruvnet/claude-flow,512,📚 Comprehensive Maestro Workflow Guide & Documentation,javascript,Claude_Code,4630,0
-elastic/kibana,229804,Add retry logic to CSP plugin getInstallation call,javascript,Copilot,20613,0
-mendableai/firecrawl,1880,Fix robots.txt HTML filtering to check content structure,javascript,Devin,43970,0
-getAlby/lightning-browser-extension,3405,feat: change NWC connector title to include NWC abbreviation,javascript,Copilot,554,0
-ukrbublik/react-awesome-query-builder,1288,deprecated ant design v5 patterns,javascript,OpenAI_Codex,2130,0
-microsoft/genaiscript,1804,Add automatic retry for streaming LLM responses that fail partway through,javascript,Copilot,2742,0
-microsoft/genaiscript,1802,Fix quiet mode to suppress all LLM output,javascript,Copilot,2742,0
-bugsink/bugsink,172,Add vacuum_ingest_dir management command for cleaning up temporary ingest files,python,Copilot,908,0
-taiga-family/taiga-ui,11464,"test: enhance textfield-in-table.cy.ts with textarea, input-chip, and input-card-group components",javascript,Copilot,3672,0
-liveblocks/liveblocks,2552,Add trust center section to data storage documentation,javascript,Devin,4100,0
-rxaviers/async-pool,49,Update README with Node v24 note,javascript,OpenAI_Codex,822,0
-liam-hq/liam,2763,feat: implement Deep Modeling toggle processing logic,javascript,Devin,4194,0
-liam-hq/liam,2762,feat: Complete Upload functionality server-side processing,javascript,Devin,4194,0
-liam-hq/liam,2761,feat: temporarily hide voice input and file attachment UI,javascript,Devin,4194,0
-microsoft/vscode,258447,Fix duplicate Windows 11 context menu entries for VS Code Insiders,javascript,Copilot,175171,0
-bugsink/bugsink,171,[WIP] vacuum ingest dir,python,Copilot,908,0
-StarRocks/starrocks,61403,Implement json_contains and fix issue 57086,java,Cursor,10390,0
-mfts/papermark,1788,feat: add cancel export button and recent exports,javascript,Cursor,6902,0
-ibelick/zola,252,Generate comprehensive API documentation,javascript,Cursor,960,0
-miurla/morphic,595,fix: prevent displaying '0' results during loading in search section,javascript,Devin,7858,0
-liam-hq/liam,2759,feat: update CodeRabbit configuration with comprehensive settings,javascript,Devin,4194,0
-cloudflare/workers-sdk,10112,fix: handle workflow bindings in getPlatformProxy(),javascript,Devin,3307,0
-StarRocks/starrocks,61394,[Feature] implement json_remove,java,Cursor,10390,0
-microsoft/vscode,258424,Restore Windows ARM64 emulation warning with proper detection,javascript,Copilot,175171,0
-remotion-dev/remotion,5538,@remotion/webcodecs: Add documentation for getPartialAudioData() API,javascript,Copilot,23319,0
-cloudflare/workers-sdk,10111,feat: improve CORS validation with AWS S3 format detection,javascript,Devin,3307,0
-liam-hq/liam,2752,feat: implement structured DML-Usecase mapping artifact display,javascript,Devin,4194,0
-liam-hq/liam,2750,refactor: remove unused repositories annotation from langGraphUtils.ts,javascript,Devin,4194,0
-skypilot-org/skypilot,6414,Fix skypilot github issue 6413,python,Cursor,8435,0
-YunaiV/ruoyi-vue-pro,906,Optimize readme file,java,Cursor,32556,0
-CarGuo/GSYGithubAPP,138,Upgrade GSYGithubAPP to React Native 0.74 with complete navigation modernization and runtime error resolution,javascript,Copilot,2410,0
-halo-dev/halo,7644,Optimize homepage post loading by eliminating N+1 queries for user data,java,Copilot,36165,0
-ikamensh/flynt,244,Refactor CodeEditor to accept state directly,python,OpenAI_Codex,718,0
-microsoft/vscode,258402,Fix leaked disposables when closing notebook inline chat,javascript,Copilot,175171,0
-OWASP/wrongsecrets,2121,Fix ZAP DAST scan security issues and resolve GitHub Actions workflow failures,java,Copilot,1336,0
-CarGuo/GSYGithubAPP,137,Upgrade React Native from 0.61.3 to 0.74.5 with complete dependency migration,javascript,Copilot,2410,0
-Wei-Shaw/claude-relay-service,114,feat: Add tag support for API Keys and fix OAuth token exchange,javascript,Claude_Code,1000,0
-liam-hq/liam,2749,feat: implement validation result mapping for DML-Usecase association,javascript,Devin,4194,0
-microsoft/genaiscript,1800,Add system prompts for Ruby and PHP programming with automatic activation,javascript,Copilot,2742,0
-microsoft/genaiscript,1799,Implement Simplified GenAIScript Markdown Reference Link Validator,javascript,Copilot,2742,0
-liam-hq/liam,2746,feat: implement artifact transformation logic for DML-Usecase mapping,javascript,Devin,4194,0
-liam-hq/liam,2745,feat: restructure DMLGenerationAgent to output structured DmlOperation[],javascript,Devin,4194,0
-liam-hq/liam,2743,feat: extend Usecase schema with UUID and DML operations array,javascript,Devin,4194,0
-mlflow/mlflow,16927,Sort requirements alphabetically in generate_requirements.py output,python,Copilot,21402,0
-quay/quay,4158,fix: add comprehensive global readonly superuser endpoint testing (PROJQUAY-8279),python,Claude_Code,2651,0
-ryokun6/ryos,238,Add song id to ipod playlist,javascript,Cursor,558,0
-ryokun6/ryos,237,Start auto-hide timer on interaction,javascript,Cursor,558,0
-mastra-ai/mastra,6363,Research and code AI SDK v5 transforms,javascript,Cursor,15412,0
-microsoft/vscode,258382,[WIP] Fixing Issue #257872 in VSCode Repository,javascript,Copilot,175171,0
-langchain-ai/langgraph,5697,Refactor create_react_agent to use internal _AgentBuilder helper class,python,Copilot,16579,0
-roboflow/inference,1461,Create and monitor image batch,python,Cursor,1824,0
-3rdIteration/btcrecover,613,Fix Blockchain mnemonic GUID parsing,python,OpenAI_Codex,742,0
-antiwork/flexile,661,Add Turbopack support for faster development builds,ruby,Devin,665,0
-mendableai/firecrawl,1877,feat(v2): add natural language prompt support to crawl API,javascript,Devin,43970,0
-liveblocks/liveblocks,2550,Add OpenAPI schema link to README developers section,javascript,Devin,4100,0
-stanford-crfm/levanter,1112,Implement DecodeState operations,python,OpenAI_Codex,628,0
-AgentOps-AI/agentops,1179,Add llms.txt compilation system for AI model documentation,python,Devin,4722,0
-ruvnet/claude-flow,490,🚀 Alpha.75: Windows Compatibility Overhaul (Based on PR #483 by @alexx-ftw),javascript,Claude_Code,4630,0
-mendableai/firecrawl,1874,fix: switch RPC calls from read replica to main service,javascript,Devin,43970,0
-ruvnet/claude-flow,489,🚀 Alpha.74: SQLite & Async/Await Fixes,javascript,Claude_Code,4630,0
-gensx-inc/gensx,907,fix: make @libsql/client optional in @gensx/storage,javascript,OpenAI_Codex,504,0
-liveblocks/liveblocks,2549,Add storage documentation page,javascript,Devin,4100,0
-basicmachines-co/basic-memory,241,fix: handle missing 'name' key in memory JSON import,python,Claude_Code,1460,0
-antiwork/flexile,654,Configure tests workflow to run only on push events,ruby,Devin,665,0
-antiwork/gumroad,699,"Add search bar to admin purchases page with product name, date range, and status filters",ruby,Devin,6643,0
-antiwork/flexile,652,Add comprehensive component guidance to copilot instructions and cursor rules,ruby,Devin,665,0
-3rdIteration/btcrecover,612,Add CI workflow for PoCL,python,OpenAI_Codex,742,0
-onlook-dev/onlook,2554,Add user_first_signup PostHog event for reliable server-side signup tracking,javascript,Devin,21192,0
+Skyvern-AI/skyvern,3063,Add skyvern_project table,python,OpenAI_Codex,13976,3350
+prebid/Prebid.js,13698,Core: use uuid for bid ids,javascript,OpenAI_Codex,1467,13
+Mail-0/Zero,1871,Fix workflow result passing between steps,javascript,Devin,9132,3386
+mendableai/firecrawl,1896,feat(python-sdk): implement missing crawl_entire_domain parameter,javascript,Devin,43970,3816
+antiwork/flexile,680,Add issue assignment policy to CONTRIBUTING.md,ruby,Devin,665,2173
+liveblocks/liveblocks,2557,Add documentation for resolveUsers 50-user batch limit,javascript,Devin,4100,2955
+mendableai/firecrawl,1895,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin,43970,4193
+prebid/Prebid.js,13695,e2e tests: extend webdriver session timeouts,javascript,OpenAI_Codex,1467,134
+crewAIInc/crewAI,3243,Fix #3242: Add reasoning parameter to LLM class to disable reasoning mode,python,Devin,35096,3986
+Pimzino/claude-code-spec-workflow,27,Fix docs and tests for updated command set,javascript,OpenAI_Codex,869,371
+reown-com/appkit,4741,feat: add native SOL payment asset for Solana network,javascript,Devin,5202,2646
+mendableai/firecrawl,1894,fix: convert timeout from milliseconds to seconds in Python SDK,javascript,Devin,43970,3862
+Pimzino/claude-code-spec-workflow,26,Fix setup command test list,javascript,OpenAI_Codex,869,262
+taiga-family/taiga-ui,11485,fix(kit): combo box stringify function not being called after update,javascript,Copilot,3672,2270
+mendableai/firecrawl,1893,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus (ENG-3029),javascript,Devin,43970,3911
+zwave-js/zwave-js,8020,Fix: Mark node as asleep when compat query times out,javascript,Copilot,826,2035
+microsoft/genaiscript,1808,Fix generateImage returning undefined and enable Azure OpenAI image editing with proper URL construction,javascript,Copilot,2742,2868
+zwave-js/zwave-js,8019,Fix throttled firmware update progress events jumping back and forth,javascript,Copilot,826,1749
+zwave-js/zwave-js,8018,feat: Add configuration parameter support to SmartStart provisioning entries,javascript,Copilot,826,3051
+zwave-js/zwave-js,8017,Disable SmartStart provisioning entries after 5 failed inclusion attempts,javascript,Copilot,826,2362
+mendableai/firecrawl,1892,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus,javascript,Devin,43970,4540
+calcom/cal.com,22814,refactor: convert getShouldServeCache to CacheService with dependency injection,javascript,Devin,37399,3406
+streamich/memfs,1124,feat: refactor core classes to src/core/ directory,javascript,Copilot,1919,1858
+3rdIteration/btcrecover,617,Add OpenCL Multibit test,python,OpenAI_Codex,742,425
+taiga-family/taiga-ui,11478,fix(experimental): `TuiExpand` double content projection causing duplicate child instantiations,javascript,Copilot,3672,2354
+BerriAI/litellm,13125,feat(helm): Enhance Helm chart for ArgoCD integration and external resources,python,Claude_Code,26663,2560
+liam-hq/liam,2790,Improve deepModeling.ts error handling: implement immediate error recording and workflow stopping,javascript,Devin,4194,4350
+liam-hq/liam,2789,feat: unify WorkflowState type with createAnnotations,javascript,Devin,4194,2858
+microsoft/vscode-pull-request-github,7466,Add loading spinner to Cancel Coding Agent button,javascript,Copilot,2421,1781
+microsoft/vscode-pull-request-github,7465,Show loading indicator when clicking on commits in timeline,javascript,Copilot,2421,1870
+liam-hq/liam,2788,Replace dummy 'User Name' with real user data in timeline items,javascript,Devin,4194,3076
+valkey-io/valkey-glide,4515,Fix resource leak in TLS test teardown by properly resetting client references,java,Copilot,538,1720
+microsoft/vscode-pull-request-github,7464,Fix unexpected cursor icon for commit links in PR webview,javascript,Copilot,2421,1098
+crewAIInc/crewAI,3241,Add LangDB AI Gateway documentation to observability section,python,Devin,35096,3068
+liam-hq/liam,2786,feat: refactor CopyButton component to be reusable and apply to SQL tab,javascript,Devin,4194,3142
+liam-hq/liam,2782,Rename Schema Updates tab to SQL tab,javascript,Devin,4194,3335
+djlint/djLint,1354,Add support for `.djlint.toml` configuration files,python,Copilot,810,1514
+remotion-dev/remotion,5544,docs: Add webcodecs/get-partial-audio-data to sidebars.ts,javascript,Copilot,23319,1120
+novuhq/novu,8820,Update dashboard layout docs links,javascript,Cursor,37349,1486
+crewAIInc/crewAI,3239,feat: implement Fast Apply edit_file tool,python,Devin,35096,3869
+OWASP/wrongsecrets,2127,Add GitHub Pages static preview system for PR reviews,java,Copilot,1336,2991
+microsoft/genaiscript,1807,Implement stream option support in PromptArgs with proper LLM call propagation,javascript,Copilot,2742,2092
+liam-hq/liam,2778,🔥 Remove unnecessary buildingSchemaVersionId from LangGraph annotations,javascript,Devin,4194,2334
+BerriAI/litellm,13122,Add GCS bucket caching support,python,OpenAI_Codex,26663,828
+YunaiV/ruoyi-vue-pro,909,Optimize readme file,java,Cursor,32556,1359
+liam-hq/liam,2777,fix: update schemaDesignTool to directly update workflow state,javascript,Devin,4194,3249
+novuhq/novu,8818,fix(dashboard): Update dashboard translation doc links,javascript,Cursor,37349,1490
+duneanalytics/spellbook,8572,Add tx_index and block_number to dex.trades,python,Cursor,1369,1876
+YunaiV/ruoyi-vue-pro,908,优化 README.md 文档结构和格式，提升用户体验,java,Copilot,32556,1194
+liam-hq/liam,2776,Fix LangGraph retry mechanism for designSchemaNode,javascript,Devin,4194,2853
+liam-hq/liam,2774,fix: prevent infinite retry loops in designSchema routing,javascript,Devin,4194,3143
+liam-hq/liam,2773,feat: improve Use Existing Schema feature with error constants and Japanese localization,javascript,Devin,4194,3046
+DestinyItemManager/DIM,11277,Codex/extract weapon data in structured json,javascript,OpenAI_Codex,2099,141
+YunaiV/ruoyi-vue-pro,907,优化代码：修复TODO注释，清理导入语句，移除冗余注释,java,Copilot,32556,5695
+saleor/saleor,18009,Fix grammar errors and verb consistency in GraphQL mutation descriptions,python,Copilot,21862,2135
+saleor/saleor,18008,Add comprehensive GraphQL API documentation structure,python,Copilot,21862,3103
+stanford-crfm/levanter,1115,Fix lockfile issue in ray TPU,python,OpenAI_Codex,628,278
+halo-dev/halo,7645,[WIP] Request to reduce SQL query count for homepage posts.,java,Copilot,36165,44099
+Significant-Gravitas/AutoGPT,10483,fix(backend): Fix LLM blocks call tracking,python,Claude_Code,177379,2589
+liam-hq/liam,2770,feat: increase default recursion limit from 20 to 100,javascript,Devin,4194,3052
+liam-hq/liam,2769,Remove boilerplate log messages from AI workflow nodes,javascript,Devin,4194,2386
+ryokun6/ryos,243,Investigate mobile top resize drag lock,javascript,Cursor,558,1573
+ryokun6/ryos,242,Fix mobile macosx theme window occlusion,javascript,Cursor,558,1842
+primer/react,6416,Migrate SelectPanel tests from Jest to Vitest,javascript,Copilot,3613,2314
+Mail-0/Zero,1870,feat: sync threadId to ZeroAgent via WebSocket for multi-tab support,javascript,Devin,9132,4180
+liam-hq/liam,2766,Improve schemaDesignTool prompts for one-shot success,javascript,Devin,4194,2822
+mendableai/firecrawl,1888,Fix SSL certificate verification error in AsyncFirecrawlApp,javascript,Devin,43970,3987
+siteboon/claudecodeui,129,feat: Enhanced Claude Code UI with Complete Transparency,javascript,Claude_Code,2576,2205
+binarywang/WxJava,3663,[WIP] 【企业微信】获取审批模板详情异常:Expected BEGIN_OBJECT but was BEGIN_ARRAY,java,Copilot,31663,6517
+Kiln-AI/Kiln,463,Fix ruff command and lint issues,python,OpenAI_Codex,4015,455
+AgentOps-AI/agentops,1183,Update README.md with latest AgentOps integrations and features,python,Devin,4722,3208
+datahub-project/datahub,14258,Upgrade docusaurus documentation website to v3,java,Cursor,10890,3268
+3rdIteration/btcrecover,615,Switch scrypt to wallycore,python,OpenAI_Codex,742,337
+BerriAI/litellm,13110,Add user activity metrics and UI tab,python,Cursor,26663,2631
+lordmauve/pgzero,366,Add Windows and macOS test runs,python,OpenAI_Codex,575,291
+mendableai/firecrawl,1886,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin,43970,4361
+opral/monorepo,3660,Remove LIX branding from HTML Diff landing page,javascript,OpenAI_Codex,1542,216
+antiwork/flexile,670,Remove line break tags from homepage to fix responsive formatting,ruby,Devin,665,2546
+mendableai/firecrawl,1885,Add database fallback to crawl errors endpoint,javascript,Devin,43970,3557
+antiwork/flexile,669,Update Pay Contractors section to highlight 190+ countries support,ruby,Devin,665,2679
+crewAIInc/crewAI,3237,Fix Windows path length issue in memory storage,python,Devin,35096,3460
+mendableai/firecrawl,1884,N-API Go html-to-markdown,javascript,Claude_Code,43970,2165
+antiwork/gumroad,710,Allow decimal values in Search Purchase charge_amount parameter,ruby,Devin,6643,3268
+cartography-cncf/cartography,1737,feat: Add ingestion from disk for Trivy,python,OpenAI_Codex,3491,2158
+3rdIteration/btcrecover,614,Fix outer_iterations to avoid zero,python,OpenAI_Codex,742,220
+mendableai/firecrawl,1883,fix(go): add mutex to prevent concurrent access issues in html-to-markdown,javascript,Claude_Code,43970,628
+ruvnet/claude-flow,523,🎯 Maestro Comprehensive Workflow Guide + Code Quality Integration,javascript,Claude_Code,4630,6642
+stanford-crfm/levanter,1114,Use DecodeState for generation tracking,python,OpenAI_Codex,628,709
+567-labs/instructor,1754,fix: add BEDROCK_MISTRAL_JSON mode for Mistral models that don't support system messages,python,Devin,11095,5928
+antiwork/gumroad,708,Update Payouts nav icon from solid-currency-dollar to bank,ruby,Devin,6643,2387
+onetimesecret/onetimesecret,1577,Replace custom rate limiting logic,ruby,Claude_Code,2447,46315
+strapi/documentation,2621,Improve GraphQL queries explanations (Flat vs. Relay-style),javascript,OpenAI_Codex,1151,121
+Kiln-AI/Kiln,461,Add developer content check workflow,python,OpenAI_Codex,4015,1420
+ruvnet/claude-flow,519,"Alpha.78: Agent System Fix, Hooks Improvements & GitHub CLI Safety",javascript,Claude_Code,4630,1402
+AgentOps-AI/agentops,1182,Create Custom LiteLLM Callback Handler Maintained by AgentOps,python,Devin,4722,4027
+antiwork/flexile,664,Remove user_leads table and all associated code via migration,ruby,Devin,665,3705
+antiwork/flexile,663,Remove time_entries table and all associated code,ruby,Devin,665,3900
+AgentOps-AI/agentops,1181,Restructure README.md to showcase AgentOps tool and popular projects,python,Devin,4722,3907
+prebid/Prebid.js,13689,Test suite: clean up tests not setting shouldClearNativeTimers,javascript,OpenAI_Codex,1467,43
+ruvnet/claude-flow,512,📚 Comprehensive Maestro Workflow Guide & Documentation,javascript,Claude_Code,4630,2506
+elastic/kibana,229804,Add retry logic to CSP plugin getInstallation call,javascript,Copilot,20613,1594
+mendableai/firecrawl,1880,Fix robots.txt HTML filtering to check content structure,javascript,Devin,43970,4173
+getAlby/lightning-browser-extension,3405,feat: change NWC connector title to include NWC abbreviation,javascript,Copilot,554,2893
+ukrbublik/react-awesome-query-builder,1288,deprecated ant design v5 patterns,javascript,OpenAI_Codex,2130,194
+microsoft/genaiscript,1804,Add automatic retry for streaming LLM responses that fail partway through,javascript,Copilot,2742,3271
+microsoft/genaiscript,1802,Fix quiet mode to suppress all LLM output,javascript,Copilot,2742,1417
+bugsink/bugsink,172,Add vacuum_ingest_dir management command for cleaning up temporary ingest files,python,Copilot,908,1743
+taiga-family/taiga-ui,11464,"test: enhance textfield-in-table.cy.ts with textarea, input-chip, and input-card-group components",javascript,Copilot,3672,2130
+liveblocks/liveblocks,2552,Add trust center section to data storage documentation,javascript,Devin,4100,2829
+rxaviers/async-pool,49,Update README with Node v24 note,javascript,OpenAI_Codex,822,318
+liam-hq/liam,2763,feat: implement Deep Modeling toggle processing logic,javascript,Devin,4194,4382
+liam-hq/liam,2762,feat: Complete Upload functionality server-side processing,javascript,Devin,4194,2958
+liam-hq/liam,2761,feat: temporarily hide voice input and file attachment UI,javascript,Devin,4194,3049
+microsoft/vscode,258447,Fix duplicate Windows 11 context menu entries for VS Code Insiders,javascript,Copilot,175171,3060
+bugsink/bugsink,171,[WIP] vacuum ingest dir,python,Copilot,908,1548
+StarRocks/starrocks,61403,Implement json_contains and fix issue 57086,java,Cursor,10390,2877
+mfts/papermark,1788,feat: add cancel export button and recent exports,javascript,Cursor,6902,864
+ibelick/zola,252,Generate comprehensive API documentation,javascript,Cursor,960,1021
+miurla/morphic,595,fix: prevent displaying '0' results during loading in search section,javascript,Devin,7858,2178
+liam-hq/liam,2759,feat: update CodeRabbit configuration with comprehensive settings,javascript,Devin,4194,3596
+cloudflare/workers-sdk,10112,fix: handle workflow bindings in getPlatformProxy(),javascript,Devin,3307,5464
+StarRocks/starrocks,61394,[Feature] implement json_remove,java,Cursor,10390,3150
+microsoft/vscode,258424,Restore Windows ARM64 emulation warning with proper detection,javascript,Copilot,175171,2944
+remotion-dev/remotion,5538,@remotion/webcodecs: Add documentation for getPartialAudioData() API,javascript,Copilot,23319,1966
+cloudflare/workers-sdk,10111,feat: improve CORS validation with AWS S3 format detection,javascript,Devin,3307,4954
+liam-hq/liam,2752,feat: implement structured DML-Usecase mapping artifact display,javascript,Devin,4194,3560
+liam-hq/liam,2750,refactor: remove unused repositories annotation from langGraphUtils.ts,javascript,Devin,4194,1677
+skypilot-org/skypilot,6414,Fix skypilot github issue 6413,python,Cursor,8435,2042
+YunaiV/ruoyi-vue-pro,906,Optimize readme file,java,Cursor,32556,972
+CarGuo/GSYGithubAPP,138,Upgrade GSYGithubAPP to React Native 0.74 with complete navigation modernization and runtime error resolution,javascript,Copilot,2410,6469
+halo-dev/halo,7644,Optimize homepage post loading by eliminating N+1 queries for user data,java,Copilot,36165,4386
+ikamensh/flynt,244,Refactor CodeEditor to accept state directly,python,OpenAI_Codex,718,377
+microsoft/vscode,258402,Fix leaked disposables when closing notebook inline chat,javascript,Copilot,175171,3422
+OWASP/wrongsecrets,2121,Fix ZAP DAST scan security issues and resolve GitHub Actions workflow failures,java,Copilot,1336,3757
+CarGuo/GSYGithubAPP,137,Upgrade React Native from 0.61.3 to 0.74.5 with complete dependency migration,javascript,Copilot,2410,6415
+Wei-Shaw/claude-relay-service,114,feat: Add tag support for API Keys and fix OAuth token exchange,javascript,Claude_Code,1000,1698
+liam-hq/liam,2749,feat: implement validation result mapping for DML-Usecase association,javascript,Devin,4194,3298
+microsoft/genaiscript,1800,Add system prompts for Ruby and PHP programming with automatic activation,javascript,Copilot,2742,2212
+microsoft/genaiscript,1799,Implement Simplified GenAIScript Markdown Reference Link Validator,javascript,Copilot,2742,2504
+liam-hq/liam,2746,feat: implement artifact transformation logic for DML-Usecase mapping,javascript,Devin,4194,2917
+liam-hq/liam,2745,feat: restructure DMLGenerationAgent to output structured DmlOperation[],javascript,Devin,4194,734
+liam-hq/liam,2743,feat: extend Usecase schema with UUID and DML operations array,javascript,Devin,4194,646
+mlflow/mlflow,16927,Sort requirements alphabetically in generate_requirements.py output,python,Copilot,21402,1922
+quay/quay,4158,fix: add comprehensive global readonly superuser endpoint testing (PROJQUAY-8279),python,Claude_Code,2651,469
+ryokun6/ryos,238,Add song id to ipod playlist,javascript,Cursor,558,1173
+ryokun6/ryos,237,Start auto-hide timer on interaction,javascript,Cursor,558,75
+mastra-ai/mastra,6363,Research and code AI SDK v5 transforms,javascript,Cursor,15412,2050
+microsoft/vscode,258382,[WIP] Fixing Issue #257872 in VSCode Repository,javascript,Copilot,175171,1689
+langchain-ai/langgraph,5697,Refactor create_react_agent to use internal _AgentBuilder helper class,python,Copilot,16579,2697
+roboflow/inference,1461,Create and monitor image batch,python,Cursor,1824,386
+3rdIteration/btcrecover,613,Fix Blockchain mnemonic GUID parsing,python,OpenAI_Codex,742,257
+antiwork/flexile,661,Add Turbopack support for faster development builds,ruby,Devin,665,3326
+mendableai/firecrawl,1877,feat(v2): add natural language prompt support to crawl API,javascript,Devin,43970,4450
+liveblocks/liveblocks,2550,Add OpenAPI schema link to README developers section,javascript,Devin,4100,2997
+stanford-crfm/levanter,1112,Implement DecodeState operations,python,OpenAI_Codex,628,379
+AgentOps-AI/agentops,1179,Add llms.txt compilation system for AI model documentation,python,Devin,4722,3841
+ruvnet/claude-flow,490,🚀 Alpha.75: Windows Compatibility Overhaul (Based on PR #483 by @alexx-ftw),javascript,Claude_Code,4630,2122
+mendableai/firecrawl,1874,fix: switch RPC calls from read replica to main service,javascript,Devin,43970,4057
+ruvnet/claude-flow,489,🚀 Alpha.74: SQLite & Async/Await Fixes,javascript,Claude_Code,4630,1878
+gensx-inc/gensx,907,fix: make @libsql/client optional in @gensx/storage,javascript,OpenAI_Codex,504,179
+liveblocks/liveblocks,2549,Add storage documentation page,javascript,Devin,4100,3137
+basicmachines-co/basic-memory,241,fix: handle missing 'name' key in memory JSON import,python,Claude_Code,1460,917
+antiwork/flexile,654,Configure tests workflow to run only on push events,ruby,Devin,665,2511
+antiwork/gumroad,699,"Add search bar to admin purchases page with product name, date range, and status filters",ruby,Devin,6643,3633
+antiwork/flexile,652,Add comprehensive component guidance to copilot instructions and cursor rules,ruby,Devin,665,3230
+3rdIteration/btcrecover,612,Add CI workflow for PoCL,python,OpenAI_Codex,742,342
+onlook-dev/onlook,2554,Add user_first_signup PostHog event for reliable server-side signup tracking,javascript,Devin,21192,3197
 copy/v86,1375,Codex/develop forge app for wasm emulator,javascript,OpenAI_Codex,21023,0
-liveblocks/liveblocks,2548,Add svix-cli testing section to webhooks documentation,javascript,Devin,4100,0
-liveblocks/liveblocks,2547,Add svix-cli testing section to webhooks documentation,javascript,Devin,4100,0
-3rdIteration/btcrecover,611,Add manual verification message,python,OpenAI_Codex,742,0
-antiwork/flexile,650,Add schema synchronization and PR self-review guidelines,ruby,Devin,665,0
-antiwork/gumroad,697,Configure user-sales-data/ prefix for sales CSV uploads,ruby,Devin,6643,0
-567-labs/instructor,1752,Add integration tests for thinking_config with create_iterable,python,Devin,11095,0
-ikamensh/flynt,242,Enable hatch-vcs versioning,python,OpenAI_Codex,718,0
-ikamensh/flynt,241,Adjust CI matrix,python,OpenAI_Codex,718,0
-codexu/note-gen,481,feat: 增加AI配置自定义请求头功能,javascript,Claude_Code,7248,0
-ikamensh/flynt,239,Support notebook conversion,python,OpenAI_Codex,718,0
-antiwork/helper,819,Add React hooks wrapper for @helperai/client APIs,javascript,Devin,537,0
-TobikoData/sqlmesh,5042,Implement vscode test controller,python,OpenAI_Codex,2499,0
-elastic/kibana,229602,Fix accessibility: Update aria-labels for findings filter buttons to announce filter functionality,javascript,Copilot,20613,0
-microsoft/vscode,258172,Cherry-pick OOM fix: Replace AsyncIterableObject with AsyncIterableProducer to prevent memory leaks,javascript,Copilot,175171,0
-microsoft/vscode,258171,Set triggerCommandOnProviderChange default to false to fix #256458,javascript,Copilot,175171,0
-microsoft/vscode-pull-request-github,7418,Add ESLint pre-commit hook to ensure code quality,javascript,Copilot,2421,0
-calcom/cal.com,22768,refactor: convert checkBookingLimits to class service with dependency injection,javascript,Devin,37399,0
-tadata-org/fastapi_mcp,205,Add stateful streamable http transport,python,Cursor,6761,0
-mlflow/mlflow,16915,Fix typos in pyproject.toml: 'improt' and 'unecessary',python,Copilot,21402,0
-streamich/json-joy,923,Add recursive schema types support with function wrappers,javascript,Copilot,891,0
-ikamensh/flynt,236,Fix escaped newline handling,python,OpenAI_Codex,718,0
-microsoft/vscode,258150,Fix Pull Request card issue number wrapping in chat interface,javascript,Copilot,175171,0
-mlflow/mlflow,16913,Update setup-python action to remove Python 3.9 and add Python 3.11 support,python,Copilot,21402,0
-mlflow/mlflow,16911,Remove ParamSpec from typing-extensions-allowlist after dropping Python 3.9 support,python,Copilot,21402,0
-mlflow/mlflow,16909,Remove D417 from Ruff lint rules (duplicate with clint),python,Copilot,21402,0
-ryokun6/ryos,233,Apply os-font-ui to sonner toast,javascript,Cursor,558,0
-liam-hq/liam,2729,feat: wrap applyPatchOperations with neverthrow fromThrowable and return new object,javascript,Devin,4194,0
-ryokun6/ryos,232,Update iPod player UI elements,javascript,Cursor,558,0
-AgentOps-AI/agentops,1174,"Fix documentation issues: deprecated session references, multi-turn guidance, ADK clarifications",python,Devin,4722,0
-microsoft/vscode-pull-request-github,7415,[WIP] Generating VS Code Product Links for Chat Response Turn 2,javascript,Copilot,2421,0
-gitroomhq/postiz-app,901,Fix Discord bot IndentationError by implementing complete Python service,javascript,Copilot,22784,0
-microsoft/vscode-pull-request-github,7414,[WIP] Aligning Setup Logs Display in CopilotRemoteAgentManager with Session Log Editor,javascript,Copilot,2421,0
-crewAIInc/crewAI-tools,397,feat: Add support for stateless HTTP MCP servers,python,Devin,1177,0
-microsoft/typespec,8029,[python] Support python 3.13,java,Copilot,5285,0
-miurla/morphic,588,fix: prevent image upload button from triggering form submission,javascript,Devin,7858,0
-liam-hq/liam,2717,Remove unused logger parameters from workflow system,javascript,Devin,4194,0
-graphistry/pygraphistry,716,docs(gfql): Comprehensive GFQL documentation updates,python,Claude_Code,2307,0
-graphistry/pygraphistry,715,"feat(gfql): Consolidated GFQL core implementation - AST nodes, Let bindings, Call operations",python,Claude_Code,2307,0
-willccbb/verifiers,166,Benchmark review and improvement with gpt-4.1-mini,python,Cursor,1663,0
-liam-hq/liam,2705,feat: disable Renovate updates for @huggingface/transformers above 3.3.3,javascript,Devin,4194,0
-ikamensh/flynt,235,Adjust aggressive %d behavior,python,OpenAI_Codex,718,0
-ikamensh/flynt,234,Handle concats with backslashes,python,OpenAI_Codex,718,0
-ikamensh/flynt,232,Add CI auto fix for ruff,python,OpenAI_Codex,718,0
-ikamensh/flynt,231,Handle raw string prefixes,python,OpenAI_Codex,718,0
-ikamensh/flynt,230,Fix octal escape handling,python,OpenAI_Codex,718,0
-ikamensh/flynt,229,Fix unicode escape preservation when mixed with literal chars,python,OpenAI_Codex,718,0
-ikamensh/flynt,228,Fix concatenation transform for constant chains,python,OpenAI_Codex,718,0
-ikamensh/flynt,227,Fix transform-concats for literal-only joins,python,OpenAI_Codex,718,0
-ikamensh/flynt,226,Preserve unicode escapes,python,OpenAI_Codex,718,0
-valkey-io/valkey-glide,4486,Eliminate ACL permission requirements for CLIENT commands with intelligent detection,java,Copilot,538,0
-aipotheosis-labs/aci,555,Add plan display section with upgrade button to sidebar,python,Devin,4464,0
-aipotheosis-labs/aci,554,Capitalize plan name and add upgrade button to usage page,python,Devin,4464,0
-neutronX/django-markdownx,285,Ensure MarkdownX textarea resizability after tab switch,python,OpenAI_Codex,914,0
-streamich/memfs,1119,Fix fs.createReadStream throwing ERR_OUT_OF_RANGE with start parameter,javascript,Copilot,1919,0
-streamich/memfs,1118,Add support for Worker instances and module URLs in FsaNodeSyncAdapterWorker,javascript,Copilot,1919,0
-elastic/kibana,229539,Unskip Cloud Security Posture integration tests,javascript,Copilot,20613,0
-ryokun6/ryos,229,Set blue lavender video as default wallpaper,javascript,Cursor,558,0
-stanford-crfm/levanter,1111,Fix GPT-2 integration workflow install,python,OpenAI_Codex,628,0
-OWASP/wrongsecrets,2120,Add comprehensive secret scanner comparison GitHub Action workflow,java,Copilot,1336,0
-crewAIInc/crewAI,3227,Fix custom tool registration in CrewAI 0.150.0,python,Devin,35096,0
-EdgeTranslate/EdgeTranslate,636,Codex/revisar todos e melhorar tratamento de erros,javascript,OpenAI_Codex,2868,0
-willccbb/verifiers,161,Create and evaluate a new environment with a dataset,python,Cursor,1663,0
-willccbb/verifiers,160,Create and evaluate a new Hugging Face environment,python,Cursor,1663,0
-ikamensh/flynt,225,Fix byte offsets for unicode strings,python,OpenAI_Codex,718,0
-stanford-crfm/levanter,1110,Fix GPT-2 integration workflow install,python,OpenAI_Codex,628,0
-stanford-crfm/levanter,1109,Fix TPU test skipping logic,python,OpenAI_Codex,628,0
-stanford-crfm/levanter,1108,Fix docs by re-exporting SkipStepConfig,python,OpenAI_Codex,628,0
-tolwi/hassio-ecoflow-cloud,538,Add Backup reserve to RIVER 2 Pro,python,OpenAI_Codex,608,0
-stanford-crfm/levanter,1106,Add mixture dataset cache subsampling utility,python,OpenAI_Codex,628,0
-stanford-crfm/levanter,1105,Fix equinox static_field warnings in tests,python,OpenAI_Codex,628,0
-antiwork/helper,817,Add /api/chat/conversations/unread endpoint,javascript,Devin,537,0
-3rdIteration/btcrecover,609,Add Termux test workflow,python,OpenAI_Codex,742,0
-vitejs/vite-plugin-react,631,Update React Router RSC example to match official template structure,javascript,Copilot,821,0
-microsoft/vscode,257977,Cherry-pick: Fix VS Code OOM issues with AsyncIterableProducer,javascript,Copilot,175171,0
-unsend-dev/unsend,189,Fix Admin sidebar item visibility for self-hosted deployments,javascript,Copilot,1787,0
-ikamensh/flynt,224,Handle str and repr call conversions,python,OpenAI_Codex,718,0
-ikamensh/flynt,223,Add architecture overview,python,OpenAI_Codex,718,0
-yysun/apprun,151,Replace generic type parameter defaults from `any` to `unknown`,javascript,Copilot,1177,0
-puemos/hls-downloader,427,Enable npm workspaces,javascript,OpenAI_Codex,2252,0
-puemos/hls-downloader,426,Update usage instructions,javascript,OpenAI_Codex,2252,0
-puemos/hls-downloader,425,Remove leftover console logs,javascript,OpenAI_Codex,2252,0
-ikamensh/flynt,222,Make report optional and refine output,python,OpenAI_Codex,718,0
-ikamensh/flynt,221,Add adversarial case for conversion fields,python,OpenAI_Codex,718,0
-ikamensh/flynt,220,Add failing test for newline escape issue,python,OpenAI_Codex,718,0
-puemos/hls-downloader,424,Improve repo guidance,javascript,OpenAI_Codex,2252,0
-puemos/hls-downloader,423,Fix fetch retry logic,javascript,OpenAI_Codex,2252,0
-CapSoftware/Cap,807,Fix upgrade modal redirect logic,javascript,OpenAI_Codex,10645,0
-gridaco/grida,406,Create gradient control points editor component,javascript,Cursor,2138,0
-OWASP/wrongsecrets,2117,docs: Add comprehensive documentation for AI agent efficiency,java,Copilot,1336,0
-yutto-dev/yutto,539,"♻️ refactor: optimize repository structure, rename `bilibili_typing` to media and improve function naming",python,Copilot,1461,0
-OWASP/wrongsecrets,2115,Auto-create master Docker containers and publish to GitHub Container Registry,java,Copilot,1336,0
-valkey-io/valkey-glide,4481,Fix CodeQL Java/Kotlin detection by building all modules with assemble task,java,Copilot,538,0
-ikamensh/flynt,218,Switch to ast.unparse for source generation,python,OpenAI_Codex,718,0
-ikamensh/flynt,217,Fix backslash handling in format conversion,python,OpenAI_Codex,718,0
-ikamensh/flynt,216,Add AGENTS developer guide,python,OpenAI_Codex,718,0
-onlook-dev/onlook,2540,feat: enable PostHog session recording for iframe canvas,javascript,Devin,21192,0
-pixeltable/pixeltable,729,"[Testing Cursor Background Agent] ""Find and fix 3 bugs in the codebase...""",python,Cursor,687,0
-thirdweb-dev/js,7720,Improve package documentation and create READMEs,javascript,Cursor,538,0
-vscode-neovim/vscode-neovim,2526,Fix search & replace confirmation dialog handling for :%s/foo/bar/gc commands,javascript,Copilot,7197,0
-mastra-ai/mastra,6330,Convert data to Vercel ai sdk v5 format,javascript,Cursor,15412,0
-milvus-io/pymilvus,2911,Fix: Wait for all partitions in load_collection when some are still loading,python,Claude_Code,1230,0
-stanford-crfm/levanter,1102,Optimize careless LM evaluation,python,OpenAI_Codex,628,0
-mendableai/firecrawl,1858,feat: restructure formats parameter in Scrape v2 to support object configurations,javascript,Devin,43970,0
-streamlit/streamlit,12041,Add query parameter support to st.page_link and st.switch_page,python,Copilot,40681,0
-aipotheosis-labs/aci,552,Upgrade Tailwind CSS from v3 to v4,python,Devin,4464,0
+liveblocks/liveblocks,2548,Add svix-cli testing section to webhooks documentation,javascript,Devin,4100,2919
+liveblocks/liveblocks,2547,Add svix-cli testing section to webhooks documentation,javascript,Devin,4100,2912
+3rdIteration/btcrecover,611,Add manual verification message,python,OpenAI_Codex,742,270
+antiwork/flexile,650,Add schema synchronization and PR self-review guidelines,ruby,Devin,665,2395
+antiwork/gumroad,697,Configure user-sales-data/ prefix for sales CSV uploads,ruby,Devin,6643,2807
+567-labs/instructor,1752,Add integration tests for thinking_config with create_iterable,python,Devin,11095,4304
+ikamensh/flynt,242,Enable hatch-vcs versioning,python,OpenAI_Codex,718,377
+ikamensh/flynt,241,Adjust CI matrix,python,OpenAI_Codex,718,256
+codexu/note-gen,481,feat: 增加AI配置自定义请求头功能,javascript,Claude_Code,7248,280
+ikamensh/flynt,239,Support notebook conversion,python,OpenAI_Codex,718,511
+antiwork/helper,819,Add React hooks wrapper for @helperai/client APIs,javascript,Devin,537,4171
+TobikoData/sqlmesh,5042,Implement vscode test controller,python,OpenAI_Codex,2499,378
+elastic/kibana,229602,Fix accessibility: Update aria-labels for findings filter buttons to announce filter functionality,javascript,Copilot,20613,3114
+microsoft/vscode,258172,Cherry-pick OOM fix: Replace AsyncIterableObject with AsyncIterableProducer to prevent memory leaks,javascript,Copilot,175171,3239
+microsoft/vscode,258171,Set triggerCommandOnProviderChange default to false to fix #256458,javascript,Copilot,175171,2141
+microsoft/vscode-pull-request-github,7418,Add ESLint pre-commit hook to ensure code quality,javascript,Copilot,2421,2152
+calcom/cal.com,22768,refactor: convert checkBookingLimits to class service with dependency injection,javascript,Devin,37399,3848
+tadata-org/fastapi_mcp,205,Add stateful streamable http transport,python,Cursor,6761,1292
+mlflow/mlflow,16915,Fix typos in pyproject.toml: 'improt' and 'unecessary',python,Copilot,21402,927
+streamich/json-joy,923,Add recursive schema types support with function wrappers,javascript,Copilot,891,1864
+ikamensh/flynt,236,Fix escaped newline handling,python,OpenAI_Codex,718,592
+microsoft/vscode,258150,Fix Pull Request card issue number wrapping in chat interface,javascript,Copilot,175171,2199
+mlflow/mlflow,16913,Update setup-python action to remove Python 3.9 and add Python 3.11 support,python,Copilot,21402,2076
+mlflow/mlflow,16911,Remove ParamSpec from typing-extensions-allowlist after dropping Python 3.9 support,python,Copilot,21402,1797
+mlflow/mlflow,16909,Remove D417 from Ruff lint rules (duplicate with clint),python,Copilot,21402,1369
+ryokun6/ryos,233,Apply os-font-ui to sonner toast,javascript,Cursor,558,510
+liam-hq/liam,2729,feat: wrap applyPatchOperations with neverthrow fromThrowable and return new object,javascript,Devin,4194,2457
+ryokun6/ryos,232,Update iPod player UI elements,javascript,Cursor,558,370
+AgentOps-AI/agentops,1174,"Fix documentation issues: deprecated session references, multi-turn guidance, ADK clarifications",python,Devin,4722,3351
+microsoft/vscode-pull-request-github,7415,[WIP] Generating VS Code Product Links for Chat Response Turn 2,javascript,Copilot,2421,2000
+gitroomhq/postiz-app,901,Fix Discord bot IndentationError by implementing complete Python service,javascript,Copilot,22784,2983
+microsoft/vscode-pull-request-github,7414,[WIP] Aligning Setup Logs Display in CopilotRemoteAgentManager with Session Log Editor,javascript,Copilot,2421,2362
+crewAIInc/crewAI-tools,397,feat: Add support for stateless HTTP MCP servers,python,Devin,1177,4101
+microsoft/typespec,8029,[python] Support python 3.13,java,Copilot,5285,2079
+miurla/morphic,588,fix: prevent image upload button from triggering form submission,javascript,Devin,7858,3144
+liam-hq/liam,2717,Remove unused logger parameters from workflow system,javascript,Devin,4194,3792
+graphistry/pygraphistry,716,docs(gfql): Comprehensive GFQL documentation updates,python,Claude_Code,2307,2594
+graphistry/pygraphistry,715,"feat(gfql): Consolidated GFQL core implementation - AST nodes, Let bindings, Call operations",python,Claude_Code,2307,2959
+willccbb/verifiers,166,Benchmark review and improvement with gpt-4.1-mini,python,Cursor,1663,3019
+liam-hq/liam,2705,feat: disable Renovate updates for @huggingface/transformers above 3.3.3,javascript,Devin,4194,1932
+ikamensh/flynt,235,Adjust aggressive %d behavior,python,OpenAI_Codex,718,528
+ikamensh/flynt,234,Handle concats with backslashes,python,OpenAI_Codex,718,538
+ikamensh/flynt,232,Add CI auto fix for ruff,python,OpenAI_Codex,718,312
+ikamensh/flynt,231,Handle raw string prefixes,python,OpenAI_Codex,718,367
+ikamensh/flynt,230,Fix octal escape handling,python,OpenAI_Codex,718,419
+ikamensh/flynt,229,Fix unicode escape preservation when mixed with literal chars,python,OpenAI_Codex,718,307
+ikamensh/flynt,228,Fix concatenation transform for constant chains,python,OpenAI_Codex,718,425
+ikamensh/flynt,227,Fix transform-concats for literal-only joins,python,OpenAI_Codex,718,596
+ikamensh/flynt,226,Preserve unicode escapes,python,OpenAI_Codex,718,519
+valkey-io/valkey-glide,4486,Eliminate ACL permission requirements for CLIENT commands with intelligent detection,java,Copilot,538,3586
+aipotheosis-labs/aci,555,Add plan display section with upgrade button to sidebar,python,Devin,4464,3816
+aipotheosis-labs/aci,554,Capitalize plan name and add upgrade button to usage page,python,Devin,4464,3746
+neutronX/django-markdownx,285,Ensure MarkdownX textarea resizability after tab switch,python,OpenAI_Codex,914,201
+streamich/memfs,1119,Fix fs.createReadStream throwing ERR_OUT_OF_RANGE with start parameter,javascript,Copilot,1919,1989
+streamich/memfs,1118,Add support for Worker instances and module URLs in FsaNodeSyncAdapterWorker,javascript,Copilot,1919,1512
+elastic/kibana,229539,Unskip Cloud Security Posture integration tests,javascript,Copilot,20613,1749
+ryokun6/ryos,229,Set blue lavender video as default wallpaper,javascript,Cursor,558,357
+stanford-crfm/levanter,1111,Fix GPT-2 integration workflow install,python,OpenAI_Codex,628,326
+OWASP/wrongsecrets,2120,Add comprehensive secret scanner comparison GitHub Action workflow,java,Copilot,1336,2276
+crewAIInc/crewAI,3227,Fix custom tool registration in CrewAI 0.150.0,python,Devin,35096,3917
+EdgeTranslate/EdgeTranslate,636,Codex/revisar todos e melhorar tratamento de erros,javascript,OpenAI_Codex,2868,80
+willccbb/verifiers,161,Create and evaluate a new environment with a dataset,python,Cursor,1663,2395
+willccbb/verifiers,160,Create and evaluate a new Hugging Face environment,python,Cursor,1663,1928
+ikamensh/flynt,225,Fix byte offsets for unicode strings,python,OpenAI_Codex,718,310
+stanford-crfm/levanter,1110,Fix GPT-2 integration workflow install,python,OpenAI_Codex,628,317
+stanford-crfm/levanter,1109,Fix TPU test skipping logic,python,OpenAI_Codex,628,248
+stanford-crfm/levanter,1108,Fix docs by re-exporting SkipStepConfig,python,OpenAI_Codex,628,554
+tolwi/hassio-ecoflow-cloud,538,Add Backup reserve to RIVER 2 Pro,python,OpenAI_Codex,608,111
+stanford-crfm/levanter,1106,Add mixture dataset cache subsampling utility,python,OpenAI_Codex,628,417
+stanford-crfm/levanter,1105,Fix equinox static_field warnings in tests,python,OpenAI_Codex,628,304
+antiwork/helper,817,Add /api/chat/conversations/unread endpoint,javascript,Devin,537,3998
+3rdIteration/btcrecover,609,Add Termux test workflow,python,OpenAI_Codex,742,403
+vitejs/vite-plugin-react,631,Update React Router RSC example to match official template structure,javascript,Copilot,821,3258
+microsoft/vscode,257977,Cherry-pick: Fix VS Code OOM issues with AsyncIterableProducer,javascript,Copilot,175171,2758
+unsend-dev/unsend,189,Fix Admin sidebar item visibility for self-hosted deployments,javascript,Copilot,1787,3694
+ikamensh/flynt,224,Handle str and repr call conversions,python,OpenAI_Codex,718,323
+ikamensh/flynt,223,Add architecture overview,python,OpenAI_Codex,718,213
+yysun/apprun,151,Replace generic type parameter defaults from `any` to `unknown`,javascript,Copilot,1177,6331
+puemos/hls-downloader,427,Enable npm workspaces,javascript,OpenAI_Codex,2252,420
+puemos/hls-downloader,426,Update usage instructions,javascript,OpenAI_Codex,2252,215
+puemos/hls-downloader,425,Remove leftover console logs,javascript,OpenAI_Codex,2252,300
+ikamensh/flynt,222,Make report optional and refine output,python,OpenAI_Codex,718,453
+ikamensh/flynt,221,Add adversarial case for conversion fields,python,OpenAI_Codex,718,377
+ikamensh/flynt,220,Add failing test for newline escape issue,python,OpenAI_Codex,718,171
+puemos/hls-downloader,424,Improve repo guidance,javascript,OpenAI_Codex,2252,211
+puemos/hls-downloader,423,Fix fetch retry logic,javascript,OpenAI_Codex,2252,319
+CapSoftware/Cap,807,Fix upgrade modal redirect logic,javascript,OpenAI_Codex,10645,285
+gridaco/grida,406,Create gradient control points editor component,javascript,Cursor,2138,930
+OWASP/wrongsecrets,2117,docs: Add comprehensive documentation for AI agent efficiency,java,Copilot,1336,2513
+yutto-dev/yutto,539,"♻️ refactor: optimize repository structure, rename `bilibili_typing` to media and improve function naming",python,Copilot,1461,2222
+OWASP/wrongsecrets,2115,Auto-create master Docker containers and publish to GitHub Container Registry,java,Copilot,1336,1674
+valkey-io/valkey-glide,4481,Fix CodeQL Java/Kotlin detection by building all modules with assemble task,java,Copilot,538,1682
+ikamensh/flynt,218,Switch to ast.unparse for source generation,python,OpenAI_Codex,718,757
+ikamensh/flynt,217,Fix backslash handling in format conversion,python,OpenAI_Codex,718,514
+ikamensh/flynt,216,Add AGENTS developer guide,python,OpenAI_Codex,718,290
+onlook-dev/onlook,2540,feat: enable PostHog session recording for iframe canvas,javascript,Devin,21192,5113
+pixeltable/pixeltable,729,"[Testing Cursor Background Agent] ""Find and fix 3 bugs in the codebase...""",python,Cursor,687,751
+thirdweb-dev/js,7720,Improve package documentation and create READMEs,javascript,Cursor,538,4803
+vscode-neovim/vscode-neovim,2526,Fix search & replace confirmation dialog handling for :%s/foo/bar/gc commands,javascript,Copilot,7197,3286
+mastra-ai/mastra,6330,Convert data to Vercel ai sdk v5 format,javascript,Cursor,15412,1828
+milvus-io/pymilvus,2911,Fix: Wait for all partitions in load_collection when some are still loading,python,Claude_Code,1230,1928
+stanford-crfm/levanter,1102,Optimize careless LM evaluation,python,OpenAI_Codex,628,433
+mendableai/firecrawl,1858,feat: restructure formats parameter in Scrape v2 to support object configurations,javascript,Devin,43970,4444
+streamlit/streamlit,12041,Add query parameter support to st.page_link and st.switch_page,python,Copilot,40681,5304
+aipotheosis-labs/aci,552,Upgrade Tailwind CSS from v3 to v4,python,Devin,4464,4609
 commaai/opendbc,2563,CI: auto-update cppcheck,python,OpenAI_Codex,2457,0
-aipotheosis-labs/aci,551,Change main fonts from Geist to Lexend,python,Devin,4464,0
-aipotheosis-labs/aci,550,Remove subscription limits from pricing page,python,OpenAI_Codex,4464,0
-mendableai/firecrawl,1856,feat: implement summary format for v1 and v2 APIs,javascript,Devin,43970,0
-adaline/gateway,105,feat(groq): add Llama 4 Maverick and Scout models,javascript,Devin,528,0
-aipotheosis-labs/aci,549,Adjust allowed apps dialog size,python,OpenAI_Codex,4464,0
-mendableai/firecrawl,1855,feat: remove systemPrompt override capability from v2 JSON mode,javascript,Devin,43970,0
-elixir-lsp/vscode-elixir-ls,493,Add dev container instructions,javascript,OpenAI_Codex,571,0
-mendableai/firecrawl,1854,feat: remove Fire-1 model from v2 API while keeping v1 functionality,javascript,Devin,43970,0
-mendableai/firecrawl,1853,feat: change skipTlsVerification default to true in v2 API,javascript,Devin,43970,0
-antiwork/flexile,635,Fix cap table ownership percentage calculations,ruby,Devin,665,0
-antiwork/flexile,634,Rename 'Cap table' to 'Investors' and update URL routing,ruby,Devin,665,0
-ikamensh/flynt,215,Add support for flynt skip comment,python,OpenAI_Codex,718,0
-ikamensh/flynt,214,Fix DeprecationWarnings for ast.Str,python,OpenAI_Codex,718,0
-antiwork/flexile,633,Remove caption prop from DataTable component,ruby,Devin,665,0
-antiwork/flexile,632,Replace bank account alert with placeholder for all users,ruby,Devin,665,0
-antiwork/flexile,631,Remove share classes table from cap table page,ruby,Devin,665,0
-stanford-crfm/levanter,1099,Update AGENTS: clarify jit safety rules,python,OpenAI_Codex,628,0
-ikamensh/flynt,213,Fix ast.Str deprecation,python,OpenAI_Codex,718,0
-stanford-crfm/levanter,1098,Refactor JitScheduler buffer shape,python,OpenAI_Codex,628,0
-ikamensh/flynt,212,Fix string.format assertion on variable names,python,OpenAI_Codex,718,0
-nrwl/nx,32088,fix(misc): validate workspace names to reject names starting with numbers,javascript,Claude_Code,26524,0
-mendableai/firecrawl,1851,feat: implement v2 batch scrape with improved error handling,javascript,Devin,43970,0
-mendableai/firecrawl,1850,feat: Add iframe selector transformation for includeTags and excludeTags,javascript,Devin,43970,0
-3rdIteration/btcrecover,608,Add hash-pinned requirement files,python,OpenAI_Codex,742,0
-Kilo-Org/kilocode,1509,Add readLines validation tests,javascript,OpenAI_Codex,6078,0
-567-labs/instructor,1748,fix: add Mode.BEDROCK_TOOLS support to streaming response parsing,python,Devin,11095,0
-Kilo-Org/kilocode,1508,Fix readDirectory path handling,javascript,OpenAI_Codex,6078,0
-liveblocks/liveblocks,2546,Fix race condition in auth manager for concurrent RoomProvider mounts,javascript,Devin,4100,0
-microsoft/playwright,36793,[docs] Add client certificates activation and rejection behavior documentation,javascript,Copilot,75427,0
-567-labs/instructor,1747,docs: enhance in-memory batch processing documentation,python,Devin,11095,0
-pnp/cli-microsoft365,6813,[WIP] Migrate 'entra administrativeunit remove' to Zod,javascript,Copilot,1005,0
-crewAIInc/crewAI,3221,fix: support agent_id in Mem0 memory save/search with OR filtering,python,Devin,35096,0
-samchon/nestia,1345,Upgrade glob dependency from v7 to v11 to address security vulnerabilities,javascript,Copilot,2047,0
-vitejs/vite-plugin-react,624,feat(rsc): validate `client-only` and `server-only` import during resolve,javascript,Copilot,821,0
-microsoft/vscode-pull-request-github,7400,Render emojis in labels correctly,javascript,Copilot,2421,0
-streamich/json-joy,919,"Fix critical bugs and anti-patterns: parameter reassignment, unsafe non-null assertions, and unclear type checks",javascript,Copilot,891,0
-microsoft/genaiscript,1798,Add LLM-optimized content generator sample with intelligent hash tracking for documentation processing,javascript,Copilot,2742,0
-microsoft/vscode-copilot-chat,365,Refactor log service to support direct logging methods without .logger. prefix,javascript,Copilot,8005,0
-pnp/cli-microsoft365,6811,Migrates 'entra administrativeunit list' to Zod. Closes #6810,javascript,Copilot,1005,0
-TobikoData/sqlmesh,5020,docs: fix table formatting,python,OpenAI_Codex,2499,0
-livestorejs/livestore,514,fix: implement comprehensive LiveStore events API with streaming and advanced filtering,javascript,Claude_Code,2705,0
-microsoft/genaiscript,1797,Fix: Do not include usage report in AI disclaimer when token usage is 0,javascript,Copilot,2742,0
-calcom/cal.com,22731,feat: add optional startTime prop to BookerPlatformWrapper,javascript,Devin,37399,0
-cockpit-project/cockpit,22245,Refactor enableRepo to include refresh option,javascript,Copilot,12330,0
-calcom/cal.com,22730,feat: add forceSelectedDate prop to bypass availability checks in DatePicker,javascript,Devin,37399,0
-remotion-dev/remotion,5529,`@remotion/renderer`: Allow scale factors leading to uneven dimensions,javascript,Copilot,23319,0
-mlflow/mlflow,16889,Add PLW1508 to ruff lint select list,python,Copilot,21402,0
-graphistry/pygraphistry,713,refactor: rename chain_dag to chain_let for semantic clarity,python,Claude_Code,2307,0
-intility/fastapi-azure-auth,250,chore: release new minor version 5.2.0,python,Copilot,542,0
-liam-hq/liam,2687,Re-enable noUncheckedIndexedAccess TypeScript strict option,javascript,Devin,4194,0
-microsoft/genaiscript,1796,"Add system prompt scripts for expert programming personas (Go, Rust, Java, C/C++)",javascript,Copilot,2742,0
-github/awesome-copilot,126,Fix table formatting issues under Reusable Prompt heading,javascript,Copilot,4290,0
-microsoft/typespec,8008,Fix Add-Debug-Profile.ps1 script: Update DLL path and replace generator parameter with management switch,java,Copilot,5285,0
-mastra-ai/mastra,6292,Refactor generate command to use Mastra workflow,javascript,Cursor,15412,0
-jsforce/jsforce,1736,Fix jsforce CLI output truncation at 64K when piped to other commands,javascript,Copilot,1421,0
-jsforce/jsforce,1735,Fix bulk query regex issue with parentheses in SELECT and WHERE clauses,javascript,Copilot,1421,0
-jsforce/jsforce,1734,Fix SOSL query encoding to properly handle escape sequences like \-,javascript,Copilot,1421,0
-microsoft/vscode,257754,Add Hello World extension demonstrating VS Code extension development patterns,javascript,Copilot,175171,0
-antiwork/gumroad,689,Add UTC timezone indicator to admin timestamps,ruby,Devin,6643,0
-mendableai/firecrawl,1847,Add allowTeammateInvites flag to TeamFlags type,javascript,Devin,43970,0
-mendableai/firecrawl,1846,Fix ignoreQueryParameters being ignored in URL deduplication - ENG-2804,javascript,Devin,43970,0
-mlflow/mlflow,16878,Fix tracking_uri positional argument bug in artifact repositories,python,Copilot,21402,0
-mendableai/firecrawl,1845,ENG-2829: Fix isSubdomain bug,javascript,Devin,43970,0
-mendableai/firecrawl,1844,Add __experimental_omceDomain flag for debugging and benchmarking,javascript,Devin,43970,0
-mendableai/firecrawl,1843,Fix robots.txt parser panic with content type validation,javascript,Devin,43970,0
-ryokun6/ryos,227,Update fonts in Windows themes,javascript,OpenAI_Codex,558,0
-ryokun6/ryos,226,Override Finder label font in System 7 theme,javascript,OpenAI_Codex,558,0
-mendableai/firecrawl,1840,feat: rewrite sitemap XML parsing from JavaScript to Rust (ENG-2904),javascript,Devin,43970,0
-ryokun6/ryos,225,Apply theme fonts for file icon labels,javascript,OpenAI_Codex,558,0
-antiwork/gumroad,685,Add constraints to Discover: require sales and compliant sellers,ruby,Devin,6643,0
-antiwork/flexile,626,Add Clerk test user setup documentation for Playwright tests,ruby,Devin,665,0
-antiwork/gumroad,684,Add archived purchases banner to library view,ruby,Devin,6643,0
-cypress-io/cypress,32095,internal: (studio) fix skipped test styling,javascript,Cursor,48796,0
-browser-use/browser-use,2535,Handle pdf viewer content with read file,python,Cursor,66661,0
-browser-use/browser-use,2534,Handle pdf viewer page detection and instruction,python,Cursor,66661,0
-browser-use/browser-use,2533,Inform llm about pdf viewer limitation,python,Cursor,66661,0
-antiwork/flexile,622,Match dividend check pattern to invoice requirements,ruby,Devin,665,0
-mendableai/firecrawl-mcp-server,78,feat: add batch scrape tools with maxConcurrency support (ENG-2756),javascript,Devin,3991,0
-browser-use/browser-use,2532,Enhance pdf viewer interaction for extraction,python,Cursor,66661,0
-openai/openai-agents-js,254,ci(docs): automate docs translation,javascript,OpenAI_Codex,925,0
-prebid/Prebid.js,13664,Test suite: use generic cache endpoint,javascript,OpenAI_Codex,1467,0
-reown-com/appkit,4712,Add https://cca-lite.coinbase.com to CSP connect-src directive,javascript,Devin,5202,0
-thirdweb-dev/js,7696,Update playground slugs and add redirects,javascript,Cursor,538,0
-TracecatHQ/tracecat,1287,feat: Add agent chat and runbook management,python,Claude_Code,2921,0
-GongRzhe/Gmail-MCP-Server,43,feat: add send-as alias support with custom display names,javascript,Claude_Code,568,0
-prebid/Prebid.js,13663,AdPod: remove longform e2e tests,javascript,OpenAI_Codex,1467,0
-prebid/Prebid.js,13662,Docs: update example config in bidder md files,javascript,OpenAI_Codex,1467,0
-StarRocks/starrocks,61248,[Doc] Improve schema tuning documentation,java,Cursor,10390,0
-antiwork/helper,813,Add context field to customerMetadata,javascript,Devin,537,0
-microsoft/genaiscript,1792,Add mermaid syntax repair chat participant to system.diagrams,javascript,Copilot,2742,0
-microsoft/genaiscript,1791,Add GitHub Actions documentation for whisper-asr container setup,javascript,Copilot,2742,0
-microsoft/genaiscript,1790,Implement fact assertions in test evaluation using classify runtime helper,javascript,Copilot,2742,0
-microsoft/genaiscript,1789,Migrate from mdtranslator script to GitHub action for continuous translations,javascript,Copilot,2742,0
-microsoft/genaiscript,1788,Fix critical linting errors and TypeScript compilation issues,javascript,Copilot,2742,0
-microsoft/genaiscript,1787,Implement Chain of Debate GenAIScript sample for multi-agent debate system,javascript,Copilot,2742,0
-taiga-family/taiga-ui,11419,fix(kit): escape key propagation in preview dialog to prevent closing parent dialog,javascript,Copilot,3672,0
-langfuse/langfuse,8097,chore: Remove add window button and its imports,javascript,Cursor,14483,0
-taiga-family/taiga-ui,11416,🗂 Add GitHub workflow to mirror PRs from forks,javascript,Copilot,3672,0
-cloudflare/next-on-pages,975,add support for nextjs instrumentation,javascript,Claude_Code,1471,0
-tokens-studio/figma-plugin,3471,"Add ""Open in Studio"" functionality for seamless navigation to Tokens Studio",javascript,Copilot,1469,0
-tokens-studio/figma-plugin,3470,Add prominent changeset requirements to .copilot-instructions.md,javascript,Copilot,1469,0
-imbhargav5/rooks,1849,Replace yolo rule with react hook creation rule,javascript,Cursor,3318,0
-ukrbublik/react-awesome-query-builder,1284,Refactor convertFromMongoDb to handle $and/$or operators in separate method,javascript,Copilot,2130,0
-elastic/kibana,229286,"[Graph] Update labels appearance with badges, tooltips and dynamic styling",javascript,Copilot,20613,0
-valkey-io/valkey-glide,4471,Fix Gradle build failures due to Maven Central rate limiting (HTTP 429),java,Copilot,538,0
-camunda/camunda,35889,Change Clock API timestamp format to ISO 8601 date-time and remove alpha status,java,Copilot,3746,0
-tokens-studio/figma-plugin,3469,Fix missing pull confirmation dialog when switching to Tokens Studio sync provider,javascript,Copilot,1469,0
-tokens-studio/figma-plugin,3468,Remove beta badge from Tokens Studio sync provider,javascript,Copilot,1469,0
-StarRocks/starrocks,61244,[Enhancement] support WHERE/LIKE for all show commands,java,Cursor,10390,0
-lingodotdev/lingo.dev,1061,feat: add Discord link to CLI help text,javascript,Devin,2784,0
-camunda/camunda,35888,Use OffsetDateTime for date-time fields in Java client,java,Copilot,3746,0
-devitocodes/devito,2682,Fix OpenMP SIMD pragma compatibility with GCC for blockinner=True,python,Copilot,612,0
-vitejs/vite,20468,feat(create-vite): support auto install dependencies and start dev,javascript,Copilot,74464,0
-valkey-io/valkey-glide,4469,Fix socket exhaustion in GlideClusterClient tests by optimizing connection management,java,Copilot,538,0
-Skyvern-AI/skyvern,3024,Switch from Poetry to uv,python,OpenAI_Codex,13976,0
-Voxelum/x-minecraft-launcher,1029,Fix OpenAL permissions with PulseAudio on Linux systems,javascript,Copilot,1070,0
-aws-samples/generative-ai-use-cases,1193,✨ feat(multi-tenant): add dynamic IAM roles per tenant for isolated resource access,javascript,Claude_Code,1117,0
-binarywang/WxJava,3659,Add raw JSON preservation capability to v3 API results for accessing undefined fields,java,Copilot,31663,0
-binarywang/WxJava,3658,Add support for ot_info_v2 structure in WeChat Work attendance rules API,java,Copilot,31663,0
-binarywang/WxJava,3657,[WIP] 希望支持微信云托管,java,Copilot,31663,0
-binarywang/WxJava,3656,Add missing sub_mchid and sub_appid fields to CombineCloseRequest.SubOrders,java,Copilot,31663,0
-binarywang/WxJava,3655,Fix SSL handshake failure by supporting modern TLS versions,java,Copilot,31663,0
-binarywang/WxJava,3654,Add WxOpenMaService support to WxOpenMessageRouter with routeForMa methods,java,Copilot,31663,0
-binarywang/WxJava,3653,Add overseas WeChat Pay support with GlobalTradeTypeEnum and new API methods,java,Copilot,31663,0
-binarywang/WxJava,3652,Fix directLeader empty array serialization for WeChat Work user update API,java,Copilot,31663,0
-binarywang/WxJava,3651,Fix WeChat League API URL patterns to resolve error 48001,java,Copilot,31663,0
-ruvnet/claude-flow,456,fix: resolve hive-mind sessions.forEach error (fixes #453),javascript,Claude_Code,4630,0
-binarywang/WxJava,3650,Fix Redis lock key serialization inconsistency in RedisTemplateSimpleDistributedLock,java,Copilot,31663,0
-binarywang/WxJava,3649,Fix WeChat Pay profit-sharing callback signature verification line separator inconsistency,java,Copilot,31663,0
-binarywang/WxJava,3648,Implement HTTP connection pooling for WxPayServiceApacheHttpImpl,java,Copilot,31663,0
-binarywang/WxJava,3647,Add comprehensive documentation and examples for WeChat Pay new merchant transfer APIs,java,Copilot,31663,0
-binarywang/WxJava,3646,Fix StackOverflowError in WxCpRedissonConfigImpl and WxCpRedisTemplateConfigImpl toString() methods,java,Copilot,31663,0
-Mail-0/Zero,1816,"feat: add Grafana monitoring for ZeroAgent, ZeroDriver, and tRPC performance",javascript,Devin,9132,0
-apolloconfig/apollo,5438,Fix security vulnerabilities in netty-handler and zookeeper dependencies,java,Copilot,29581,0
-lynx-family/lynx-stack,1340,feat: pass crossorigin attribute value to the internal <img> element for x-image,javascript,Copilot,585,0
-StarRocks/starrocks,61227,[UT] fix junit4 in OuterJoinEliminationRuleTest.java,java,Cursor,10390,0
-liam-hq/liam,2675,Use shared TypeScript base config for docs tsconfig.json,javascript,Devin,4194,0
-mlflow/mlflow,16861,Add event validation to `test_webhook` function,python,Claude_Code,21402,0
-StarRocks/starrocks,61224,[Tool] Add cursor rules and code organization instructions,java,Cursor,10390,0
-voideditor/void,844,Create ML Engineer Tools extension with comprehensive ML development …,javascript,Cursor,26276,0
-ryokun6/ryos,224,Fix soundboard app crash on mobile safari,javascript,Cursor,558,0
-StarRocks/starrocks,61219,[Enhancement] support json type in mysql external table,java,Cursor,10390,0
-Mail-0/Zero,1814,Implement custom domains with Amazon SES integration,javascript,Devin,9132,0
-microsoft/vscode,257578,Add Hello World extension demonstrating basic VS Code extension structure,javascript,Copilot,175171,0
-microsoft/vscode,257577,[WIP] Creation of a Hello World Extension,javascript,Copilot,175171,0
-microsoft/vscode,257576,Add Hello World extension to demonstrate basic VS Code extension development,javascript,Copilot,175171,0
-apolloconfig/apollo,5437,[WIP] config Service配置拉取接口，传递的namespace名称末端带有空格，导致拉取配置返回的配置不是最新的,java,Copilot,29581,0
-Azure/azure-sdk-for-python,42196,[Key Vault] Add docstring examples for KeyVaultAccessControlClient and KeyVaultSettingsClient,python,Copilot,5011,0
-ryokun6/ryos,223,Update macosx dialog styles for new windowframe,javascript,Cursor,558,0
-commaai/opendbc,2541,Move checksum functions to car modules,python,OpenAI_Codex,2457,0
-bytebot-ai/bytebot,61,Add Agent Analytics Service,javascript,OpenAI_Codex,931,0
-bytebot-ai/bytebot,60,Add Helm chart for Bytebot stack,javascript,OpenAI_Codex,931,0
-VRSEN/agency-swarm,309,Handle Azure rate limit in thread retry,python,OpenAI_Codex,3729,0
-stanford-crfm/levanter,1096,Add TPU transfer benchmark script,python,OpenAI_Codex,628,0
-stanford-crfm/levanter,1095,Add torch-free radix cache,python,OpenAI_Codex,628,0
-commaai/opendbc,2539,CANParser: python rewrite,python,OpenAI_Codex,2457,0
-reown-com/appkit,4702,feat: add USDC and USDT payment assets for multiple networks (PAY-52),javascript,Devin,5202,0
-katspaugh/wavesurfer.js,4174,fix(Regions): update region duration on reload,javascript,OpenAI_Codex,9541,0
+aipotheosis-labs/aci,551,Change main fonts from Geist to Lexend,python,Devin,4464,3360
+aipotheosis-labs/aci,550,Remove subscription limits from pricing page,python,OpenAI_Codex,4464,872
+mendableai/firecrawl,1856,feat: implement summary format for v1 and v2 APIs,javascript,Devin,43970,3778
+adaline/gateway,105,feat(groq): add Llama 4 Maverick and Scout models,javascript,Devin,528,3613
+aipotheosis-labs/aci,549,Adjust allowed apps dialog size,python,OpenAI_Codex,4464,850
+mendableai/firecrawl,1855,feat: remove systemPrompt override capability from v2 JSON mode,javascript,Devin,43970,4389
+elixir-lsp/vscode-elixir-ls,493,Add dev container instructions,javascript,OpenAI_Codex,571,204
+mendableai/firecrawl,1854,feat: remove Fire-1 model from v2 API while keeping v1 functionality,javascript,Devin,43970,4220
+mendableai/firecrawl,1853,feat: change skipTlsVerification default to true in v2 API,javascript,Devin,43970,4329
+antiwork/flexile,635,Fix cap table ownership percentage calculations,ruby,Devin,665,2627
+antiwork/flexile,634,Rename 'Cap table' to 'Investors' and update URL routing,ruby,Devin,665,3021
+ikamensh/flynt,215,Add support for flynt skip comment,python,OpenAI_Codex,718,247
+ikamensh/flynt,214,Fix DeprecationWarnings for ast.Str,python,OpenAI_Codex,718,339
+antiwork/flexile,633,Remove caption prop from DataTable component,ruby,Devin,665,2961
+antiwork/flexile,632,Replace bank account alert with placeholder for all users,ruby,Devin,665,3663
+antiwork/flexile,631,Remove share classes table from cap table page,ruby,Devin,665,2449
+stanford-crfm/levanter,1099,Update AGENTS: clarify jit safety rules,python,OpenAI_Codex,628,189
+ikamensh/flynt,213,Fix ast.Str deprecation,python,OpenAI_Codex,718,354
+stanford-crfm/levanter,1098,Refactor JitScheduler buffer shape,python,OpenAI_Codex,628,435
+ikamensh/flynt,212,Fix string.format assertion on variable names,python,OpenAI_Codex,718,434
+nrwl/nx,32088,fix(misc): validate workspace names to reject names starting with numbers,javascript,Claude_Code,26524,636
+mendableai/firecrawl,1851,feat: implement v2 batch scrape with improved error handling,javascript,Devin,43970,3596
+mendableai/firecrawl,1850,feat: Add iframe selector transformation for includeTags and excludeTags,javascript,Devin,43970,3526
+3rdIteration/btcrecover,608,Add hash-pinned requirement files,python,OpenAI_Codex,742,246
+Kilo-Org/kilocode,1509,Add readLines validation tests,javascript,OpenAI_Codex,6078,217
+567-labs/instructor,1748,fix: add Mode.BEDROCK_TOOLS support to streaming response parsing,python,Devin,11095,5267
+Kilo-Org/kilocode,1508,Fix readDirectory path handling,javascript,OpenAI_Codex,6078,393
+liveblocks/liveblocks,2546,Fix race condition in auth manager for concurrent RoomProvider mounts,javascript,Devin,4100,3585
+microsoft/playwright,36793,[docs] Add client certificates activation and rejection behavior documentation,javascript,Copilot,75427,1849
+567-labs/instructor,1747,docs: enhance in-memory batch processing documentation,python,Devin,11095,5308
+pnp/cli-microsoft365,6813,[WIP] Migrate 'entra administrativeunit remove' to Zod,javascript,Copilot,1005,586
+crewAIInc/crewAI,3221,fix: support agent_id in Mem0 memory save/search with OR filtering,python,Devin,35096,4076
+samchon/nestia,1345,Upgrade glob dependency from v7 to v11 to address security vulnerabilities,javascript,Copilot,2047,1737
+vitejs/vite-plugin-react,624,feat(rsc): validate `client-only` and `server-only` import during resolve,javascript,Copilot,821,184
+microsoft/vscode-pull-request-github,7400,Render emojis in labels correctly,javascript,Copilot,2421,2944
+streamich/json-joy,919,"Fix critical bugs and anti-patterns: parameter reassignment, unsafe non-null assertions, and unclear type checks",javascript,Copilot,891,3535
+microsoft/genaiscript,1798,Add LLM-optimized content generator sample with intelligent hash tracking for documentation processing,javascript,Copilot,2742,2475
+microsoft/vscode-copilot-chat,365,Refactor log service to support direct logging methods without .logger. prefix,javascript,Copilot,8005,2694
+pnp/cli-microsoft365,6811,Migrates 'entra administrativeunit list' to Zod. Closes #6810,javascript,Copilot,1005,1908
+TobikoData/sqlmesh,5020,docs: fix table formatting,python,OpenAI_Codex,2499,218
+livestorejs/livestore,514,fix: implement comprehensive LiveStore events API with streaming and advanced filtering,javascript,Claude_Code,2705,4256
+microsoft/genaiscript,1797,Fix: Do not include usage report in AI disclaimer when token usage is 0,javascript,Copilot,2742,4321
+calcom/cal.com,22731,feat: add optional startTime prop to BookerPlatformWrapper,javascript,Devin,37399,31
+cockpit-project/cockpit,22245,Refactor enableRepo to include refresh option,javascript,Copilot,12330,4128
+calcom/cal.com,22730,feat: add forceSelectedDate prop to bypass availability checks in DatePicker,javascript,Devin,37399,3524
+remotion-dev/remotion,5529,`@remotion/renderer`: Allow scale factors leading to uneven dimensions,javascript,Copilot,23319,1995
+mlflow/mlflow,16889,Add PLW1508 to ruff lint select list,python,Copilot,21402,1890
+graphistry/pygraphistry,713,refactor: rename chain_dag to chain_let for semantic clarity,python,Claude_Code,2307,2734
+intility/fastapi-azure-auth,250,chore: release new minor version 5.2.0,python,Copilot,542,847
+liam-hq/liam,2687,Re-enable noUncheckedIndexedAccess TypeScript strict option,javascript,Devin,4194,3113
+microsoft/genaiscript,1796,"Add system prompt scripts for expert programming personas (Go, Rust, Java, C/C++)",javascript,Copilot,2742,5489
+github/awesome-copilot,126,Fix table formatting issues under Reusable Prompt heading,javascript,Copilot,4290,1695
+microsoft/typespec,8008,Fix Add-Debug-Profile.ps1 script: Update DLL path and replace generator parameter with management switch,java,Copilot,5285,2388
+mastra-ai/mastra,6292,Refactor generate command to use Mastra workflow,javascript,Cursor,15412,1398
+jsforce/jsforce,1736,Fix jsforce CLI output truncation at 64K when piped to other commands,javascript,Copilot,1421,3109
+jsforce/jsforce,1735,Fix bulk query regex issue with parentheses in SELECT and WHERE clauses,javascript,Copilot,1421,2919
+jsforce/jsforce,1734,Fix SOSL query encoding to properly handle escape sequences like \-,javascript,Copilot,1421,2940
+microsoft/vscode,257754,Add Hello World extension demonstrating VS Code extension development patterns,javascript,Copilot,175171,3744
+antiwork/gumroad,689,Add UTC timezone indicator to admin timestamps,ruby,Devin,6643,2598
+mendableai/firecrawl,1847,Add allowTeammateInvites flag to TeamFlags type,javascript,Devin,43970,4165
+mendableai/firecrawl,1846,Fix ignoreQueryParameters being ignored in URL deduplication - ENG-2804,javascript,Devin,43970,2785
+mlflow/mlflow,16878,Fix tracking_uri positional argument bug in artifact repositories,python,Copilot,21402,2573
+mendableai/firecrawl,1845,ENG-2829: Fix isSubdomain bug,javascript,Devin,43970,3510
+mendableai/firecrawl,1844,Add __experimental_omceDomain flag for debugging and benchmarking,javascript,Devin,43970,3586
+mendableai/firecrawl,1843,Fix robots.txt parser panic with content type validation,javascript,Devin,43970,4056
+ryokun6/ryos,227,Update fonts in Windows themes,javascript,OpenAI_Codex,558,241
+ryokun6/ryos,226,Override Finder label font in System 7 theme,javascript,OpenAI_Codex,558,220
+mendableai/firecrawl,1840,feat: rewrite sitemap XML parsing from JavaScript to Rust (ENG-2904),javascript,Devin,43970,3696
+ryokun6/ryos,225,Apply theme fonts for file icon labels,javascript,OpenAI_Codex,558,367
+antiwork/gumroad,685,Add constraints to Discover: require sales and compliant sellers,ruby,Devin,6643,2841
+antiwork/flexile,626,Add Clerk test user setup documentation for Playwright tests,ruby,Devin,665,3019
+antiwork/gumroad,684,Add archived purchases banner to library view,ruby,Devin,6643,2912
+cypress-io/cypress,32095,internal: (studio) fix skipped test styling,javascript,Cursor,48796,2011
+browser-use/browser-use,2535,Handle pdf viewer content with read file,python,Cursor,66661,1141
+browser-use/browser-use,2534,Handle pdf viewer page detection and instruction,python,Cursor,66661,867
+browser-use/browser-use,2533,Inform llm about pdf viewer limitation,python,Cursor,66661,842
+antiwork/flexile,622,Match dividend check pattern to invoice requirements,ruby,Devin,665,2772
+mendableai/firecrawl-mcp-server,78,feat: add batch scrape tools with maxConcurrency support (ENG-2756),javascript,Devin,3991,3336
+browser-use/browser-use,2532,Enhance pdf viewer interaction for extraction,python,Cursor,66661,931
+openai/openai-agents-js,254,ci(docs): automate docs translation,javascript,OpenAI_Codex,925,674
+prebid/Prebid.js,13664,Test suite: use generic cache endpoint,javascript,OpenAI_Codex,1467,69
+reown-com/appkit,4712,Add https://cca-lite.coinbase.com to CSP connect-src directive,javascript,Devin,5202,1457
+thirdweb-dev/js,7696,Update playground slugs and add redirects,javascript,Cursor,538,3409
+TracecatHQ/tracecat,1287,feat: Add agent chat and runbook management,python,Claude_Code,2921,3823
+GongRzhe/Gmail-MCP-Server,43,feat: add send-as alias support with custom display names,javascript,Claude_Code,568,556
+prebid/Prebid.js,13663,AdPod: remove longform e2e tests,javascript,OpenAI_Codex,1467,15
+prebid/Prebid.js,13662,Docs: update example config in bidder md files,javascript,OpenAI_Codex,1467,43
+StarRocks/starrocks,61248,[Doc] Improve schema tuning documentation,java,Cursor,10390,2213
+antiwork/helper,813,Add context field to customerMetadata,javascript,Devin,537,3935
+microsoft/genaiscript,1792,Add mermaid syntax repair chat participant to system.diagrams,javascript,Copilot,2742,5003
+microsoft/genaiscript,1791,Add GitHub Actions documentation for whisper-asr container setup,javascript,Copilot,2742,3027
+microsoft/genaiscript,1790,Implement fact assertions in test evaluation using classify runtime helper,javascript,Copilot,2742,2554
+microsoft/genaiscript,1789,Migrate from mdtranslator script to GitHub action for continuous translations,javascript,Copilot,2742,3388
+microsoft/genaiscript,1788,Fix critical linting errors and TypeScript compilation issues,javascript,Copilot,2742,5605
+microsoft/genaiscript,1787,Implement Chain of Debate GenAIScript sample for multi-agent debate system,javascript,Copilot,2742,3913
+taiga-family/taiga-ui,11419,fix(kit): escape key propagation in preview dialog to prevent closing parent dialog,javascript,Copilot,3672,3645
+langfuse/langfuse,8097,chore: Remove add window button and its imports,javascript,Cursor,14483,868
+taiga-family/taiga-ui,11416,🗂 Add GitHub workflow to mirror PRs from forks,javascript,Copilot,3672,1844
+cloudflare/next-on-pages,975,add support for nextjs instrumentation,javascript,Claude_Code,1471,4112
+tokens-studio/figma-plugin,3471,"Add ""Open in Studio"" functionality for seamless navigation to Tokens Studio",javascript,Copilot,1469,3449
+tokens-studio/figma-plugin,3470,Add prominent changeset requirements to .copilot-instructions.md,javascript,Copilot,1469,1777
+imbhargav5/rooks,1849,Replace yolo rule with react hook creation rule,javascript,Cursor,3318,347
+ukrbublik/react-awesome-query-builder,1284,Refactor convertFromMongoDb to handle $and/$or operators in separate method,javascript,Copilot,2130,11986
+elastic/kibana,229286,"[Graph] Update labels appearance with badges, tooltips and dynamic styling",javascript,Copilot,20613,3784
+valkey-io/valkey-glide,4471,Fix Gradle build failures due to Maven Central rate limiting (HTTP 429),java,Copilot,538,2260
+camunda/camunda,35889,Change Clock API timestamp format to ISO 8601 date-time and remove alpha status,java,Copilot,3746,6503
+tokens-studio/figma-plugin,3469,Fix missing pull confirmation dialog when switching to Tokens Studio sync provider,javascript,Copilot,1469,2473
+tokens-studio/figma-plugin,3468,Remove beta badge from Tokens Studio sync provider,javascript,Copilot,1469,1984
+StarRocks/starrocks,61244,[Enhancement] support WHERE/LIKE for all show commands,java,Cursor,10390,2365
+lingodotdev/lingo.dev,1061,feat: add Discord link to CLI help text,javascript,Devin,2784,2702
+camunda/camunda,35888,Use OffsetDateTime for date-time fields in Java client,java,Copilot,3746,8242
+devitocodes/devito,2682,Fix OpenMP SIMD pragma compatibility with GCC for blockinner=True,python,Copilot,612,3317
+vitejs/vite,20468,feat(create-vite): support auto install dependencies and start dev,javascript,Copilot,74464,3216
+valkey-io/valkey-glide,4469,Fix socket exhaustion in GlideClusterClient tests by optimizing connection management,java,Copilot,538,3293
+Skyvern-AI/skyvern,3024,Switch from Poetry to uv,python,OpenAI_Codex,13976,3599
+Voxelum/x-minecraft-launcher,1029,Fix OpenAL permissions with PulseAudio on Linux systems,javascript,Copilot,1070,1972
+aws-samples/generative-ai-use-cases,1193,✨ feat(multi-tenant): add dynamic IAM roles per tenant for isolated resource access,javascript,Claude_Code,1117,2301
+binarywang/WxJava,3659,Add raw JSON preservation capability to v3 API results for accessing undefined fields,java,Copilot,31663,1578
+binarywang/WxJava,3658,Add support for ot_info_v2 structure in WeChat Work attendance rules API,java,Copilot,31663,2224
+binarywang/WxJava,3657,[WIP] 希望支持微信云托管,java,Copilot,31663,2545
+binarywang/WxJava,3656,Add missing sub_mchid and sub_appid fields to CombineCloseRequest.SubOrders,java,Copilot,31663,1629
+binarywang/WxJava,3655,Fix SSL handshake failure by supporting modern TLS versions,java,Copilot,31663,2453
+binarywang/WxJava,3654,Add WxOpenMaService support to WxOpenMessageRouter with routeForMa methods,java,Copilot,31663,2729
+binarywang/WxJava,3653,Add overseas WeChat Pay support with GlobalTradeTypeEnum and new API methods,java,Copilot,31663,3395
+binarywang/WxJava,3652,Fix directLeader empty array serialization for WeChat Work user update API,java,Copilot,31663,1969
+binarywang/WxJava,3651,Fix WeChat League API URL patterns to resolve error 48001,java,Copilot,31663,2106
+ruvnet/claude-flow,456,fix: resolve hive-mind sessions.forEach error (fixes #453),javascript,Claude_Code,4630,1406
+binarywang/WxJava,3650,Fix Redis lock key serialization inconsistency in RedisTemplateSimpleDistributedLock,java,Copilot,31663,2146
+binarywang/WxJava,3649,Fix WeChat Pay profit-sharing callback signature verification line separator inconsistency,java,Copilot,31663,1966
+binarywang/WxJava,3648,Implement HTTP connection pooling for WxPayServiceApacheHttpImpl,java,Copilot,31663,2748
+binarywang/WxJava,3647,Add comprehensive documentation and examples for WeChat Pay new merchant transfer APIs,java,Copilot,31663,2713
+binarywang/WxJava,3646,Fix StackOverflowError in WxCpRedissonConfigImpl and WxCpRedisTemplateConfigImpl toString() methods,java,Copilot,31663,2719
+Mail-0/Zero,1816,"feat: add Grafana monitoring for ZeroAgent, ZeroDriver, and tRPC performance",javascript,Devin,9132,4234
+apolloconfig/apollo,5438,Fix security vulnerabilities in netty-handler and zookeeper dependencies,java,Copilot,29581,4370
+lynx-family/lynx-stack,1340,feat: pass crossorigin attribute value to the internal <img> element for x-image,javascript,Copilot,585,1604
+StarRocks/starrocks,61227,[UT] fix junit4 in OuterJoinEliminationRuleTest.java,java,Cursor,10390,1901
+liam-hq/liam,2675,Use shared TypeScript base config for docs tsconfig.json,javascript,Devin,4194,2387
+mlflow/mlflow,16861,Add event validation to `test_webhook` function,python,Claude_Code,21402,5110
+StarRocks/starrocks,61224,[Tool] Add cursor rules and code organization instructions,java,Cursor,10390,2047
+voideditor/void,844,Create ML Engineer Tools extension with comprehensive ML development …,javascript,Cursor,26276,9
+ryokun6/ryos,224,Fix soundboard app crash on mobile safari,javascript,Cursor,558,545
+StarRocks/starrocks,61219,[Enhancement] support json type in mysql external table,java,Cursor,10390,2026
+Mail-0/Zero,1814,Implement custom domains with Amazon SES integration,javascript,Devin,9132,5079
+microsoft/vscode,257578,Add Hello World extension demonstrating basic VS Code extension structure,javascript,Copilot,175171,3422
+microsoft/vscode,257577,[WIP] Creation of a Hello World Extension,javascript,Copilot,175171,1285
+microsoft/vscode,257576,Add Hello World extension to demonstrate basic VS Code extension development,javascript,Copilot,175171,3415
+apolloconfig/apollo,5437,[WIP] config Service配置拉取接口，传递的namespace名称末端带有空格，导致拉取配置返回的配置不是最新的,java,Copilot,29581,1095
+Azure/azure-sdk-for-python,42196,[Key Vault] Add docstring examples for KeyVaultAccessControlClient and KeyVaultSettingsClient,python,Copilot,5011,2686
+ryokun6/ryos,223,Update macosx dialog styles for new windowframe,javascript,Cursor,558,673
+commaai/opendbc,2541,Move checksum functions to car modules,python,OpenAI_Codex,2457,57
+bytebot-ai/bytebot,61,Add Agent Analytics Service,javascript,OpenAI_Codex,931,373
+bytebot-ai/bytebot,60,Add Helm chart for Bytebot stack,javascript,OpenAI_Codex,931,337
+VRSEN/agency-swarm,309,Handle Azure rate limit in thread retry,python,OpenAI_Codex,3729,274
+stanford-crfm/levanter,1096,Add TPU transfer benchmark script,python,OpenAI_Codex,628,469
+stanford-crfm/levanter,1095,Add torch-free radix cache,python,OpenAI_Codex,628,575
+commaai/opendbc,2539,CANParser: python rewrite,python,OpenAI_Codex,2457,14
+reown-com/appkit,4702,feat: add USDC and USDT payment assets for multiple networks (PAY-52),javascript,Devin,5202,2565
+katspaugh/wavesurfer.js,4174,fix(Regions): update region duration on reload,javascript,OpenAI_Codex,9541,671
 commaai/opendbc,2537,CANPacker: python rewrite,python,OpenAI_Codex,2457,0
-elizaOS/eliza,5671,Synchronize zod version across project,javascript,Cursor,16507,0
-MetaMask/metamask-mobile,17520,chore: adding cursor rule for ui development,javascript,Cursor,2491,0
-antiwork/gumroad,681,Add tax-only refund functionality for admin and helper API,ruby,Devin,6643,0
-567-labs/instructor,1743,test: add test to reproduce ResponseReasoningItem arguments bug (#1741),python,Devin,11095,0
-ryokun6/ryos,221,Align xp 98 desktop icons from left,javascript,Cursor,558,0
-antiwork/helper,809,Move generateHelperAuth function to client package server entry point,javascript,Devin,537,0
-e2b-dev/fragments,152,Add qwen3 235b on fireworks,javascript,Cursor,5687,0
-mendableai/firecrawl,1828,Generate comprehensive SBOM for security questionnaire,javascript,Devin,43970,0
-antiwork/gumroad,680,Disable email notifications for monthly recurring subscription charges,ruby,Devin,6643,0
-valkey-io/valkey-glide,4465,"Fix CI socket exhaustion errors by expanding port range, increasing timeouts, and improving cleanup",java,Copilot,538,0
-ryokun6/ryos,220,Apply aqua button styling to macosx tabs,javascript,Cursor,558,0
-topfunky/gruff,665,Line graph: reset previous point between `dataxy` series to prevent unwanted poly‑line connection,ruby,OpenAI_Codex,1386,0
-lightdash/lightdash,15978,feat: disable ai agent group access if disabled,javascript,Cursor,4935,0
-valkey-io/valkey-glide,4464,Fix AZ affinity routing tests: improve backend tolerance and debugging,java,Copilot,538,0
-antiwork/helper,807,Implement server requests for client-provided tools,javascript,Devin,537,0
-tailwindlabs/headlessui,3761,Initialize Laravel 12 project with Livewire and Tailwind CSS,javascript,Cursor,27723,0
-ryokun6/ryos,219,Adjust macosx select radius to 6,javascript,Cursor,558,0
-antiwork/helper,806,Fix open count setData missing invalidate call,javascript,Devin,537,0
-crewAIInc/crewAI-tools,391,Fix issue #3210: Add missing TavilySearchTool and TavilyExtractorTool exports,python,Devin,1177,0
-microsoft/vscode-pull-request-github,7382,Add local ESLint rule: public methods must return well-defined types (no inline types including generics),javascript,Copilot,2421,0
-kubernetes-sigs/headlamp,3683,Add GitHub Pages status page for release artifact checks,javascript,Copilot,4240,0
-antiwork/flexile,615,Move trpc.users.update to Rails controller,ruby,Devin,665,0
-robusta-dev/holmesgpt,695,feat: Support llm-based message summarization by introducing Transformer mechanism,python,Claude_Code,1142,0
-microsoft/genaiscript,1776,Add syntax highlighting support for GenAIScript markdown files (.genai.md),javascript,Copilot,2742,0
-valkey-io/valkey-glide,4463,Fix Node.js CI by adding proper Valkey cluster lifecycle management,java,Copilot,538,0
-antiwork/flexile,614,Implement conditional user ID logic in dashboard layout,ruby,Devin,665,0
-antiwork/gumroad,678,Fix async export flash message issue for sales data,ruby,Devin,6643,0
-srbhr/Resume-Matcher,424,Fix AttributeError on null processed_resume in score improvement service,python,Copilot,21035,0
-Comfy-Org/desktop,1229,Implement Comfy URI Protocol (comfy://) for one-click custom node installation with comprehensive testing,javascript,Copilot,1662,0
-microsoft/genaiscript,1775,Fix broken test infrastructure due to missing tsx dependency,javascript,Copilot,2742,0
-microsoft/genaiscript,1774,Add comprehensive git worktree support to GitClient and GitHubClient interfaces,javascript,Copilot,2742,0
-microsoft/genaiscript,1773,Add comprehensive git worktree support to GitHubClient interface,javascript,Copilot,2742,0
-valkey-io/valkey-glide,4462,Fix AZ affinity routing by correcting Option handling in az_for_address,java,Copilot,538,0
-dotCMS/core,32771,chore(ci): Make the core CICD workflows failfast (#32768),java,Claude_Code,912,0
-Xinrea/bili-shadowreplay,141,Only create records after successful ts download,javascript,Cursor,572,0
-docling-project/docling,1975,fix: Preserve PARTIAL_SUCCESS status when document timeout hits,python,Copilot,34981,0
-ryokun6/ryos,218,Restyle macosx control panel and tabs,javascript,Cursor,558,0
-liam-hq/liam,2661,Remove all Langfuse integration,javascript,Devin,4194,0
-ryokun6/ryos,216,Refactor dialogs for macosx theme,javascript,Cursor,558,0
-ryokun6/ryos,215,Match select trigger height to input on ie macosx,javascript,Cursor,558,0
-PromtEngineer/localGPT,907,feat: Integrate nano-graphrag with LocalGPT for enhanced graph-based retrieval,python,Devin,21751,0
-imbhargav5/rooks,1848,Organize hooks in sidebar by category,javascript,Cursor,3318,0
-microsoft/vscode-mssql,19828,"Add ""Add Related Tables"" context menu option to Schema Designer",javascript,Copilot,1718,0
-microsoft/vscode-mssql,19827,Add tooltips for truncated table and column names in Schema Designer,javascript,Copilot,1718,0
-microsoft/vscode-mssql,19826,Fix: Enable self-referencing foreign keys in Schema Designer,javascript,Copilot,1718,0
-elastic/kibana,229052,[Security:Findings:Misconfigurations] Fix missing accessibility labels for field selector checkboxes,javascript,Copilot,20613,0
-imbhargav5/rooks,1847,Document useGetIsMounted hook and its usage,javascript,Cursor,3318,0
-imbhargav5/rooks,1846,Document useArrayState hook according to rules,javascript,Cursor,3318,0
-imbhargav5/rooks,1845,Document useAsyncEffect hook,javascript,Cursor,3318,0
-imbhargav5/rooks,1843,Fix readme documentation link generation,javascript,Cursor,3318,0
-microsoft/genaiscript,1772,Fix SystemRoot environment variable handling to prevent ERROR_STACK_BUFFER_OVERRUN on Windows,javascript,Copilot,2742,0
-microsoft/genaiscript,1771,Fix rate limiting error handling to properly surface rate_limited errors in RunPromptResult,javascript,Copilot,2742,0
-MetaMask/metamask-mobile,17472,fix: popular networks filter functionality,javascript,Cursor,2491,0
-MetaMask/metamask-mobile,17471,chore: fix scientific number display,javascript,Cursor,2491,0
-mebjas/html5-qrcode,999,Enhance camera QR scanning robustness for mobile photography,javascript,Copilot,5662,0
-mebjas/html5-qrcode,998,Improve HTML5-QRCode examples with better error handling and consistent API usage,javascript,Copilot,5662,0
-mebjas/html5-qrcode,997,Fix duplicate QR scanner initialization on page navigation,javascript,Copilot,5662,0
-microsoft/typespec,7984,[http-client-csharp] Update TypeSpec version and related libraries to latest stable versions,java,Copilot,5285,0
-mebjas/html5-qrcode,996,Fix mixed content errors by adding HTTPS warnings to CDN documentation,javascript,Copilot,5662,0
-antiwork/gumroad,674,Fix Coffee product email formatting to display as clickable links,ruby,Devin,6643,0
-graphistry/pygraphistry,709,docs(gfql): Consolidate wire protocol documentation,python,Claude_Code,2307,0
-antiwork/gumroad,673,Update installment plan receipt copy for clarity,ruby,Devin,6643,0
-microsoft/genaiscript,1770,feat: Add MCP server resolution by ID from mcp.json files,javascript,Copilot,2742,0
-liam-hq/liam,2653,feat: implement red text styling for LangGraph workflow node failure messages,javascript,Devin,4194,0
-onlook-dev/onlook,2522,feat: add OpenRouter as model provider,javascript,Devin,21192,0
-primer/react,6369,"Migrate Details, Token, and CounterLabel tests from Jest to Vitest",javascript,Copilot,3613,0
-primer/react,6367,Migrate batch of components from Jest to Vitest,javascript,Copilot,3613,0
+elizaOS/eliza,5671,Synchronize zod version across project,javascript,Cursor,16507,1314
+MetaMask/metamask-mobile,17520,chore: adding cursor rule for ui development,javascript,Cursor,2491,2663
+antiwork/gumroad,681,Add tax-only refund functionality for admin and helper API,ruby,Devin,6643,3932
+567-labs/instructor,1743,test: add test to reproduce ResponseReasoningItem arguments bug (#1741),python,Devin,11095,4617
+ryokun6/ryos,221,Align xp 98 desktop icons from left,javascript,Cursor,558,312
+antiwork/helper,809,Move generateHelperAuth function to client package server entry point,javascript,Devin,537,4237
+e2b-dev/fragments,152,Add qwen3 235b on fireworks,javascript,Cursor,5687,243
+mendableai/firecrawl,1828,Generate comprehensive SBOM for security questionnaire,javascript,Devin,43970,4449
+antiwork/gumroad,680,Disable email notifications for monthly recurring subscription charges,ruby,Devin,6643,3232
+valkey-io/valkey-glide,4465,"Fix CI socket exhaustion errors by expanding port range, increasing timeouts, and improving cleanup",java,Copilot,538,4691
+ryokun6/ryos,220,Apply aqua button styling to macosx tabs,javascript,Cursor,558,281
+topfunky/gruff,665,Line graph: reset previous point between `dataxy` series to prevent unwanted poly‑line connection,ruby,OpenAI_Codex,1386,2188
+lightdash/lightdash,15978,feat: disable ai agent group access if disabled,javascript,Cursor,4935,428
+valkey-io/valkey-glide,4464,Fix AZ affinity routing tests: improve backend tolerance and debugging,java,Copilot,538,4557
+antiwork/helper,807,Implement server requests for client-provided tools,javascript,Devin,537,3386
+tailwindlabs/headlessui,3761,Initialize Laravel 12 project with Livewire and Tailwind CSS,javascript,Cursor,27723,42
+ryokun6/ryos,219,Adjust macosx select radius to 6,javascript,Cursor,558,880
+antiwork/helper,806,Fix open count setData missing invalidate call,javascript,Devin,537,3340
+crewAIInc/crewAI-tools,391,Fix issue #3210: Add missing TavilySearchTool and TavilyExtractorTool exports,python,Devin,1177,3721
+microsoft/vscode-pull-request-github,7382,Add local ESLint rule: public methods must return well-defined types (no inline types including generics),javascript,Copilot,2421,2794
+kubernetes-sigs/headlamp,3683,Add GitHub Pages status page for release artifact checks,javascript,Copilot,4240,3036
+antiwork/flexile,615,Move trpc.users.update to Rails controller,ruby,Devin,665,3492
+robusta-dev/holmesgpt,695,feat: Support llm-based message summarization by introducing Transformer mechanism,python,Claude_Code,1142,2050
+microsoft/genaiscript,1776,Add syntax highlighting support for GenAIScript markdown files (.genai.md),javascript,Copilot,2742,3451
+valkey-io/valkey-glide,4463,Fix Node.js CI by adding proper Valkey cluster lifecycle management,java,Copilot,538,4734
+antiwork/flexile,614,Implement conditional user ID logic in dashboard layout,ruby,Devin,665,2851
+antiwork/gumroad,678,Fix async export flash message issue for sales data,ruby,Devin,6643,3498
+srbhr/Resume-Matcher,424,Fix AttributeError on null processed_resume in score improvement service,python,Copilot,21035,2108
+Comfy-Org/desktop,1229,Implement Comfy URI Protocol (comfy://) for one-click custom node installation with comprehensive testing,javascript,Copilot,1662,3590
+microsoft/genaiscript,1775,Fix broken test infrastructure due to missing tsx dependency,javascript,Copilot,2742,3526
+microsoft/genaiscript,1774,Add comprehensive git worktree support to GitClient and GitHubClient interfaces,javascript,Copilot,2742,3955
+microsoft/genaiscript,1773,Add comprehensive git worktree support to GitHubClient interface,javascript,Copilot,2742,6583
+valkey-io/valkey-glide,4462,Fix AZ affinity routing by correcting Option handling in az_for_address,java,Copilot,538,2294
+dotCMS/core,32771,chore(ci): Make the core CICD workflows failfast (#32768),java,Claude_Code,912,3166
+Xinrea/bili-shadowreplay,141,Only create records after successful ts download,javascript,Cursor,572,780
+docling-project/docling,1975,fix: Preserve PARTIAL_SUCCESS status when document timeout hits,python,Copilot,34981,3275
+ryokun6/ryos,218,Restyle macosx control panel and tabs,javascript,Cursor,558,311
+liam-hq/liam,2661,Remove all Langfuse integration,javascript,Devin,4194,2285
+ryokun6/ryos,216,Refactor dialogs for macosx theme,javascript,Cursor,558,624
+ryokun6/ryos,215,Match select trigger height to input on ie macosx,javascript,Cursor,558,264
+PromtEngineer/localGPT,907,feat: Integrate nano-graphrag with LocalGPT for enhanced graph-based retrieval,python,Devin,21751,5787
+imbhargav5/rooks,1848,Organize hooks in sidebar by category,javascript,Cursor,3318,1142
+microsoft/vscode-mssql,19828,"Add ""Add Related Tables"" context menu option to Schema Designer",javascript,Copilot,1718,2396
+microsoft/vscode-mssql,19827,Add tooltips for truncated table and column names in Schema Designer,javascript,Copilot,1718,2467
+microsoft/vscode-mssql,19826,Fix: Enable self-referencing foreign keys in Schema Designer,javascript,Copilot,1718,2705
+elastic/kibana,229052,[Security:Findings:Misconfigurations] Fix missing accessibility labels for field selector checkboxes,javascript,Copilot,20613,2977
+imbhargav5/rooks,1847,Document useGetIsMounted hook and its usage,javascript,Cursor,3318,75
+imbhargav5/rooks,1846,Document useArrayState hook according to rules,javascript,Cursor,3318,285
+imbhargav5/rooks,1845,Document useAsyncEffect hook,javascript,Cursor,3318,445
+imbhargav5/rooks,1843,Fix readme documentation link generation,javascript,Cursor,3318,588
+microsoft/genaiscript,1772,Fix SystemRoot environment variable handling to prevent ERROR_STACK_BUFFER_OVERRUN on Windows,javascript,Copilot,2742,2937
+microsoft/genaiscript,1771,Fix rate limiting error handling to properly surface rate_limited errors in RunPromptResult,javascript,Copilot,2742,3906
+MetaMask/metamask-mobile,17472,fix: popular networks filter functionality,javascript,Cursor,2491,3007
+MetaMask/metamask-mobile,17471,chore: fix scientific number display,javascript,Cursor,2491,1954
+mebjas/html5-qrcode,999,Enhance camera QR scanning robustness for mobile photography,javascript,Copilot,5662,3026
+mebjas/html5-qrcode,998,Improve HTML5-QRCode examples with better error handling and consistent API usage,javascript,Copilot,5662,2605
+mebjas/html5-qrcode,997,Fix duplicate QR scanner initialization on page navigation,javascript,Copilot,5662,3272
+microsoft/typespec,7984,[http-client-csharp] Update TypeSpec version and related libraries to latest stable versions,java,Copilot,5285,2281
+mebjas/html5-qrcode,996,Fix mixed content errors by adding HTTPS warnings to CDN documentation,javascript,Copilot,5662,7631
+antiwork/gumroad,674,Fix Coffee product email formatting to display as clickable links,ruby,Devin,6643,3327
+graphistry/pygraphistry,709,docs(gfql): Consolidate wire protocol documentation,python,Claude_Code,2307,2890
+antiwork/gumroad,673,Update installment plan receipt copy for clarity,ruby,Devin,6643,4080
+microsoft/genaiscript,1770,feat: Add MCP server resolution by ID from mcp.json files,javascript,Copilot,2742,7353
+liam-hq/liam,2653,feat: implement red text styling for LangGraph workflow node failure messages,javascript,Devin,4194,3242
+onlook-dev/onlook,2522,feat: add OpenRouter as model provider,javascript,Devin,21192,4007
+primer/react,6369,"Migrate Details, Token, and CounterLabel tests from Jest to Vitest",javascript,Copilot,3613,1893
+primer/react,6367,Migrate batch of components from Jest to Vitest,javascript,Copilot,3613,1967
