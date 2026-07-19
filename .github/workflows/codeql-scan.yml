@@ -37,7 +37,7 @@ jobs:
     # Safe validation to prevent matrix syntax crashes on empty or null discovery results
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && fromJson(needs.discover.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     env:
       CODEQL_RAM: 12000
     strategy:
@@ -77,6 +77,7 @@ jobs:
           output: sarif-results
           upload: false 
           wait-for-processing: false 
+          threads: 2
 
       - name: Create Summary
         if: always()
