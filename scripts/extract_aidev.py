@@ -6,29 +6,9 @@ def extract_data():
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
 
-    # --- 🔍 DIAGNOSTIC: PRE-MERGE COLUMNS INSPECTION ---
-    print("\n=== 🔍 DIAGNOSTIC: RAW TABLE ATTRIBUTES ===")
-    print(f"Raw PR Table Columns: {pr_df.columns.tolist()}")
-    print("============================================\n")
-
-    # Check for direct metric fields in raw PR table before joining
-    pr_df_copy = pr_df.copy()
-    raw_add = next((c for c in ['additions', 'addition', 'changed_lines'] if c in pr_df_copy.columns), None)
-    raw_del = next((c for c in ['deletions', 'deletion', 'deleted_lines'] if c in pr_df_copy.columns), None)
-
-    if raw_add and raw_del:
-        print(f"🎯 Found raw metrics in PR table: [{raw_add}] and [{raw_del}]")
-        pr_df_copy['computed_loc'] = (
-            pd.to_numeric(pr_df_copy[raw_add], errors='coerce').fillna(0) + 
-            pd.to_numeric(pr_df_copy[raw_del], errors='coerce').fillna(0)
-        ).astype(int)
-    else:
-        print("⚠️ No direct code metric keys found in raw table. Using proxy metric.")
-        pr_df_copy['computed_loc'] = None
-
     print("Joining tables on PR.repo_id and Repo.id...")
     merged_df = pd.merge(
-        pr_df_copy, 
+        pr_df, 
         repo_df, 
         left_on='repo_id', 
         right_on='id', 
@@ -37,39 +17,26 @@ def extract_data():
     )
 
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
+    
     filtered_df = merged_df[
         (merged_df['stars'] > 500) &
         (merged_df['language'].isin(supported_langs)) &
         (merged_df['agent'].notna())
     ].copy()
 
+    # Normalize language names
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
+    # --- CHRONOLOGICAL SORT ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
-    
-    print("\n====================================================")
-    print("🔍 DIAGNOSTIC LOG: TRACKING VALUE ASSIGNMENT ORIGIN")
-    print("====================================================")
-    
-    if filtered_df['computed_loc'].notna().any():
-        print("🎯 [ROUTE A] Populating true physical lines of code (LOC)...")
-        filtered_df['pr_loc'] = filtered_df['computed_loc'].fillna(0).astype(int)
-    else:
-        # 🚀 CLEAN METRIC WORKAROUND: Swapped from raw character counts to precise word count tokens
-        # Word counts scale proportionally with real code footprint and complexity
-        print("⚠️ [ROUTE B] Defaulting to precise PR description word count token proxy...")
-        filtered_df['body'] = filtered_df['body'].fillna('')
-        filtered_df['pr_loc'] = filtered_df['body'].str.split().str.len().fillna(0).astype(int)
-        
-    print(f"📊 First 5 outputs calculated for pr_loc: {filtered_df['pr_loc'].head().tolist()}")
-    print("====================================================\n")
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
 
-    scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars', 'pr_loc']].rename(columns={
+    # 🚀 LOC COLUMN REMOVED: Exporting only verified, meaningful properties
+    scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language',
         'agent': 'agent_name',
@@ -77,7 +44,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv.")
+    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} entries.")
 
 if __name__ == "__main__":
     extract_data()
