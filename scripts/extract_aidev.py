@@ -6,15 +6,15 @@ def extract_data():
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
     
-    print("📥 Fetching Sizing Layer: pull_request_file_change.parquet...")
-    # This parallel table contains the actual physical additions and deletions lines
+    print("📥 Loading Granular File Sizing Table: pull_request_file.parquet...")
     try:
-        size_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request_file_change.parquet")
+        # Corrected dataset folder layout reference path
+        file_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request_file.parquet")
         print("Aggregating lines-of-code changes by unique pull request IDs...")
-        loc_grouped = size_df.groupby('pull_request_id')[['additions', 'deletions']].sum().reset_index()
+        loc_grouped = file_df.groupby('pull_request_id')[['additions', 'deletions']].sum().reset_index()
         loc_grouped['true_loc'] = loc_grouped['additions'] + loc_grouped['deletions']
     except Exception as e:
-        print(f"⚠️ Sizing layer fetch error, falling back to schema inspection: {e}")
+        print(f"⚠️ Sizing table layer fetch error: {e}")
         loc_grouped = pd.DataFrame(columns=['pull_request_id', 'true_loc'])
 
     print("Joining metadata layers on PR.repo_id and Repo.id...")
@@ -56,8 +56,8 @@ def extract_data():
     print("🔍 DIAGNOSTIC LOG: TRACKING VALUE ASSIGNMENT ORIGIN")
     print("====================================================")
     
-    if 'true_loc' in filtered_df.columns:
-        print("🎯 [ROUTE A] Successfully linked file change table! Populating True LOC...")
+    if 'true_loc' in filtered_df.columns and not filtered_df['true_loc'].isna().all():
+        print("🎯 [ROUTE A] Successfully linked file changes! Populating True LOC...")
         filtered_df['pr_loc'] = filtered_df['true_loc'].fillna(0).astype(int)
     else:
         print("⚠️ [ROUTE B] Sizing matrix could not link. Defaulting to PR character count approximation...")
