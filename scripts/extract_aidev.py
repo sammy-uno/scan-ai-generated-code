@@ -24,27 +24,37 @@ def extract_data():
         (merged_df['agent'].notna())
     ].copy()
 
-    # Normalize language names
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- CHRONOLOGICAL SORT & PHYSICAL PR LOC COMPUTATION MODULE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # 🚀 TARGET MERGED KEYS: Compute metrics directly using post-join schema attributes
-    add_col = 'additions_pr' if 'additions_pr' in filtered_df.columns else ('additions' if 'additions' in filtered_df.columns else None)
-    del_col = 'deletions_pr' if 'deletions_pr' in filtered_df.columns else ('deletions' if 'deletions' in filtered_df.columns else None)
+    # 🔍 --- ENHANCED TRACE LOG MODULE FOR DATA ROUTING ---
+    print("\n====================================================")
+    print("🔍 DIAGNOSTIC LOG: TRACKING VALUE ASSIGNMENT ORIGIN")
+    print("====================================================")
     
-    if add_col and del_col:
+    if 'additions' in filtered_df.columns and 'deletions' in filtered_df.columns:
+        print("🎯 [ROUTE A] Match found for raw 'additions/deletions' columns! Calculating True LOC...")
         filtered_df['pr_loc'] = (
-            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
-            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
+            pd.to_numeric(filtered_df['additions'], errors='coerce').fillna(0) + 
+            pd.to_numeric(filtered_df['deletions'], errors='coerce').fillna(0)
+        ).astype(int)
+    elif 'additions_pr' in filtered_df.columns and 'deletions_pr' in filtered_df.columns:
+        print("🎯 [ROUTE B] Match found for suffixed 'additions_pr/deletions_pr' columns! Calculating True LOC...")
+        filtered_df['pr_loc'] = (
+            pd.to_numeric(filtered_df['additions_pr'], errors='coerce').fillna(0) + 
+            pd.to_numeric(filtered_df['deletions_pr'], errors='coerce').fillna(0)
         ).astype(int)
     else:
-        # Fallback to string text payload weight metric to ensure non-zero distributions if keys are empty
+        print("⚠️ [ROUTE C] WARNING: No code metrics found in table columns! Falling back to PR Description length...")
+        print(f"Post-Merge Available Columns: {filtered_df.columns.tolist()[:15]}")
         filtered_df['body'] = filtered_df['body'].fillna('')
         filtered_df['pr_loc'] = filtered_df['body'].str.len().astype(int)
+        
+    print(f"📊 First 5 outputs calculated for pr_loc: {filtered_df['pr_loc'].head().tolist()}")
+    print("====================================================\n")
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
@@ -57,7 +67,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv with actual physical lines-of-code changes metrics.")
+    print(f"Success: Created aidev_scan_list.csv.")
 
 if __name__ == "__main__":
     extract_data()
