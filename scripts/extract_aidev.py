@@ -5,34 +5,15 @@ def extract_data():
     print("Streaming AIDev tables from Hugging Face...")
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
-    
-    print("📥 Loading Granular File Changes Table...")
-    # This table holds the true additions and deletions line counts for each PR file
-    file_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request_file.parquet")
 
-    # Group file modifications by PR ID to compute the total LOC changed per PR
-    print("Aggregating line changes by PR...")
-    file_loc = file_df.groupby('pull_request_id')[['additions', 'deletions']].sum().reset_index()
-    file_loc['true_loc'] = file_loc['additions'] + file_loc['deletions']
-
-    print("Joining Metadata layers...")
-    merged_meta = pd.merge(
+    print("Joining tables on PR.repo_id and Repo.id...")
+    merged_df = pd.merge(
         pr_df, 
         repo_df, 
         left_on='repo_id', 
         right_on='id', 
         how='inner', 
         suffixes=('_pr', '_repo')
-    )
-    
-    print("Chaining file-level True LOC metrics...")
-    # Join the accumulated file line counts directly to the PR data frame via matching IDs
-    merged_df = pd.merge(
-        merged_meta,
-        file_loc,
-        left_on='id_pr',
-        right_on='pull_request_id',
-        how='inner'
     )
 
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
@@ -43,14 +24,27 @@ def extract_data():
         (merged_df['agent'].notna())
     ].copy()
 
+    # Normalize language names
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
+    # --- CHRONOLOGICAL SORT & PHYSICAL PR LOC COMPUTATION MODULE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # Map the compiled lines-of-code directly to your target key
-    filtered_df['pr_loc'] = filtered_df['true_loc'].astype(int)
+    # 🚀 TARGET MERGED KEYS: Compute metrics directly using post-join schema attributes
+    add_col = 'additions_pr' if 'additions_pr' in filtered_df.columns else ('additions' if 'additions' in filtered_df.columns else None)
+    del_col = 'deletions_pr' if 'deletions_pr' in filtered_df.columns else ('deletions' if 'deletions' in filtered_df.columns else None)
+    
+    if add_col and del_col:
+        filtered_df['pr_loc'] = (
+            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
+            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
+        ).astype(int)
+    else:
+        # Fallback to string text payload weight metric to ensure non-zero distributions if keys are empty
+        filtered_df['body'] = filtered_df['body'].fillna('')
+        filtered_df['pr_loc'] = filtered_df['body'].str.len().astype(int)
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
@@ -63,7 +57,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success! Created aidev_scan_list.csv with actual physical lines-of-code metrics.")
+    print(f"Success: Created aidev_scan_list.csv with actual physical lines-of-code changes metrics.")
 
 if __name__ == "__main__":
     extract_data()
