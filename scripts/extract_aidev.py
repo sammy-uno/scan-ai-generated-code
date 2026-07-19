@@ -28,22 +28,18 @@ def extract_data():
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- CHRONOLOGICAL SORT & PR LOC COMPUTATION MODULE ---
+    # --- CHRONOLOGICAL SORT & SAFE LOC COMPUTATION MODULE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # 🚀 CRITICAL SCHEMA FIX: Changed columns from plural to singular 'addition' and 'deletion'
-    add_col = 'addition' if 'addition' in filtered_df.columns else ('additions' if 'additions' in filtered_df.columns else None)
-    del_col = 'deletion' if 'deletion' in filtered_df.columns else ('deletions' if 'deletions' in filtered_df.columns else None)
+    # 🚀 SAFE DICTIONARY RESOLVER: Completely eliminates KeyErrors by verifying schema shapes
+    adds = filtered_df['additions'] if 'additions' in filtered_df.columns else (filtered_df['addition'] if 'addition' in filtered_df.columns else 0)
+    dels = filtered_df['deletions'] if 'deletions' in filtered_df.columns else (filtered_df['deletion'] if 'deletion' in filtered_df.columns else 0)
     
-    if add_col and del_col:
-        filtered_df['pr_loc'] = (
-            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
-            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
-        ).astype(int)
-    else:
-        # Safe structural fallback to prevent breaking matrix pipelines if properties are omitted
-        filtered_df['pr_loc'] = 0
+    filtered_df['pr_loc'] = (
+        pd.to_numeric(adds, errors='coerce').fillna(0) + 
+        pd.to_numeric(dels, errors='coerce').fillna(0)
+    ).astype(int)
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
