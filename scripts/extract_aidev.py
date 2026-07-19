@@ -28,35 +28,18 @@ def extract_data():
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- CHRONOLOGICAL SORT & PR LOC COMPUTATION MODULE ---
+    # --- CHRONOLOGICAL SORT & PR LOC EXTRACTION MODULE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # 🚀 CRITICAL FIX: Maps suffixed keys (_pr) to catch merged dataframe column name shifts
-    add_col = None
-    for col in ['additions_pr', 'addition_pr', 'additions', 'addition']:
-        if col in filtered_df.columns:
-            add_col = col
-            break
-            
-    del_col = None
-    for col in ['deletions_pr', 'deletion_pr', 'deletions', 'deletion']:
-        if col in filtered_df.columns:
-            del_col = col
-            break
-    
-    if add_col and del_col:
-        filtered_df['pr_loc'] = (
-            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
-            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
-        ).astype(int)
-    else:
-        filtered_df['pr_loc'] = 0
+    # Extract total lines of code changed using the dataset's native churn column
+    churn_col = 'churn_pr' if 'churn_pr' in filtered_df.columns else 'churn'
+    filtered_df['pr_loc'] = pd.to_numeric(filtered_df[churn_col], errors='coerce').fillna(0).astype(int)
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
 
-    # Selected and appended 'pr_loc' alongside 'stars' mapping
+    # Select, rearrange, and rename columns for the scanner matrix
     scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars', 'pr_loc']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language',
@@ -65,7 +48,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv with valid lines-of-code changes metrics.")
+    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} entries.")
 
 if __name__ == "__main__":
     extract_data()
