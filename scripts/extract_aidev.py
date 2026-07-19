@@ -21,9 +21,9 @@ def extract_data():
     # Filter by stars and language
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
     
-    # Filter for 'agent' not being null (AI-authored) and Stars > 100
+    # Filter for 'agent' not being null (AI-authored) and Stars > 500
     filtered_df = merged_df[
-        (merged_df['stars'] > 100) &
+        (merged_df['stars'] > 500) &
         (merged_df['language'].isin(supported_langs)) &
         (merged_df['agent'].notna())
     ].copy()
