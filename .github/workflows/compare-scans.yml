@@ -58,24 +58,14 @@ jobs:
               continue
             fi
             
-            echo "📥 Unpacking artifact packages from Run ID: $RUN_ID"
-            RUN_ARTIFACTS=$(gh api "/repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts")
+            echo "📥 Downloading artifact packages natively from Run ID: $RUN_ID"
             
-            echo "$RUN_ARTIFACTS" | jq -c '.artifacts[] | select(.name | startswith("sarif-"))' | while read -r art; do
-              ART_ID=$(echo "$art" | jq -r '.id')
-              ART_NAME=$(echo "$art" | jq -r '.name')
-              
-              mkdir -p "all-results/$ART_NAME"
-              
-              # Hardened using explicit --output flag to secure stream data against string/binary truncation anomalies
-              gh api "/repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" --output "all-results/$ART_NAME/pack.zip"
-              
-              if [ -f "all-results/$ART_NAME/pack.zip" ]; then
-                unzip -o "all-results/$ART_NAME/pack.zip" -d "all-results/$ART_NAME"
-                rm -f "all-results/$ART_NAME/pack.zip"
-              fi
-            done
+            # Uses native gh tracking to down-stream binary zip content to an explicit sub-folder
+            gh run download "$RUN_ID" --repo "${{ github.repository }}" --pattern "sarif-*" --dir "all-results" || true
           done
+          
+          echo "📁 Unpacked Directory State Check:"
+          ls -R all-results || true
 
       - name: Run Global Comparison Engine
         env:
