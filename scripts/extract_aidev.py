@@ -5,9 +5,20 @@ def extract_data():
     print("Streaming AIDev tables from Hugging Face...")
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
+    
+    print("📥 Fetching Sizing Layer: pull_request_file_change.parquet...")
+    # This parallel table contains the actual physical additions and deletions lines
+    try:
+        size_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request_file_change.parquet")
+        print("Aggregating lines-of-code changes by unique pull request IDs...")
+        loc_grouped = size_df.groupby('pull_request_id')[['additions', 'deletions']].sum().reset_index()
+        loc_grouped['true_loc'] = loc_grouped['additions'] + loc_grouped['deletions']
+    except Exception as e:
+        print(f"⚠️ Sizing layer fetch error, falling back to schema inspection: {e}")
+        loc_grouped = pd.DataFrame(columns=['pull_request_id', 'true_loc'])
 
-    print("Joining tables on PR.repo_id and Repo.id...")
-    merged_df = pd.merge(
+    print("Joining metadata layers on PR.repo_id and Repo.id...")
+    merged_meta = pd.merge(
         pr_df, 
         repo_df, 
         left_on='repo_id', 
@@ -15,9 +26,20 @@ def extract_data():
         how='inner', 
         suffixes=('_pr', '_repo')
     )
+    
+    print("Merging accumulated line change metrics into core dataset matrix...")
+    if not loc_grouped.empty:
+        merged_df = pd.merge(
+            merged_meta,
+            loc_grouped,
+            left_on='id_pr',
+            right_on='pull_request_id',
+            how='inner'
+        )
+    else:
+        merged_df = merged_meta.copy()
 
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
-    
     filtered_df = merged_df[
         (merged_df['stars'] > 500) &
         (merged_df['language'].isin(supported_langs)) &
@@ -30,26 +52,15 @@ def extract_data():
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # 🔍 --- ENHANCED TRACE LOG MODULE FOR DATA ROUTING ---
     print("\n====================================================")
     print("🔍 DIAGNOSTIC LOG: TRACKING VALUE ASSIGNMENT ORIGIN")
     print("====================================================")
     
-    if 'additions' in filtered_df.columns and 'deletions' in filtered_df.columns:
-        print("🎯 [ROUTE A] Match found for raw 'additions/deletions' columns! Calculating True LOC...")
-        filtered_df['pr_loc'] = (
-            pd.to_numeric(filtered_df['additions'], errors='coerce').fillna(0) + 
-            pd.to_numeric(filtered_df['deletions'], errors='coerce').fillna(0)
-        ).astype(int)
-    elif 'additions_pr' in filtered_df.columns and 'deletions_pr' in filtered_df.columns:
-        print("🎯 [ROUTE B] Match found for suffixed 'additions_pr/deletions_pr' columns! Calculating True LOC...")
-        filtered_df['pr_loc'] = (
-            pd.to_numeric(filtered_df['additions_pr'], errors='coerce').fillna(0) + 
-            pd.to_numeric(filtered_df['deletions_pr'], errors='coerce').fillna(0)
-        ).astype(int)
+    if 'true_loc' in filtered_df.columns:
+        print("🎯 [ROUTE A] Successfully linked file change table! Populating True LOC...")
+        filtered_df['pr_loc'] = filtered_df['true_loc'].fillna(0).astype(int)
     else:
-        print("⚠️ [ROUTE C] WARNING: No code metrics found in table columns! Falling back to PR Description length...")
-        print(f"Post-Merge Available Columns: {filtered_df.columns.tolist()[:15]}")
+        print("⚠️ [ROUTE B] Sizing matrix could not link. Defaulting to PR character count approximation...")
         filtered_df['body'] = filtered_df['body'].fillna('')
         filtered_df['pr_loc'] = filtered_df['body'].str.len().astype(int)
         
