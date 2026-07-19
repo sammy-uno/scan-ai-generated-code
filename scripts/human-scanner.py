@@ -25,7 +25,8 @@ def main():
         "DataDog/dd-trace-java", 
         "Azure/azure-sdk-for-js", 
         "Azure/azure-sdk-for-python",
-        "microsoft/TypeScript"
+        "microsoft/TypeScript",
+        "microsoft/vscode"
     ]
     
     # --- TRACKING ---
