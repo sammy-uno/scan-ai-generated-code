@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CODEQL_ACTION_EXPERIMENTAL_FEATURES: "false"
+  CODEQL_ACTION_DISABLE_DEPRECATION_WARNINGS: "true"
 
 permissions:
   contents: read
@@ -41,8 +42,6 @@ jobs:
     timeout-minutes: 20
     env:
       CODEQL_RAM: 12000
-      CODEQL_ACTION_EXPERIMENTAL_FEATURES: "false"
-      CODEQL_ACTION_DISABLE_DEPRECATION_WARNINGS: "true"
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -65,7 +64,7 @@ jobs:
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: none
@@ -74,7 +73,7 @@ jobs:
           queries: code-scanning
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         continue-on-error: true
         with:
           category: "/pr:${{ matrix.category_name }}"
