@@ -14,7 +14,7 @@ def main():
         return
 
     runs = data.get('runs', [])
-    if not runs:
+    if not runs or not isinstance(runs, list):
         return
         
     # --- BULLETPROOF CWE EXTRACTOR ---
@@ -26,9 +26,11 @@ def main():
             tool = run.get('tool', {})
             all_rules.extend(tool.get('driver', {}).get('rules', []))
             for ext in tool.get('extensions', []):
-                all_rules.extend(ext.get('rules', []))
+                if isinstance(ext, dict):
+                    all_rules.extend(ext.get('rules', []))
 
         for rule in all_rules:
+            if not isinstance(rule, dict): continue
             rule_id = rule.get('id')
             if not rule_id: continue
             
@@ -36,7 +38,7 @@ def main():
             if rule_id not in cwe_map:
                 cwe_map[rule_id] = set()
             for tag in tags:
-                if 'cwe-' in tag.lower():
+                if isinstance(tag, str) and 'cwe-' in tag.lower():
                     cwe_num = tag.lower().split('cwe-')[-1]
                     if len(cwe_num) < 3:
                         cwe_num = cwe_num.zfill(3)
@@ -50,40 +52,34 @@ def main():
 
     for run in runs:
         if not isinstance(run, dict): continue
-        for res in run.get('results', []):
+        results = run.get('results', [])
+        if not isinstance(results, list): continue
+        
+        for res in results:
+            if not isinstance(res, dict): continue
             rule_id = res.get('ruleId', 'Unknown')
             locs_arr = res.get('locations', [])
             
-            is_new_finding = False
             primary_path = "Unknown"
             primary_line = "?"
             
+            # Extract only the true root location (index 0) to avoid tracing step duplication
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                for loc_entry in locs_arr:
-                    if not isinstance(loc_entry, dict): continue
+                loc_entry = locs_arr[0]
+                if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
-                    path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                    line = locs.get('region', {}).get('startLine', '?')
-                    
-                    if primary_path == "Unknown":
-                        primary_path = path
-                        primary_line = line
-                    
-                    fingerprint = f"{rule_id}::{path}::{line}"
-                    if fingerprint not in seen_findings:
-                        seen_findings.add(fingerprint)
-                        is_new_finding = True
+                    if isinstance(locs, dict):
+                        primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                        primary_line = locs.get('region', {}).get('startLine', '?')
             elif isinstance(locs_arr, dict):
                 locs = locs_arr.get('physicalLocation', {})
-                primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                primary_line = locs.get('region', {}).get('startLine', '?')
-                
-                fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
-                if fingerprint not in seen_findings:
-                    seen_findings.add(fingerprint)
-                    is_new_finding = True
+                if isinstance(locs, dict):
+                    primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                    primary_line = locs.get('region', {}).get('startLine', '?')
 
-            if is_new_finding:
+            fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
+            if fingerprint not in seen_findings:
+                seen_findings.add(fingerprint)
                 res['_primary_path'] = primary_path
                 res['_primary_line'] = primary_line
                 consolidated_results.append(res)
@@ -93,11 +89,12 @@ def main():
     if consolidated_results:
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
         
+        # Updated to track matching official MITRE CWE Top 25 sets
         CWE_TOP_25 = [
-            'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
-            'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
-            'CWE-798', 'CWE-862', 'CWE-732', 'CWE-269', 'CWE-306', 'CWE-362', 'CWE-522',
-            'CWE-611', 'CWE-918', 'CWE-077', 'CWE-400', 'CWE-088', 'CWE-094'
+            'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
+            'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+            'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+            'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
         ]
         
         for res in consolidated_results:
@@ -118,11 +115,12 @@ def main():
             else:
                 icon_display = "🔵 Low"
             
-            # --- FIX 2: STRIP DOWN LIST GENERATION TO INLINE FLATTENED STRINGS ---
             raw_msg = res.get('message', {}).get('text', 'No description')
             msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
             
-            # --- FIX 1: FIXED CORRUPTED VARIABLE REFERENCE ---
+            # Clean markdown table columns by escaping raw vertical pipe breaks
+            msg = msg.replace('|', '\\|')
+            
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
