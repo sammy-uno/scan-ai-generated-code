@@ -24,13 +24,13 @@ jobs:
         run: |
           echo "🔍 Querying recent execution timelines using native GitHub CLI..."
           
-          # Corrected to pull explicitly by the exact workflow Name string property declarations
           AI_DATA=$(gh run list --workflow "General AI Multi-Language Scanner" --status success --limit 1 --json databaseId,createdAt)
           HU_DATA=$(gh run list --workflow "Human CodeQL Scan Auditing" --status success --limit 1 --json databaseId,createdAt)
           
           echo "Raw AI Metadata: $AI_DATA"
           echo "Raw Human Metadata: $HU_DATA"
           
+          # 🚀 CRITICAL FIX: Explicitly targets the first object array index [0] to stop old historical date leakages
           AI_ID=$(echo "$AI_DATA" | jq -r '.[0].databaseId // "null"')
           AI_TIME=$(echo "$AI_DATA" | jq -r '.[0].createdAt // "null"')
           HU_ID=$(echo "$HU_DATA" | jq -r '.[0].databaseId // "null"')
