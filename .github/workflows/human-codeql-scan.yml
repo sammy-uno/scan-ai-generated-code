@@ -18,7 +18,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -36,7 +36,7 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
     needs: discover
-    if:  ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }} 
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }} 
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -47,7 +47,7 @@ jobs:
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
@@ -69,7 +69,6 @@ jobs:
           build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
-          #queries: security-extended,security-experimental
           queries: code-scanning
 
       - name: Perform CodeQL Analysis
@@ -84,15 +83,16 @@ jobs:
       - name: Create Summary
         if: always()
         run: |
-          if [ -d "sarif-results" ]; then
+          SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          SAFE_AGENT=$(echo "${{ matrix.agent_name }}" | sed 's/ /_/g')
+          
+          if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
-            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${{ matrix.agent_name }}.sarif" 2>/dev/null || true
-            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}.success"
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}.sarif" 2>/dev/null || true
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}.success"
             python scripts/parse-results.py || true
           else
-            SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
-            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}.failed"
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}.failed"
           fi
 
       - name: Save Artifacts
@@ -104,14 +104,15 @@ jobs:
             *.sarif
             *.success
             *.failed
+          retention-days: 1
 
   report:
     name: Consolidate Final Report
-    needs: analyze
+    needs: [discover, analyze]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Download Available Artifacts
         uses: actions/download-artifact@v4
@@ -123,7 +124,7 @@ jobs:
 
       - name: Generate Consolidated Summary Table
         env:
-          MATRIX_JSON:  ${{ needs.discover.outputs.matrix }} 
-          SCAN_TYPE: "human" # <-- ADD THIS LINE
+          MATRIX_JSON: ${{ needs.discover.outputs.matrix }} 
+          SCAN_TYPE: "human"
         run: |
           python scripts/consolidate-report.py
