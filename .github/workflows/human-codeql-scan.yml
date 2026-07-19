@@ -41,6 +41,7 @@ jobs:
     timeout-minutes: 20
     env:
       CODEQL_RAM: 12000
+      CODEQL_ACTION_EXPERIMENTAL_FEATURES: "false"
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -70,8 +71,6 @@ jobs:
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
           queries: code-scanning
-        env:
-          CODEQL_ACTION_EXPERIMENTAL_FEATURES: false
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
