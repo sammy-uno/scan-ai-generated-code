@@ -3,13 +3,12 @@ import os
 
 def extract_data():
     print("Streaming AIDev tables from Hugging Face...")
-    # Loaded base pull request, repository metrics, and granular metric tables
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
     task_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pr_task_type.parquet")
 
     print("Executing join chain across Metadata and Task Sizing layers...")
-    # Step A: Combined basic PR values with the repository popularity star metrics
+    # Step A: Combine PR values with repository popularity star metrics
     merged_meta = pd.merge(
         pr_df, 
         repo_df, 
@@ -19,12 +18,12 @@ def extract_data():
         suffixes=('_pr', '_repo')
     )
     
-    # Step B: Joined with Task metrics on the matching Pull Request 'id' key to fetch code changes
-    # The task table uses 'id' which maps directly to the PR table 'id' column
+    # 🚀 CRITICAL FIX: Match the suffixed 'id_pr' column to the task_df's 'id' column
     merged_df = pd.merge(
         merged_meta,
         task_df,
-        on='id',
+        left_on='id_pr',
+        right_on='id',
         how='inner',
         suffixes=('', '_task')
     )
@@ -41,11 +40,11 @@ def extract_data():
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- CHRONOLOGICAL SORT & ACCURATE LOC EXTRACTION MODULE ---
+    # --- CHRONOLOGICAL SORT & PR LOC EXTRACTION MODULE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # Target 'additions' and 'deletions' which are natively present in the task_type table row layouts
+    # Extract total lines of code changed using the task table metrics
     add_col = 'additions' if 'additions' in filtered_df.columns else ('addition' if 'addition' in filtered_df.columns else None)
     del_col = 'deletions' if 'deletions' in filtered_df.columns else ('deletion' if 'deletion' in filtered_df.columns else None)
     
@@ -60,7 +59,7 @@ def extract_data():
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
 
-    # Export formatting
+    # Select, rearrange, and rename columns for the scanner matrix
     scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars', 'pr_loc']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language',
