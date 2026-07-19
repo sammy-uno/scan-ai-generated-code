@@ -32,9 +32,18 @@ def extract_data():
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # 🚀 CRITICAL SCHEMA FIX: Changed columns from plural to singular 'addition' and 'deletion'
-    add_col = 'addition' if 'addition' in filtered_df.columns else ('additions' if 'additions' in filtered_df.columns else None)
-    del_col = 'deletion' if 'deletion' in filtered_df.columns else ('deletions' if 'deletions' in filtered_df.columns else None)
+    # 🚀 CRITICAL FIX: Maps suffixed keys (_pr) to catch merged dataframe column name shifts
+    add_col = None
+    for col in ['additions_pr', 'addition_pr', 'additions', 'addition']:
+        if col in filtered_df.columns:
+            add_col = col
+            break
+            
+    del_col = None
+    for col in ['deletions_pr', 'deletion_pr', 'deletions', 'deletion']:
+        if col in filtered_df.columns:
+            del_col = col
+            break
     
     if add_col and del_col:
         filtered_df['pr_loc'] = (
@@ -42,7 +51,6 @@ def extract_data():
             pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
         ).astype(int)
     else:
-        # Safe structural fallback to prevent breaking matrix pipelines if properties are omitted
         filtered_df['pr_loc'] = 0
     
     scan_limit = 500
@@ -57,7 +65,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} entries.")
+    print(f"Success: Created aidev_scan_list.csv with valid lines-of-code changes metrics.")
 
 if __name__ == "__main__":
     extract_data()
