@@ -12,11 +12,9 @@ def extract_human_data():
 
         if left_key not in pr_df.columns or right_key not in repo_df.columns:
             print(f"Column mismatch!")
-            print(f"PR Columns: {pr_df.columns.tolist()}")
-            print(f"Repo Columns: {repo_df.columns.tolist()}")
             sys.exit(1)
 
-        print(f"Joining tables on PR.{left_key} and Repo.{right_key}...")
+        print("Joining tables on PR.repo_url and Repo.url...")
         merged_df = pd.merge(
             pr_df, 
             repo_df, 
@@ -27,11 +25,10 @@ def extract_human_data():
         )
 
         if merged_df.empty:
-            print("Error: Merge resulted in empty dataset. The URLs in both tables might not match format.")
+            print("Error: Merge resulted in empty dataset.")
             sys.exit(1)
 
         supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
-        
         filtered_df = merged_df[
             (merged_df['stars'] > 500) &
             (merged_df['language'].isin(supported_langs))
@@ -45,14 +42,8 @@ def extract_human_data():
         filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
         filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
         
-        # --- PR LOC COMPUTATION MODULE ---
-        # Calculate localized Lines of Code (LOC) metric via additions and deletions
-        filtered_df['additions'] = pd.to_numeric(filtered_df['additions'], errors='coerce').fillna(0)
-        filtered_df['deletions'] = pd.to_numeric(filtered_df['deletions'], errors='coerce').fillna(0)
-        filtered_df['pr_loc'] = (filtered_df['additions'] + filtered_df['deletions']).astype(int)
-        
-        # Appended 'pr_loc' to the selection array
-        scan_list = filtered_df.head(500)[['full_name', 'number', 'title', 'language', 'stars', 'pr_loc']].rename(columns={
+        # 🚀 LOC COLUMN REMOVED: Exporting only verified, meaningful properties
+        scan_list = filtered_df.head(500)[['full_name', 'number', 'title', 'language', 'stars']].rename(columns={
             'full_name': 'repo_name',
             'language': 'primary_language',
             'stars': 'repo_stars'
@@ -60,7 +51,7 @@ def extract_human_data():
         
         scan_list['agent_name'] = 'human'
         scan_list.to_csv("human_scan_list.csv", index=False)
-        print(f"Success: Created human_scan_list.csv with {len(scan_list)} entries containing star and LOC metrics.")
+        print(f"Success: Created human_scan_list.csv with {len(scan_list)} entries.")
 
     except Exception as e:
         print(f"FAILED: {e}")
