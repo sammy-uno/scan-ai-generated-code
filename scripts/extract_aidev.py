@@ -32,24 +32,25 @@ def extract_data():
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- NEW: SORT BY DATE AND LIMIT TO 100 ---
-    # Convert created_at to datetime for accurate sorting
+    # --- SORT BY DATE AND APPLY EXTRACTION BOUNDARY ---
+    # Convert created_at to datetime for accurate chronological ordering
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # Take the top 100 most recent PRs
+    # Scaled to 500 rows to ensure a rich selection pool for the 20-slot dynamic matrix scanner
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
 
-    # Select and rename columns for your scanner
-    scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent']].rename(columns={
+    # 🚀 Select and rename columns for your scanner (Added 'stars' to tracking layout)
+    scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language',
-        'agent': 'agent_name'
+        'agent': 'agent_name',
+        'stars': 'repo_stars'
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} newest entries.")
+    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} newest entries (including repository star metrics).")
 
 if __name__ == "__main__":
     extract_data()
