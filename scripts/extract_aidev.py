@@ -32,10 +32,18 @@ def extract_data():
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # Calculate localized Lines of Code (LOC) metric via additions and deletions
-    filtered_df['additions'] = pd.to_numeric(filtered_df['additions'], errors='coerce').fillna(0)
-    filtered_df['deletions'] = pd.to_numeric(filtered_df['deletions'], errors='coerce').fillna(0)
-    filtered_df['pr_loc'] = (filtered_df['additions'] + filtered_df['deletions']).astype(int)
+    # 🚀 CRITICAL SCHEMA FIX: Changed columns from plural to singular 'addition' and 'deletion'
+    add_col = 'addition' if 'addition' in filtered_df.columns else ('additions' if 'additions' in filtered_df.columns else None)
+    del_col = 'deletion' if 'deletion' in filtered_df.columns else ('deletions' if 'deletions' in filtered_df.columns else None)
+    
+    if add_col and del_col:
+        filtered_df['pr_loc'] = (
+            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
+            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
+        ).astype(int)
+    else:
+        # Safe structural fallback to prevent breaking matrix pipelines if properties are omitted
+        filtered_df['pr_loc'] = 0
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
@@ -49,7 +57,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} entries containing star and LOC metrics.")
+    print(f"Success: Created aidev_scan_list.csv with {len(scan_list)} entries.")
 
 if __name__ == "__main__":
     extract_data()
