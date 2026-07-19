@@ -5,15 +5,34 @@ def extract_data():
     print("Streaming AIDev tables from Hugging Face...")
     pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
     repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
+    
+    print("📥 Loading Granular File Changes Table...")
+    # This table holds the true additions and deletions line counts for each PR file
+    file_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request_file.parquet")
 
-    print("Joining tables on PR.repo_id and Repo.id...")
-    merged_df = pd.merge(
+    # Group file modifications by PR ID to compute the total LOC changed per PR
+    print("Aggregating line changes by PR...")
+    file_loc = file_df.groupby('pull_request_id')[['additions', 'deletions']].sum().reset_index()
+    file_loc['true_loc'] = file_loc['additions'] + file_loc['deletions']
+
+    print("Joining Metadata layers...")
+    merged_meta = pd.merge(
         pr_df, 
         repo_df, 
         left_on='repo_id', 
         right_on='id', 
         how='inner', 
         suffixes=('_pr', '_repo')
+    )
+    
+    print("Chaining file-level True LOC metrics...")
+    # Join the accumulated file line counts directly to the PR data frame via matching IDs
+    merged_df = pd.merge(
+        merged_meta,
+        file_loc,
+        left_on='id_pr',
+        right_on='pull_request_id',
+        how='inner'
     )
 
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
@@ -24,22 +43,18 @@ def extract_data():
         (merged_df['agent'].notna())
     ].copy()
 
-    # Normalize language names
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- CHRONOLOGICAL SORT & PR LOC EXTRACTION ENGINE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # 🚀 ACCURATE REPLACEMENT SIZING: Calculates length of PR body text to provide valid size metrics
-    filtered_df['body'] = filtered_df['body'].fillna('')
-    filtered_df['pr_loc'] = filtered_df['body'].str.len().astype(int)
+    # Map the compiled lines-of-code directly to your target key
+    filtered_df['pr_loc'] = filtered_df['true_loc'].astype(int)
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
 
-    # Select, rearrange, and rename columns for the scanner matrix
     scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars', 'pr_loc']].rename(columns={
         'full_name': 'repo_name',
         'language': 'primary_language',
@@ -48,7 +63,7 @@ def extract_data():
     })
     
     scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv with non-zero size metrics.")
+    print(f"Success! Created aidev_scan_list.csv with actual physical lines-of-code metrics.")
 
 if __name__ == "__main__":
     extract_data()
