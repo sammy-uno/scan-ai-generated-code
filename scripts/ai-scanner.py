@@ -1,94 +1,94 @@
-import pandas as pd
-import os
+import subprocess, json, os, time, pandas as pd
 
-def extract_data():
-    print("Streaming AIDev tables from Hugging Face...")
-    pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pull_request.parquet")
-    repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
-    task_df = pd.read_parquet("hf://datasets/hao-li/AIDev/pr_task_type.parquet")
+def run_command(command, max_retries=2):
+    for attempt in range(max_retries):
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, shell=True, timeout=30)
+            if result.returncode == 0: 
+                return result
+            time.sleep(1)
+        except subprocess.TimeoutExpired: 
+            continue
+    return None
 
-    # --- 🔍 DEBUG LOGS: STAGE 1 (BASE SCHEMAS) ---
-    print("\n=== 🔍 DEBUG LOGS: BASE TABLE SCHEMAS ===")
-    print(f"PR Table Columns:   {pr_df.columns.tolist()[:8]}")
-    print(f"Repo Table Columns: {repo_df.columns.tolist()[:8]}")
-    print(f"Task Table Columns: {task_df.columns.tolist()[:8]}")
-    print("==========================================\n")
-
-    print("Executing join chain across Metadata and Task Sizing layers...")
-    merged_meta = pd.merge(
-        pr_df, 
-        repo_df, 
-        left_on='repo_id', 
-        right_on='id', 
-        how='inner', 
-        suffixes=('_pr', '_repo')
-    )
+def main():
+    # --- CONFIGURATION (TARGET FIXED TO 20 RUNS) ---
+    INPUT_CSV = "aidev_scan_list.csv"
+    MAX_PR_LINES = 1000 
+    SCAN_LIMIT = 20     # Corrected to match architecture requirement
+    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
-    merged_df = pd.merge(
-        merged_meta,
-        task_df,
-        left_on='id_pr',
-        right_on='id',
-        how='inner',
-        suffixes=('', '_task')
-    )
-
-    # --- 🔍 DEBUG LOGS: STAGE 2 (POST-MERGE SCHEMAS) ---
-    print("\n=== 🔍 DEBUG LOGS: POST-MERGE JONED TABLE SCHEMA ===")
-    print(f"Merged Dataset Columns: {merged_df.columns.tolist()}")
-    print("====================================================\n")
-
-    supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
-    filtered_df = merged_df[
-        (merged_df['stars'] > 500) &
-        (merged_df['language'].isin(supported_langs)) &
-        (merged_df['agent'].notna())
-    ].copy()
-
-    filtered_df['language'] = filtered_df['language'].str.lower()
-    filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
-
-    filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
-    filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
+    # --- TRACKING ---
+    stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0}
     
-    # --- EXPANDED MATCHER: SCANS BOTH PLURAL, SINGULAR, AND SUFFIX VARIANTS ---
-    add_col = None
-    for col in ['additions', 'addition', 'additions_task', 'addition_task', 'add_lines', 'additions_pr']:
-        if col in filtered_df.columns:
-            add_col = col
+    if not os.path.exists(INPUT_CSV):
+        print('matrix_data={"include":[]}')
+        return
+
+    df = pd.read_csv(INPUT_CSV)
+    matrix_include = []
+    seen_repos = set()
+
+    print(f"--- Starting Discovery (Target: {SCAN_LIMIT} PRs) ---")
+    for _, row in df.iterrows():
+        if stats["added"] >= SCAN_LIMIT: 
             break
-            
-    del_col = None
-    for col in ['deletions', 'deletion', 'deletions_task', 'deletion_task', 'del_lines', 'deletions_pr']:
-        if col in filtered_df.columns:
-            del_col = col
-            break
-            
-    print(f"⚙️ Selected Mapping Keys -> Addition: [{add_col}] | Deletion: [{del_col}]")
-    
-    if add_col and del_col:
-        filtered_df['pr_loc'] = (
-            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
-            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
-        ).astype(int)
-    else:
-        filtered_df['pr_loc'] = 0
         
-    # Print the first few calculated non-zero values to verify live console health
-    print(f"📊 Live Data Slicing Verification Check (First 5 values): {filtered_df['pr_loc'].head().tolist()}")
-    
-    scan_limit = 500
-    final_list = filtered_df.head(scan_limit)
+        repo = row['repo_name']
+        num = str(row['number'])
+        
+        if repo in EXCLUDE_REPOS:
+            print(f"SKIP: {repo} (Manual Exclude)")
+            stats["excluded"] += 1
+            continue
 
-    scan_list = final_list[['full_name', 'number', 'title', 'language', 'agent', 'stars', 'pr_loc']].rename(columns={
-        'full_name': 'repo_name',
-        'language': 'primary_language',
-        'agent': 'agent_name',
-        'stars': 'repo_stars'
-    })
-    
-    scan_list.to_csv("aidev_scan_list.csv", index=False)
-    print(f"Success: Created aidev_scan_list.csv.")
+        if repo in seen_repos:
+            print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered)")
+            stats["duplicates"] += 1
+            continue
+            
+        # Immediately track to prevent duplicate API hammering
+        seen_repos.add(repo)
 
-if __name__ == "__main__":
-    extract_data()
+        lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
+        if lines_res: # Simplified since run_command only returns clean 0 exits
+            data = json.loads(lines_res.stdout)
+            total = data.get("additions", 0) + data.get("deletions", 0)
+            if total > MAX_PR_LINES:
+                print(f"SKIP: {repo} #{num} (Size: {total} lines)")
+                stats["too_big"] += 1
+                continue
+        else:
+            print(f"SKIP: {repo} #{num} (API/Access Error)")
+            stats["api_error"] += 1
+            continue
+
+        matrix_include.append({
+            "pr_num": num, 
+            "repo_name": repo, 
+            "language": row['primary_language'], 
+            "pr_title": row.get('title', 'Untitled'), 
+            "agent_name": row['agent_name'],
+            "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{row['primary_language']}--{row['agent_name'].replace(' ', '_')}"
+        })
+        
+        print(f"ADDED: {repo} #{num} ({total} lines)")
+        stats["added"] += 1
+
+    print("\n--- Discovery Summary ---")
+    print(f"✅ Total Added to Matrix: {stats['added']}")
+    print(f"❌ Skipped (Too Large):   {stats['too_big']}")
+    print(f"🚫 Skipped (Excluded):    {stats['excluded']}")
+    print(f"👯 Skipped (Duplicates):  {stats['duplicates']}")
+    print(f"⚠️  Skipped (API Errors): {stats['api_error']}")
+    print("-------------------------\n")
+
+    output = json.dumps({"include": matrix_include})
+    if 'GITHUB_OUTPUT' in os.environ:
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f: 
+            f.write(f'matrix_data={output}\n')
+    else: 
+        print(f"matrix_data={output}")
+
+if __name__ == '__main__': 
+    main()
