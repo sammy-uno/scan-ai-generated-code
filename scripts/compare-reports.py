@@ -1,16 +1,26 @@
 import json
 import glob
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 def convert_to_central_time(iso_str):
-    if not iso_str or iso_str == "N/A" or iso_str == "null" or "T" not in iso_str:
+    """
+    Converts an ISO timestamp string cleanly to Central Time (CST/CDT).
+    Automatically adapts to seasonal Daylight Saving changes using IANA definitions.
+    """
+    if not iso_str or not isinstance(iso_str, str) or iso_str.lower() in ["n/a", "null", "none", ""]:
         return "Not Available (No Run Recorded)"
     try:
-        cleaned_iso = iso_str.replace("Z", "+00:00")
+        normalized_str = iso_str.strip().replace(" ", "T")
+        if "T" not in normalized_str:
+            return iso_str
+            
+        cleaned_iso = normalized_str.replace("Z", "+00:00")
         utc_dt = datetime.fromisoformat(cleaned_iso)
-        ct_offset = timezone(timedelta(hours=-5))
-        central_dt = utc_dt.astimezone(ct_offset)
+        
+        central_zone = ZoneInfo("America/Chicago")
+        central_dt = utc_dt.astimezone(central_zone)
         return central_dt.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception as ex:
         print(f"Timestamp conversion parsing log notice: {ex}")
@@ -29,11 +39,12 @@ def main():
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "cwes": set()}
     
+    # Standardized MITRE CWE Top 25 Threat Matrix
     CWE_TOP_25 = [
-        'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
-        'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
-        'CWE-798', 'CWE-862', 'CWE-732', 'CWE-269', 'CWE-306', 'CWE-362', 'CWE-522',
-        'CWE-611', 'CWE-918', 'CWE-077', 'CWE-400', 'CWE-088', 'CWE-094'
+        'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
+        'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
     for f in all_files:
@@ -47,8 +58,10 @@ def main():
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
+            if not isinstance(runs, list):
+                continue
+                
             res = []
-            
             seen_findings = set()
             local_cwe_map = {}
             
@@ -57,61 +70,75 @@ def main():
                 tool = run.get('tool', {})
                 all_rules = []
                 all_rules.extend(tool.get('driver', {}).get('rules', []))
-                for ext in tool.get('extensions', []):
-                    all_rules.extend(ext.get('rules', []))
+                
+                extensions = tool.get('extensions', [])
+                if isinstance(extensions, list):
+                    for ext in extensions:
+                        if isinstance(ext, dict):
+                            all_rules.extend(ext.get('rules', []))
                 
                 for rule in all_rules:
+                    if not isinstance(rule, dict): continue
                     r_id = rule.get('id')
+                    if not r_id: continue
+                    
                     tags = rule.get('properties', {}).get('tags', [])
                     if r_id not in local_cwe_map:
                         local_cwe_map[r_id] = set()
                     for t in tags:
-                        if 'cwe-' in t.lower():
+                        if isinstance(t, str) and 'cwe-' in t.lower():
                             c_num = t.lower().split('cwe-')[-1]
-                            local_cwe_map[r_id].add(f'CWE-{c_num.zfill(3)}'.upper())
+                            if len(c_num) < 3:
+                                c_num = c_num.zfill(3)
+                            local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
 
             for run in runs:
-                if isinstance(run, dict):
-                    for result in run.get('results', []):
-                        rule_id = result.get('ruleId', 'Unknown')
-                        locs_arr = result.get('locations', [])
-                        
-                        is_new_finding = False
-                        if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                            for loc_entry in locs_arr:
-                                if not isinstance(loc_entry, dict): continue
-                                locs = loc_entry.get('physicalLocation', {})
-                                path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                                line = locs.get('region', {}).get('startLine', '?')
+                if not isinstance(run, dict): continue
+                results = run.get('results', [])
+                if not isinstance(results, list): continue
+                
+                for result in results:
+                    if not isinstance(result, dict): continue
+                    rule_id = result.get('ruleId', 'Unknown')
+                    locs_arr = result.get('locations', [])
+                    
+                    primary_path = "Unknown"
+                    primary_line = "?"
+                    
+                    # Track root location only to eliminate tracing path metric duplication leaks
+                    if isinstance(locs_arr, list) and len(locs_arr) > 0:
+                        loc_entry = locs_arr[0]
+                        if isinstance(loc_entry, dict):
+                            locs = loc_entry.get('physicalLocation', {})
+                            if isinstance(locs, dict):
+                                primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                                primary_line = locs.get('region', {}).get('startLine', '?')
+                    elif isinstance(locs_arr, dict):
+                        locs = locs_arr.get('physicalLocation', {})
+                        if isinstance(locs, dict):
+                            primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                            primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                                fingerprint = f'{rule_id}::{path}::{line}'
-                                if fingerprint not in seen_findings:
-                                    seen_findings.add(fingerprint)
-                                    is_new_finding = True
-                        elif isinstance(locs_arr, dict):
-                            locs = locs_arr.get('physicalLocation', {})
-                            path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                            line = locs.get('region', {}).get('startLine', '?')
-                            
-                            fingerprint = f'{rule_id}::{path}::{line}'
-                            if fingerprint not in seen_findings:
-                                seen_findings.add(fingerprint)
-                                is_new_finding = True
-                                
-                        if is_new_finding:
-                            res.append(result)
+                    fingerprint = f'{rule_id}::{primary_path}::{primary_line}'
+                    if fingerprint not in seen_findings:
+                        seen_findings.add(fingerprint)
+                        res.append(result)
 
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
+                if not isinstance(r, dict): continue
                 r_id = r.get('ruleId', '')
                 level = r.get('level', 'warning')
                 cwes_for_rule = local_cwe_map.get(r_id, set())
                 is_top_25 = any(c in CWE_TOP_25 for c in cwes_for_rule)
                 
-                if level == 'error' or is_top_25: h += 1
-                elif level == 'warning': m += 1
-                else: l += 1
+                if level == 'error' or is_top_25: 
+                    h += 1
+                elif level == 'warning': 
+                    m += 1
+                else: 
+                    l += 1
                 
                 for cwe in cwes_for_rule:
                     pr_cwes.add(cwe)
@@ -143,7 +170,7 @@ def main():
     ai_link = f"{server_url}/{repo_name}/actions/runs/{ai_run_id}" if ai_run_id != "null" else "#"
     human_link = f"{server_url}/{repo_name}/actions/runs/{human_run_id}" if human_run_id != "null" else "#"
 
-    # --- DYNAMIC CWE DENSITY RATIO COMPUTATION MODULE ---
+    # Compute density ratios
     ai_density = round(ai_metrics["total"] / ai_metrics["scanned_prs"], 2) if ai_metrics["scanned_prs"] > 0 else 0.0
     human_density = round(human_metrics["total"] / human_metrics["scanned_prs"], 2) if human_metrics["scanned_prs"] > 0 else 0.0
 
@@ -156,7 +183,6 @@ def main():
         out.write(f'- Human Scan Last Run: `{human_freshness}`\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        # --- FIXED: ADDED CWE DENSITY COLUMN INTO MARKDOWN TABLE TEMPLATE ---
         out.write('| Evaluation Group | Total PRs Scanned | Vulnerable PRs | Total Issues Found | CWE Density (Issues/PR) | 🔴 High | 🟡 Medium | 🔵 Low | Distinct CWEs Found |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["vuln_prs"]} | {ai_metrics["total"]} | **{ai_density}** | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {len(ai_metrics["cwes"])} |\n')
