@@ -24,7 +24,8 @@ def main():
     vulnerable_count = 0
     cwe_tracker = {}
     
-    is_human_run = any("Human_Auditor" in os.path.basename(f) for f in all_files)
+    # Prioritize the explicit environment declaration with filename fallback
+    is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.path.basename(f) for f in all_files)
 
     for f in all_files:
         fname = os.path.basename(f)
@@ -45,39 +46,43 @@ def main():
             with open(f) as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
+            if not isinstance(runs, list):
+                continue
+                
             res = []
-            
             seen_findings = set()
+            
             for run in runs:
-                if isinstance(run, dict):
-                    for result in run.get('results', []):
-                        rule_id = result.get('ruleId', 'Unknown')
-                        locs_arr = result.get('locations', [])
-                        
-                        is_new_finding = False
-                        if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                            for loc_entry in locs_arr:
-                                if not isinstance(loc_entry, dict): continue
-                                locs = loc_entry.get('physicalLocation', {})
-                                path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                                line = locs.get('region', {}).get('startLine', '?')
-                                
-                                fingerprint = f'{rule_id}::{path}::{line}'
-                                if fingerprint not in seen_findings:
-                                    seen_findings.add(fingerprint)
-                                    is_new_finding = True
-                        elif isinstance(locs_arr, dict):
-                            locs = locs_arr.get('physicalLocation', {})
-                            path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
-                            line = locs.get('region', {}).get('startLine', '?')
+                if not isinstance(run, dict): continue
+                results = run.get('results', [])
+                if not isinstance(results, list): continue
+                
+                for result in results:
+                    if not isinstance(result, dict): continue
+                    rule_id = result.get('ruleId', 'Unknown')
+                    locs_arr = result.get('locations', [])
+                    
+                    primary_path = "Unknown"
+                    primary_line = "?"
+                    
+                    # Target index 0 to eliminate false trace path duplication metrics
+                    if isinstance(locs_arr, list) and len(locs_arr) > 0:
+                        loc_entry = locs_arr[0]
+                        if isinstance(loc_entry, dict):
+                            locs = loc_entry.get('physicalLocation', {})
+                            if isinstance(locs, dict):
+                                primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                                primary_line = locs.get('region', {}).get('startLine', '?')
+                    elif isinstance(locs_arr, dict):
+                        locs = locs_arr.get('physicalLocation', {})
+                        if isinstance(locs, dict):
+                            primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                            primary_line = locs.get('region', {}).get('startLine', '?')
                             
-                            fingerprint = f'{rule_id}::{path}::{line}'
-                            if fingerprint not in seen_findings:
-                                seen_findings.add(fingerprint)
-                                is_new_finding = True
-                                
-                        if is_new_finding:
-                            res.append(result)
+                    fingerprint = f'{rule_id}::{primary_path}::{primary_line}'
+                    if fingerprint not in seen_findings:
+                        seen_findings.add(fingerprint)
+                        res.append(result)
             
             local_cwe_map = {}
             try:
@@ -86,72 +91,88 @@ def main():
                     tool = run.get('tool', {})
                     all_rules = []
                     all_rules.extend(tool.get('driver', {}).get('rules', []))
-                    for ext in tool.get('extensions', []):
-                        all_rules.extend(ext.get('rules', []))
+                    
+                    extensions = tool.get('extensions', [])
+                    if isinstance(extensions, list):
+                        for ext in extensions:
+                            if isinstance(ext, dict):
+                                all_rules.extend(ext.get('rules', []))
                     
                     for rule in all_rules:
+                        if not isinstance(rule, dict): continue
                         r_id = rule.get('id')
+                        if not r_id: continue
+                        
                         tags = rule.get('properties', {}).get('tags', [])
                         if r_id not in local_cwe_map:
                             local_cwe_map[r_id] = set()
                         for t in tags:
-                            if 'cwe-' in t.lower():
+                            if isinstance(t, str) and 'cwe-' in t.lower():
                                 c_num = t.lower().split('cwe-')[-1]
                                 if len(c_num) < 3:
                                     c_num = c_num.zfill(3)
                                 local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
             except Exception as ex: 
                 print(f'Metadata extract warning for {fname}: {ex}')
-            
+
             total_scanned += 1
             if len(res) > 0: 
                 vulnerable_count += 1
             
             h, m, l = 0, 0, 0
+            
+            # Aligned with official MITRE CWE Top 25 tracker definitions
             CWE_TOP_25 = [
-                'CWE-787', 'CWE-079', 'CWE-089', 'CWE-020', 'CWE-125', 'CWE-078', 'CWE-416',
-                'CWE-022', 'CWE-352', 'CWE-434', 'CWE-476', 'CWE-502', 'CWE-190', 'CWE-287',
-                'CWE-798', 'CWE-862', 'CWE-732', 'CWE-269', 'CWE-306', 'CWE-362', 'CWE-522',
-                'CWE-611', 'CWE-918', 'CWE-077', 'CWE-400', 'CWE-088', 'CWE-094'
+                'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
+                'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+                'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+                'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
             ]
             
+            pr_cwes = set()
+            unique_files = set()
+            
+            # Consolidated loops into a single optimized pass
             for r in res:
+                if not isinstance(r, dict): continue
                 r_id = r.get('ruleId', '')
                 level = r.get('level', 'warning')
                 cwes_for_rule = local_cwe_map.get(r_id, set())
                 is_top_25 = any(c in CWE_TOP_25 for c in cwes_for_rule)
                 
-                if level == 'error' or is_top_25: h += 1
-                elif level == 'warning': m += 1
-                else: l += 1
+                if level == 'error' or is_top_25: 
+                    h += 1
+                elif level == 'warning': 
+                    m += 1
+                else: 
+                    l += 1
+                    
+                if cwes_for_rule:
+                    for cwe_id in cwes_for_rule:
+                        cwe_tracker[cwe_id] = cwe_tracker.get(cwe_id, 0) + 1
+                        pr_cwes.add(cwe_id)
+                        
+                # Single-file metric extraction from root position
+                locations = r.get('locations', [])
+                if isinstance(locations, list) and len(locations) > 0:
+                    loc = locations[0]
+                    if isinstance(loc, dict):
+                        u_uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
+                        if u_uri: unique_files.add(u_uri)
             
             if h > 0: row_severity_badge = '🔴 High'
             elif m > 0: row_severity_badge = '🟡 Medium'
             elif l > 0: row_severity_badge = '🔵 Low'
             else: row_severity_badge = '🟢 Clean'
             
-            pr_cwes = set()
-            for r in res:
-                cwes_for_rule = local_cwe_map.get(r.get('ruleId'), set())
-                if cwes_for_rule:
-                    for cwe_id in cwes_for_rule:
-                        cwe_tracker[cwe_id] = cwe_tracker.get(cwe_id, 0) + 1
-                        pr_cwes.add(cwe_id)
-            
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
-            
-            unique_files = set()
-            for r in res:
-                for loc in r.get('locations', []):
-                    if isinstance(loc, dict):
-                        u_uri = loc.get('physicalLocation', {}).get('artifactLocation', {}).get('uri')
-                        if u_uri: unique_files.add(u_uri)
             u_files = len(unique_files)
             
             full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
             link_md = f'[#{pr_num}]({full_url})'
             
-            if scan_type == 'human':
+            # Use unified is_human_run boolean for dynamic column dropping
+            if is_human_run:
                 table_rows.append(f'| {repo_path} | {link_md} | {lang} | {row_severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
             else:
                 table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {row_severity_badge} | **{cwe_display}** | {h} | {m} | {l} | {len(res)} ({u_files}) |')
@@ -175,7 +196,8 @@ def main():
         else:
             out.write('- No distinct CWE records mapped.\n')
             
-        if scan_type == 'human':
+        # Unified table header updates matching system expectations
+        if is_human_run:
             out.write('\n| Repository | PR | Lang | Overall Severity | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total (Files) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
