@@ -77,7 +77,8 @@ jobs:
         with:
           category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
-          upload: false 
+          upload: false
+          upload-database: false
           wait-for-processing: false 
           threads: 2
 
