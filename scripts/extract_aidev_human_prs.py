@@ -7,7 +7,6 @@ def extract_human_data():
         pr_df = pd.read_parquet("hf://datasets/hao-li/AIDev/human_pull_request.parquet")
         repo_df = pd.read_parquet("hf://datasets/hao-li/AIDev/repository.parquet")
 
-        # FIX: The repository table uses 'url', while the human_pr table uses 'repo_url'
         left_key = 'repo_url'
         right_key = 'url' 
 
@@ -31,10 +30,8 @@ def extract_human_data():
             print("Error: Merge resulted in empty dataset. The URLs in both tables might not match format.")
             sys.exit(1)
 
-        # Filter criteria
         supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
         
-        # 🚀 UPDATED THRESHOLD: Changed from 100 to 500 stars to align perfectly with the AI track
         filtered_df = merged_df[
             (merged_df['stars'] > 500) &
             (merged_df['language'].isin(supported_langs))
@@ -48,8 +45,14 @@ def extract_human_data():
         filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
         filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
         
-        # 🚀 ADDED 'stars' TO SELECTION LAYER: Renamed cleanly to 'repo_stars'
-        scan_list = filtered_df.head(500)[['full_name', 'number', 'title', 'language', 'stars']].rename(columns={
+        # --- PR LOC COMPUTATION MODULE ---
+        # Calculate localized Lines of Code (LOC) metric via additions and deletions
+        filtered_df['additions'] = pd.to_numeric(filtered_df['additions'], errors='coerce').fillna(0)
+        filtered_df['deletions'] = pd.to_numeric(filtered_df['deletions'], errors='coerce').fillna(0)
+        filtered_df['pr_loc'] = (filtered_df['additions'] + filtered_df['deletions']).astype(int)
+        
+        # Appended 'pr_loc' to the selection array
+        scan_list = filtered_df.head(500)[['full_name', 'number', 'title', 'language', 'stars', 'pr_loc']].rename(columns={
             'full_name': 'repo_name',
             'language': 'primary_language',
             'stars': 'repo_stars'
@@ -57,7 +60,7 @@ def extract_human_data():
         
         scan_list['agent_name'] = 'human'
         scan_list.to_csv("human_scan_list.csv", index=False)
-        print(f"Success: Created human_scan_list.csv with {len(scan_list)} entries (including star tracking).")
+        print(f"Success: Created human_scan_list.csv with {len(scan_list)} entries containing star and LOC metrics.")
 
     except Exception as e:
         print(f"FAILED: {e}")
