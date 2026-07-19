@@ -28,13 +28,22 @@ def extract_data():
     filtered_df['language'] = filtered_df['language'].str.lower()
     filtered_df.loc[filtered_df['language'] == 'typescript', 'language'] = 'javascript'
 
-    # --- CHRONOLOGICAL SORT & PR LOC EXTRACTION MODULE ---
+    # --- CHRONOLOGICAL SORT & PR LOC COMPUTATION MODULE ---
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    # Extract total lines of code changed using the dataset's native churn column
-    churn_col = 'churn_pr' if 'churn_pr' in filtered_df.columns else 'churn'
-    filtered_df['pr_loc'] = pd.to_numeric(filtered_df[churn_col], errors='coerce').fillna(0).astype(int)
+    # 🚀 CRITICAL SUEFIX FIX: Target the exact merged column names ('additions_pr' and 'deletions_pr')
+    add_col = 'additions_pr' if 'additions_pr' in filtered_df.columns else ('additions' if 'additions' in filtered_df.columns else None)
+    del_col = 'deletions_pr' if 'deletions_pr' in filtered_df.columns else ('deletions' if 'deletions' in filtered_df.columns else None)
+    
+    if add_col and del_col:
+        filtered_df['pr_loc'] = (
+            pd.to_numeric(filtered_df[add_col], errors='coerce').fillna(0) + 
+            pd.to_numeric(filtered_df[del_col], errors='coerce').fillna(0)
+        ).astype(int)
+    else:
+        # Safe structural fallback to prevent breaking matrix pipelines if properties are omitted
+        filtered_df['pr_loc'] = 0
     
     scan_limit = 500
     final_list = filtered_df.head(scan_limit)
