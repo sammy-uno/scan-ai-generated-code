@@ -137,6 +137,14 @@ jobs:
           path: all-results
           merge-multiple: true
 
+      # 🚀 CRITICAL SINK FIX: Clear out any pre-existing nested background 'results.sarif' caches 
+      # This guarantees that only your cleanly formatted custom filename strings are aggregated!
+      - name: Purge Historical Cache Clones
+        run: |
+          find all-results/ -name "results.sarif" -delete || true
+          echo "📁 Active Clean Artifacts Queue Check:"
+          ls -R all-results/
+
       - name: Generate Consolidated Summary Table
         env:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
