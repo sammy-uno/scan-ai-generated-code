@@ -5,28 +5,30 @@ import sys
 
 def get_pr_changed_lines(repo, pr_num):
     """
-    🎯 RE-ENGINEERED STRIP PARSER: Reads the unified patch chunks 
-    returned by gh pr view to extract true code addition line matrices.
-    Injects global system credentials into the subshell thread.
+    🎯 HARDENED PARSER: Safely reads the unified patch chunks returned by gh pr view,
+    extracts target file change matrices, and tracks correct lines.
     """
     changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
         cmd = f"gh pr view {pr_num} --repo {repo} --json fileChanges"
         
-        # 🚀 FIX: Explicitly pass parent GH_TOKEN down to subshell environment to eliminate exit code 1
         sub_env = os.environ.copy()
-        
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30, env=sub_env)
         if res.returncode != 0:
-            print(f"⚠️ GitHub CLI query execution warning code: {res.returncode}")
+            print(f"⚠️ [DEBUG ERROR] GitHub CLI query failed execution with code: {res.returncode}")
             print(f"🔍 Stderr details: {res.stderr}")
             return changed_lines
             
         data = json.loads(res.stdout)
         file_changes = data.get('fileChanges', [])
         
+        print("\n====================================================")
+        print("📥 DEBUG LOG STEP 1: PARSING GIT PATCH DIFF HUNKS")
+        print("====================================================")
+        print(f"Total raw file entries returned by GitHub API: {len(file_changes)}")
+
         for change in file_changes:
-            path = change.get('path', '')
+            path = change.get('path', '').strip()
             if not path: 
                 continue
                 
@@ -35,6 +37,7 @@ def get_pr_changed_lines(repo, pr_num):
             
             patch = change.get('patch', '')
             if not patch:
+                print(f"ℹ️ [DIFF TRACE] Skipping file '{path}' -> Empty or binary patch footprint.")
                 continue
                 
             current_line = 0
@@ -42,50 +45,55 @@ def get_pr_changed_lines(repo, pr_num):
                 # Safely parse unified diff meta block markers (e.g., @@ -1,4 +42,10 @@)
                 if line.startswith('@@'):
                     try:
-                        # Extract everything following the '+' character block cleanly as a string
                         meta_part = line.split('+')[-1].split(' @@')[0].strip()
                         if ',' in meta_part:
+                            # 🚀 EXTRACT THE FIRST ITEM FROM SPLIT LIST BEFORE CONVERSION TO INT
                             current_line = int(meta_part.split(',')[0])
                         else:
                             current_line = int(meta_part)
                     except Exception as ex:
-                        print(f"Hunk metadata block parsing notice: {ex}")
+                        print(f"   ⚠️ Hunk conversion parsing log notice for '{path}': {ex}")
                         pass
                 elif line.startswith('+') and not line.startswith('+++'):
-                    # Match found for code lines actually modified/added
                     changed_lines[path].add(current_line)
                     current_line += 1
                 elif not line.startswith('-'):
-                    # Move tracking marker forward across unmodified background context lines
                     current_line += 1
+            
+            print(f"✅ [DIFF TRACE] File '{path}' -> Successfully extracted {len(changed_lines[path])} changed line boundaries.")
+        print("====================================================\n")
                     
     except Exception as e:
-        print(f"Error parsing PR diff hunks footprint matrix: {e}")
+        print(f"❌ [CRITICAL] Error parsing PR diff hunks footprint matrix: {e}")
     return changed_lines
 
 def main():
     sarif_path = "results.sarif"
     if not os.path.exists(sarif_path):
+        print(f"❌ [DEBUG] Target SARIF file missing from workspace position: {sarif_path}")
         return
         
     try:
         with open(sarif_path, 'r') as f:
             data = json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"❌ [DEBUG] Failed parsing SARIF JSON layout stream: {e}")
         return
 
     runs = data.get('runs', [])
     if not runs or not isinstance(runs, list):
+        print("⚠️ [DEBUG] SARIF contains zero analytical run blocks.")
         return
 
-    # Extract target parameters passed from workflow environment definitions
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
     pr_loc = int(os.environ.get('PR_LOC', '1'))
 
+    print(f"📋 [DEBUG ENVIRONMENT] Repo: {repo} | PR Num: {pr_num} | Declared Size: {pr_loc} LOC")
+
     # Fetch the exact lines modified by the agent
     pr_diff_map = get_pr_changed_lines(repo, pr_num) if repo and pr_num else {}
-    print(f"🔍 [TRACE] Isolated PR File Keys: {list(pr_diff_map.keys())}")
+    print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Map Keys: {list(pr_diff_map.keys())}")
         
     # --- BULLETPROOF CWE EXTRACTOR ---
     cwe_map = {}
@@ -119,6 +127,11 @@ def main():
     consolidated_results = []
     seen_findings = set()
 
+    print("\n====================================================")
+    print("🎯 DEBUG LOG STEP 2: EVALUATING INDIVIDUAL SARIF ALERTS")
+    print("====================================================")
+
+    total_raw_alerts_processed = 0
     for run in runs:
         if not isinstance(run, dict): continue
         results = run.get('results', [])
@@ -126,6 +139,7 @@ def main():
         
         for res in results:
             if not isinstance(res, dict): continue
+            total_raw_alerts_processed += 1
             rule_id = res.get('ruleId', 'Unknown')
             locs_arr = res.get('locations', [])
             
@@ -133,19 +147,29 @@ def main():
             primary_line = "?"
             
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr[0] # Root finding extraction entry
+                loc_entry = locs_arr[0]
                 if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
                     if isinstance(locs, dict):
-                        primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
+                        primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🚀 STRICT DELTA FILTER GATEWAY
+            # 🚀 STRICT DELTA FILTER GATEWAY WITH VERBOSE ALERTERS
             if pr_diff_map:
-                # Suffix-match CodeQL paths to handle varying relative file prefixes cleanly
-                matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p)), None)
-                if not matching_file or primary_line == '?' or int(primary_line) not in pr_diff_map[matching_file]:
-                    continue  # Safely bypasses background pre-existing repo debt files
+                matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p) or p.endswith(primary_path)), None)
+                if not matching_file:
+                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> File not changed in this PR.")
+                    continue
+                
+                if primary_line == '?':
+                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> Missing specific line coordinate markers.")
+                    continue
+                    
+                if int(primary_line) not in pr_diff_map[matching_file]:
+                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> Line pre-existed (Repository Technical Debt).")
+                    continue
+                
+                print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` explicitly sits inside the introduced PR diff hunk footprint!")
 
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
@@ -153,6 +177,9 @@ def main():
                 res['_primary_path'] = primary_path
                 res['_primary_line'] = primary_line
                 consolidated_results.append(res)
+
+    print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
+    print("====================================================\n")
 
     # Overwrite results.sarif with only the filtered introduced findings
     if consolidated_results:
@@ -162,7 +189,6 @@ def main():
         with open(sarif_path, 'w') as f:
             json.dump(data, f)
     else:
-        # Clear findings out entirely if no issues were introduced in the code submission lines
         for run in runs:
             if isinstance(run, dict) and 'results' in run:
                 run['results'] = []
@@ -196,12 +222,10 @@ def main():
             icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level == 'warning' else "🔵 Low")
             
             raw_msg = res.get('message', {}).get('text', 'No description')
-            
-            # 🚀 FIX: Isolate the first line as a string BEFORE calling string replacements
-            if '\n' in raw_msg:
-                msg = raw_msg.split('\n')[0]
+            if isinstance(raw_msg, str):
+                msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
             else:
-                msg = raw_msg
+                msg = "No description details provided."
                 
             msg = msg.replace('|', '\\|')
             
