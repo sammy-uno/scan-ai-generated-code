@@ -90,20 +90,21 @@ jobs:
           SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
           SAFE_AGENT=$(echo "${{ matrix.agent_name }}" | sed 's/ /_/g')
           
-          # 🚀 LIVE CAPTURE: Fetch the precise additions + deletions count calculated during checkout step
-          # Uses a fallback to 1 to prevent any unintended division-by-zero math boundaries
+          # Query live PR line modifications from workspace checkout
           LIVE_LOC=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json additions,deletions --jq '.additions + .deletions' 2>/dev/null || echo "1")
           if [ -z "$LIVE_LOC" ] || [ "$LIVE_LOC" = "0" ]; then LIVE_LOC="1"; fi
           
-          # Pass directly into individual python execution context
+          # 🚀 PASS DELTA CONFIGURATIONS TO PYTHON RUNNER CONTEXT
           export PR_LOC=$LIVE_LOC
+          export PR_REPO="${{ matrix.repo_name }}"
+          export PR_NUM="${{ matrix.pr_num }}"
 
           if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            
-            # Pack live exact LOC token right into the saved filename array string
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.sarif" 2>/dev/null || true
             echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.success"
+            
+            # Executes the line-filtered delta calculation engine
             python scripts/parse-results.py || true
           else
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
