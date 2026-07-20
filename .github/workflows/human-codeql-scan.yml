@@ -141,7 +141,9 @@ jobs:
 
       - name: Generate Consolidated Summary Table
         env:
-          MATRIX_JSON: ${{ needs.discover.outputs.matrix }} 
-          SCAN_TYPE: "human"
+          MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
+          SCAN_TYPE: "automated"
+          # 🚀 INJECTED: Grants CLI token context to the consolidation task node
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: |
           python scripts/consolidate-report.py
