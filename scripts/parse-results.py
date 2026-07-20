@@ -17,6 +17,9 @@ def main():
     if not runs or not isinstance(runs, list):
         return
         
+    # --- FETCH LIVE EXACT PR LOC ---
+    pr_loc = int(os.environ.get('PR_LOC', '0'))
+        
     # --- BULLETPROOF CWE EXTRACTOR ---
     cwe_map = {}
     try:
@@ -25,9 +28,11 @@ def main():
             if not isinstance(run, dict): continue
             tool = run.get('tool', {})
             all_rules.extend(tool.get('driver', {}).get('rules', []))
-            for ext in tool.get('extensions', []):
-                if isinstance(ext, dict):
-                    all_rules.extend(ext.get('rules', []))
+            extensions = tool.get('extensions', [])
+            if isinstance(extensions, list):
+                for ext in extensions:
+                    if isinstance(ext, dict):
+                        all_rules.extend(ext.get('rules', []))
 
         for rule in all_rules:
             if not isinstance(rule, dict): continue
@@ -63,7 +68,6 @@ def main():
             primary_path = "Unknown"
             primary_line = "?"
             
-            # Extract only the true root location (index 0) to avoid tracing step duplication
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
                 loc_entry = locs_arr[0]
                 if isinstance(loc_entry, dict):
@@ -84,12 +88,15 @@ def main():
                 res['_primary_line'] = primary_line
                 consolidated_results.append(res)
 
-    summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} Distinct Issues Found\n"
+    summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} Distinct Issues Found (PR Size: {pr_loc} LOC)\n"
     
     if consolidated_results:
+        # 🚀 TRUE DIRECT RATIO: CWE divided exactly by the live LOC of the PR
+        cwe_per_loc = round(len(consolidated_results) / pr_loc, 4) if pr_loc > 0 else 0.0
+        summary_md += f"**CWE Density:** {cwe_per_loc} Issues per Line of Code (LOC)\n\n"
+        
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
         
-        # Updated to track matching official MITRE CWE Top 25 sets
         CWE_TOP_25 = [
             'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
             'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
@@ -105,7 +112,6 @@ def main():
             
             cwes_set = cwe_map.get(rule_id, set())
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
-            
             is_top_25 = any(c in CWE_TOP_25 for c in cwes_set)
             
             if level == 'error' or is_top_25:
@@ -117,8 +123,6 @@ def main():
             
             raw_msg = res.get('message', {}).get('text', 'No description')
             msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
-            
-            # Clean markdown table columns by escaping raw vertical pipe breaks
             msg = msg.replace('|', '\\|')
             
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
