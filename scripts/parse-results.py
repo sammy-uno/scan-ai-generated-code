@@ -5,12 +5,13 @@ import sys
 
 def get_pr_changed_lines(repo, pr_num):
     """
-    🎯 HARDENED PARSER: Safely reads the unified patch chunks returned by gh pr view,
-    extracts target file change matrices, and tracks correct lines.
+    🎯 RE-ENGINEERED FIELD PARSER: Queries the native 'gh pr view --json files' endpoint.
+    Safely unpacks the official 'files' array and extracts true code addition coordinates.
     """
     changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json fileChanges"
+        # 🚀 FIXED: Changed query field from 'fileChanges' to the natively supported 'files'
+        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
         
         sub_env = os.environ.copy()
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30, env=sub_env)
@@ -20,45 +21,35 @@ def get_pr_changed_lines(repo, pr_num):
             return changed_lines
             
         data = json.loads(res.stdout)
-        file_changes = data.get('fileChanges', [])
+        files = data.get('files', [])
         
         print("\n====================================================")
         print("📥 DEBUG LOG STEP 1: PARSING GIT PATCH DIFF HUNKS")
         print("====================================================")
-        print(f"Total raw file entries returned by GitHub API: {len(file_changes)}")
+        print(f"Total raw file entries returned by GitHub API: {len(files)}")
 
-        for change in file_changes:
-            path = change.get('path', '').strip()
+        for f in files:
+            path = f.get('path', '').strip()
             if not path: 
                 continue
                 
             if path not in changed_lines:
                 changed_lines[path] = set()
             
-            patch = change.get('patch', '')
-            if not patch:
-                print(f"ℹ️ [DIFF TRACE] Skipping file '{path}' -> Empty or binary patch footprint.")
+            # Extract line ranges using the 'hunks' meta data array
+            hunks = f.get('hunks', [])
+            if not hunks:
+                print(f"ℹ️ [DIFF TRACE] Skipping file '{path}' -> No chunk changes recorded.")
                 continue
                 
-            current_line = 0
-            for line in patch.split('\n'):
-                # Safely parse unified diff meta block markers (e.g., @@ -1,4 +42,10 @@)
-                if line.startswith('@@'):
-                    try:
-                        meta_part = line.split('+')[-1].split(' @@')[0].strip()
-                        if ',' in meta_part:
-                            # 🚀 EXTRACT THE FIRST ITEM FROM SPLIT LIST BEFORE CONVERSION TO INT
-                            current_line = int(meta_part.split(',')[0])
-                        else:
-                            current_line = int(meta_part)
-                    except Exception as ex:
-                        print(f"   ⚠️ Hunk conversion parsing log notice for '{path}': {ex}")
-                        pass
-                elif line.startswith('+') and not line.startswith('+++'):
-                    changed_lines[path].add(current_line)
-                    current_line += 1
-                elif not line.startswith('-'):
-                    current_line += 1
+            for hunk in hunks:
+                # Target 'newStartLine' and 'newLinesCount' to map the additions footprint
+                start_line = hunk.get('newStartLine', 0)
+                lines_count = hunk.get('newLinesCount', 0)
+                
+                if start_line > 0 and lines_count > 0:
+                    for offset in range(lines_count):
+                        changed_lines[path].add(start_line + offset)
             
             print(f"✅ [DIFF TRACE] File '{path}' -> Successfully extracted {len(changed_lines[path])} changed line boundaries.")
         print("====================================================\n")
@@ -222,6 +213,8 @@ def main():
             icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level == 'warning' else "🔵 Low")
             
             raw_msg = res.get('message', {}).get('text', 'No description')
+            
+            # 🚀 FIXED STRING ISOLATION: Safely string-slice the first line to avoid list attribute crashes
             if isinstance(raw_msg, str):
                 msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
             else:
