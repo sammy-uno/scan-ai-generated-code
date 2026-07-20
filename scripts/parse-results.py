@@ -5,15 +5,21 @@ import sys
 
 def get_pr_changed_lines(repo, pr_num):
     """
-    🎯 RE-ENGINEERED STRIP PARSER: Safely reads the unified patch chunks 
+    🎯 RE-ENGINEERED STRIP PARSER: Reads the unified patch chunks 
     returned by gh pr view to extract true code addition line matrices.
+    Injects global system credentials into the subshell thread.
     """
     changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
         cmd = f"gh pr view {pr_num} --repo {repo} --json fileChanges"
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+        
+        # 🚀 FIX: Explicitly pass parent GH_TOKEN down to subshell environment to eliminate exit code 1
+        sub_env = os.environ.copy()
+        
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30, env=sub_env)
         if res.returncode != 0:
             print(f"⚠️ GitHub CLI query execution warning code: {res.returncode}")
+            print(f"🔍 Stderr details: {res.stderr}")
             return changed_lines
             
         data = json.loads(res.stdout)
@@ -190,7 +196,13 @@ def main():
             icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level == 'warning' else "🔵 Low")
             
             raw_msg = res.get('message', {}).get('text', 'No description')
-            msg = raw_msg.split('\n') if '\n' in raw_msg else raw_msg
+            
+            # 🚀 FIX: Isolate the first line as a string BEFORE calling string replacements
+            if '\n' in raw_msg:
+                msg = raw_msg.split('\n')[0]
+            else:
+                msg = raw_msg
+                
             msg = msg.replace('|', '\\|')
             
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
