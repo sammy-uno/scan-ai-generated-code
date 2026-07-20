@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION (TARGET FIXED TO 20 RUNS) ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 2     # Corrected to match architecture requirement
+    SCAN_LIMIT = 20     # Corrected to match architecture requirement
     EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
     # --- TRACKING ---
