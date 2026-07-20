@@ -5,8 +5,8 @@ import sys
 
 def get_pr_changed_lines(repo, pr_num):
     """
-    Queries the stable GitHub CLI endpoint to isolate the exact files 
-    and line numbers modified or added within this specific Pull Request.
+    🎯 RE-ENGINEERED STRIP PARSER: Safely reads the unified patch chunks 
+    returned by gh pr view to extract true code addition line matrices.
     """
     changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
@@ -27,29 +27,30 @@ def get_pr_changed_lines(repo, pr_num):
             if path not in changed_lines:
                 changed_lines[path] = set()
             
-            # Scrape the unified diff patch layout to extract exact line ranges
             patch = change.get('patch', '')
             if not patch:
                 continue
                 
             current_line = 0
             for line in patch.split('\n'):
+                # Safely parse unified diff meta block markers (e.g., @@ -1,4 +42,10 @@)
                 if line.startswith('@@'):
-                    # Isolate the target file additions block (e.g., +42,10 or +105)
                     try:
-                        hunk_meta = line.split('+')[-1].split(' @@')[0]
-                        if ',' in hunk_meta:
-                            current_line = int(hunk_meta.split(',')[0])
+                        # Extract everything following the '+' character block cleanly as a string
+                        meta_part = line.split('+')[-1].split(' @@')[0].strip()
+                        if ',' in meta_part:
+                            current_line = int(meta_part.split(',')[0])
                         else:
-                            current_line = int(hunk_meta)
-                    except Exception:
+                            current_line = int(meta_part)
+                    except Exception as ex:
+                        print(f"Hunk metadata block parsing notice: {ex}")
                         pass
                 elif line.startswith('+') and not line.startswith('+++'):
-                    # Added/modified code line coordinate found
+                    # Match found for code lines actually modified/added
                     changed_lines[path].add(current_line)
                     current_line += 1
                 elif not line.startswith('-'):
-                    # Unmodified background context line tracking
+                    # Move tracking marker forward across unmodified background context lines
                     current_line += 1
                     
     except Exception as e:
@@ -71,12 +72,12 @@ def main():
     if not runs or not isinstance(runs, list):
         return
 
-    # Extract target pipeline parameters passed from workflow environment
+    # Extract target parameters passed from workflow environment definitions
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
     pr_loc = int(os.environ.get('PR_LOC', '1'))
 
-    # Fetch the exact line matrix modified by the AI/Human agent
+    # Fetch the exact lines modified by the agent
     pr_diff_map = get_pr_changed_lines(repo, pr_num) if repo and pr_num else {}
     print(f"🔍 [TRACE] Isolated PR File Keys: {list(pr_diff_map.keys())}")
         
@@ -108,7 +109,7 @@ def main():
     except Exception as e:
         print(f"Metadata mapping warning: {e}")
 
-    # --- AGGREGATE RESULTS & ISOLATE PR DELTA LINES ---
+    # --- AGGREGATE RESULTS & FILTER BY PR DELTA LINES ---
     consolidated_results = []
     seen_findings = set()
 
@@ -126,14 +127,14 @@ def main():
             primary_line = "?"
             
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr[0]
+                loc_entry = locs_arr[0] # Root finding extraction entry
                 if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
                     if isinstance(locs, dict):
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🚀 DELTA FILTER: Drop finding if it falls outside the lines modified in the PR
+            # 🚀 STRICT DELTA FILTER GATEWAY
             if pr_diff_map:
                 # Suffix-match CodeQL paths to handle varying relative file prefixes cleanly
                 matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p)), None)
@@ -154,11 +155,17 @@ def main():
                 run['results'] = consolidated_results
         with open(sarif_path, 'w') as f:
             json.dump(data, f)
+    else:
+        # Clear findings out entirely if no issues were introduced in the code submission lines
+        for run in runs:
+            if isinstance(run, dict) and 'results' in run:
+                run['results'] = []
+        with open(sarif_path, 'w') as f:
+            json.dump(data, f)
 
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
     if consolidated_results:
-        # Calculate pure introduced density per line of submitted code change
         cwe_per_loc = round(len(consolidated_results) / pr_loc, 4) if pr_loc > 0 else 0.0
         summary_md += f"**PR Code Change CWE Density:** {cwe_per_loc} Issues per Line of Code (LOC)\n\n"
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
@@ -183,7 +190,7 @@ def main():
             icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level == 'warning' else "🔵 Low")
             
             raw_msg = res.get('message', {}).get('text', 'No description')
-            msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
+            msg = raw_msg.split('\n') if '\n' in raw_msg else raw_msg
             msg = msg.replace('|', '\\|')
             
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
