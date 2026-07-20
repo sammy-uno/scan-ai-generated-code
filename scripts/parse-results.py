@@ -5,33 +5,55 @@ import sys
 
 def get_pr_changed_lines(repo, pr_num):
     """
-    Queries the GitHub CLI to get the exact file names and line numbers 
-    modified or added in the PR diff hunks.
+    Queries the stable GitHub CLI endpoint to isolate the exact files 
+    and line numbers modified or added within this specific Pull Request.
     """
-    changed_lines = {} # Maps file_path -> set of changed line numbers
+    changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
-        cmd = f"gh pr diff {pr_num} --repo {repo} --json files"
+        cmd = f"gh pr view {pr_num} --repo {repo} --json fileChanges"
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
         if res.returncode != 0:
+            print(f"⚠️ GitHub CLI query execution warning code: {res.returncode}")
             return changed_lines
             
         data = json.loads(res.stdout)
-        files = data.get('files', [])
-        for f in files:
-            path = f.get('path', '')
-            if not path: continue
+        file_changes = data.get('fileChanges', [])
+        
+        for change in file_changes:
+            path = change.get('path', '')
+            if not path: 
+                continue
+                
             if path not in changed_lines:
                 changed_lines[path] = set()
+            
+            # Scrape the unified diff patch layout to extract exact line ranges
+            patch = change.get('patch', '')
+            if not patch:
+                continue
                 
-            # Parse the diff hunks to extract actual modified line ranges
-            for hunk in f.get('hunks', []):
-                # lines are added/modified in the 'new' version of the file
-                lines_count = hunk.get('newLinesCount', 0)
-                start_line = hunk.get('newStartLine', 0)
-                for offset in range(lines_count):
-                    changed_lines[path].add(start_line + offset)
+            current_line = 0
+            for line in patch.split('\n'):
+                if line.startswith('@@'):
+                    # Isolate the target file additions block (e.g., +42,10 or +105)
+                    try:
+                        hunk_meta = line.split('+')[-1].split(' @@')[0]
+                        if ',' in hunk_meta:
+                            current_line = int(hunk_meta.split(',')[0])
+                        else:
+                            current_line = int(hunk_meta)
+                    except Exception:
+                        pass
+                elif line.startswith('+') and not line.startswith('+++'):
+                    # Added/modified code line coordinate found
+                    changed_lines[path].add(current_line)
+                    current_line += 1
+                elif not line.startswith('-'):
+                    # Unmodified background context line tracking
+                    current_line += 1
+                    
     except Exception as e:
-        print(f"Error parsing PR diff hunks: {e}")
+        print(f"Error parsing PR diff hunks footprint matrix: {e}")
     return changed_lines
 
 def main():
@@ -49,13 +71,14 @@ def main():
     if not runs or not isinstance(runs, list):
         return
 
-    # Extract target metadata parameters from environment context
+    # Extract target pipeline parameters passed from workflow environment
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
     pr_loc = int(os.environ.get('PR_LOC', '1'))
 
-    # Fetch the exact lines modified by the AI/Human agent
+    # Fetch the exact line matrix modified by the AI/Human agent
     pr_diff_map = get_pr_changed_lines(repo, pr_num) if repo and pr_num else {}
+    print(f"🔍 [TRACE] Isolated PR File Keys: {list(pr_diff_map.keys())}")
         
     # --- BULLETPROOF CWE EXTRACTOR ---
     cwe_map = {}
@@ -68,14 +91,16 @@ def main():
             extensions = tool.get('extensions', [])
             if isinstance(extensions, list):
                 for ext in extensions:
-                    if isinstance(ext, dict): all_rules.extend(ext.get('rules', []))
+                    if isinstance(ext, dict): 
+                        all_rules.extend(ext.get('rules', []))
 
         for rule in all_rules:
             if not isinstance(rule, dict): continue
             rule_id = rule.get('id')
             if not rule_id: continue
             tags = rule.get('properties', {}).get('tags', [])
-            if rule_id not in cwe_map: cwe_map[rule_id] = set()
+            if rule_id not in cwe_map: 
+                cwe_map[rule_id] = set()
             for tag in tags:
                 if isinstance(tag, str) and 'cwe-' in tag.lower():
                     cwe_num = tag.lower().split('cwe-')[-1].zfill(3)
@@ -83,7 +108,7 @@ def main():
     except Exception as e:
         print(f"Metadata mapping warning: {e}")
 
-    # --- AGGREGATE RESULTS & FILTER BY PR DELTA LINES ---
+    # --- AGGREGATE RESULTS & ISOLATE PR DELTA LINES ---
     consolidated_results = []
     seen_findings = set()
 
@@ -108,12 +133,12 @@ def main():
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown')
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🚀 DELTA FILTER GATEKEEPER: Drop finding if it wasn't modified in the PR code
+            # 🚀 DELTA FILTER: Drop finding if it falls outside the lines modified in the PR
             if pr_diff_map:
-                # CodeQL paths can be absolute or relative; check suffix match
+                # Suffix-match CodeQL paths to handle varying relative file prefixes cleanly
                 matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p)), None)
                 if not matching_file or primary_line == '?' or int(primary_line) not in pr_diff_map[matching_file]:
-                    continue # Ignore pre-existing file background debt cleanly!
+                    continue  # Safely bypasses background pre-existing repo debt files
 
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
@@ -122,7 +147,7 @@ def main():
                 res['_primary_line'] = primary_line
                 consolidated_results.append(res)
 
-    # Rewrite the local SARIF out with ONLY the filtered delta results so downstream reports stay pristine
+    # Overwrite results.sarif with only the filtered introduced findings
     if consolidated_results:
         for run in runs:
             if isinstance(run, dict) and 'results' in run:
@@ -133,6 +158,7 @@ def main():
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
     if consolidated_results:
+        # Calculate pure introduced density per line of submitted code change
         cwe_per_loc = round(len(consolidated_results) / pr_loc, 4) if pr_loc > 0 else 0.0
         summary_md += f"**PR Code Change CWE Density:** {cwe_per_loc} Issues per Line of Code (LOC)\n\n"
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
@@ -163,7 +189,8 @@ def main():
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
-    with open(summary_file, 'a') as f: f.write(summary_md)
+    with open(summary_file, 'a') as f: 
+        f.write(summary_md)
 
 if __name__ == "__main__":
     main()
