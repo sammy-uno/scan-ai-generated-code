@@ -11,23 +11,30 @@ def get_pr_changed_lines_live(repo, pr_num):
     changed_lines = {}
     try:
         cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        
+        # 🚀 CRITICAL FIX: Pass down parent process tokens so the subshell can authorize perfectly
         sub_env = os.environ.copy()
+        
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
-        if res.returncode == 0:
-            data = json.loads(res.stdout)
-            files = data.get('files', [])
-            for f in files:
-                path = f.get('path', '').strip()
-                if not path: continue
-                if path not in changed_lines:
-                    changed_lines[path] = set()
-                hunks = f.get('hunks', [])
-                for hunk in hunks:
-                    start_line = hunk.get('newStartLine', 0)
-                    lines_count = hunk.get('newLinesCount', 0)
-                    if start_line > 0 and lines_count > 0:
-                        for offset in range(lines_count):
-                            changed_lines[path].add(start_line + offset)
+        if res.returncode != 0:
+            print(f"⚠️ [AGGREGATOR WARN] gh pr view failed for {repo} #{pr_num}. Code: {res.returncode}")
+            print(f"🔍 Stderr details: {res.stderr}")
+            return changed_lines
+            
+        data = json.loads(res.stdout)
+        files = data.get('files', [])
+        for f in files:
+            path = f.get('path', '').strip()
+            if not path: continue
+            if path not in changed_lines:
+                changed_lines[path] = set()
+            hunks = f.get('hunks', [])
+            for hunk in hunks:
+                start_line = hunk.get('newStartLine', 0)
+                lines_count = hunk.get('newLinesCount', 0)
+                if start_line > 0 and lines_count > 0:
+                    for offset in range(lines_count):
+                        changed_lines[path].add(start_line + offset)
     except Exception as e:
         print(f"Aggregator patch tracking notice: {e}")
     return changed_lines
