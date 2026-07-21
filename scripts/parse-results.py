@@ -24,7 +24,13 @@ def get_pr_changed_files_list():
             cmd = "git diff --name-only origin/master...HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
             
-        # Fallback 2: Ultimate fallback to the single last commit if running a shallow checkout
+        # Fallback 2: Query GitHub Action environment target ref definitions directly
+        if res.returncode != 0 or not res.stdout.strip():
+            base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
+            cmd = f"git diff --name-only origin/{base_ref}...HEAD"
+            res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+            
+        # Fallback 3: Ultimate fallback to the single last commit if running a shallow checkout
         if res.returncode != 0 or not res.stdout.strip():
             cmd = "git diff --name-only HEAD~1 HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
@@ -124,7 +130,7 @@ def main():
             primary_line = "?"
             
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr[0]
+                loc_entry = locs_arr
                 if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
                     if isinstance(locs, dict):
@@ -192,7 +198,7 @@ def main():
             
             raw_msg = res.get('message', {}).get('text', 'No description')
             if isinstance(raw_msg, str):
-                msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
+                msg = raw_msg.split('\n') if '\n' in raw_msg else raw_msg
             else:
                 msg = "No description details provided."
                 
