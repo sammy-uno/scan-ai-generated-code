@@ -52,17 +52,31 @@ jobs:
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
-          # 📁 SAFE CLEANUP: Preserve your critical root .git database directory
+          # 📁 SAFE CLEANUP: Back up your internal scripts folder first
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
-          find . -maxdepth 1 ! -name '.' ! -name '..' ! -name '.git' -exec rm -rf {} +
           
-          # 🎯 TRUE FORK ANCESTOR FETCHING: Pull full PR branch history logs
-          echo "📥 Fetching full upstream baseline and PR reference trees..."
-          git fetch origin main:main --depth=1000 || git fetch origin main:main --unshallow || true
-          git fetch origin pull/${{ matrix.pr_num }}/head:pr_${{ matrix.pr_num }} --depth=1000 || true
+          # Forcefully clear everything to build a completely independent repository context
+          rm -rf ./* ./.git
           
-          # Switch cleanly to the compiled PR branch
-          git checkout pr_${{ matrix.pr_num }}
+          # 🎯 DYNAMIC TARGET REPOSITORY HANDSHAKE
+          # Initialize a completely fresh Git environment and point it directly to the target repo URL
+          git init
+          git remote add origin "https://github.com{{ matrix.repo_name }}.git"
+          
+          echo "📥 Fetching full upstream baseline and PR reference trees from target: ${{ matrix.repo_name }}"
+          
+          # Fetch the target repository's main trunk using deep commit historical logs
+          git fetch origin main --depth=500 || git fetch origin master --depth=500 || true
+          
+          # Fetch the exact Pull Request head branch reference cleanly from the target remote origin
+          git fetch origin pull/${{ matrix.pr_num }}/head:pr_branch --depth=500
+          
+          # Switch completely into your freshly tracked target pull request branch
+          git checkout pr_branch
+          
+          # Create an explicit local tracking branch marker named 'origin/main' 
+          # This guarantees that 'git diff origin/main...HEAD' always works perfectly inside parse-results.py!
+          git branch origin/main FETCH_HEAD || git branch origin/master FETCH_HEAD || true
           
           # Restore tracking utility scripts
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
@@ -88,9 +102,9 @@ jobs:
         run: |
           mkdir -p total-sarif
           if [ -f "sarif-results/${{ matrix.primary_language }}.sarif" ]; then
-            cp "sarif-results/${{ matrix.primary_language }}.sarif" results.sarif
+            copy "sarif-results/${{ matrix.primary_language }}.sarif" results.sarif
           elif [ -f "sarif-results/issues.sarif" ]; then
-            cp "sarif-results/issues.sarif" results.sarif
+            copy "sarif-results/issues.sarif" results.sarif
           else
             find sarif-results/ -name "*.sarif" -exec cp {} results.sarif \;
           fi
