@@ -83,5 +83,8 @@ jobs:
           HUMAN_RUN_ID: ${{ steps.runs.outputs.hu_run_id }}
           REPO_NAME: ${{ github.repository }}
           SERVER_URL: "https://github.com"
+          # 🚀 INJECTED: Grants credential context so the script can filter out background debt
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           python scripts/compare-reports.py
+
