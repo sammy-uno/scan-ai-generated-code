@@ -48,7 +48,7 @@ def main():
     total_issues_found = 0
     
     is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.path.basename(f) for f in all_files)
-    
+
     for f in all_files:
         fname = os.path.basename(f)
         if fname == 'results.sarif' or '--' not in fname: 
@@ -60,11 +60,11 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            lang = parts[2]
-            agent = parts[3].replace('_', ' ')
-            live_loc = int(parts[4])
+            repo_path = parts.replace('_SLASH_', '/')
+            pr_num = parts
+            lang = parts
+            agent = parts.replace('_', ' ')
+            live_loc = int(parts)
             
             # Fetch the precise files map for this specific row entry
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
@@ -113,7 +113,7 @@ def main():
                     primary_line = "?"
                     
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -168,15 +168,12 @@ def main():
             
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w') as out:
-        # 🚀 RESTORED ORIGINAL REPORT TITLE
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
-        macro_density = round(total_issues_found / total_loc_scanned, 5) if total_loc_scanned > 0 else 0.0
-        out.write(f'- **Macro Group CWE Footprint Density:** {macro_density} Issues per Line of Code (LOC)\n')
+        # 🚀 REMOVED THE DENSITY FOOTPRINT LINE FROM HERE ENTIRELY
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
-        # 🚀 RESTORED ORIGINAL 9-COLUMN LAYOUT CONVENTIONS EXPLICITLY
         if is_human_run:
             out.write('\n| Repository | PR | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
