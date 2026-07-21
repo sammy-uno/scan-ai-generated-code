@@ -50,9 +50,9 @@ def main():
             if len(parts) < 5: 
                 continue
                 
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            live_loc = int(parts[4])
+            repo_path = parts.replace('_SLASH_', '/')
+            pr_num = parts
+            live_loc = int(parts)
 
             # Fetch the precise files map for this specific file entry
             pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
@@ -99,17 +99,17 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # 🚀 FIXED MASTER GATEKEEPER: Match purely by base filename to clear background data leaks
+                    # 🚀 FIXED MASTER GATEKEEPER: Enforce case-insensitive lower string checks to prevent casing drops
                     if pr_diff_map:
-                        alert_base = os.path.basename(primary_path)
-                        changed_bases = [os.path.basename(p) for p in pr_diff_map.keys()]
+                        alert_base = os.path.basename(primary_path).lower()
+                        changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
                         if alert_base not in changed_bases:
                             continue
 
