@@ -1,79 +1,83 @@
 import json
 import os
+import re
 import subprocess
 import sys
 
 def get_pr_changed_lines(repo, pr_num):
     """
-    🎯 RE-ENGINEERED FIELD PARSER: Queries the native 'gh pr view --json files' endpoint.
-    Safely unpacks the official 'files' array and extracts true code addition coordinates.
+    🎯 REGEX DIFF PARSER: Uses robust regular expression matching to parse 
+    unified patch chunks safely, eliminating string split type exceptions.
     """
     changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
-        # 🚀 FIXED: Changed query field from 'fileChanges' to the natively supported 'files'
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        cmd = f"gh pr view {pr_num} --repo {repo} --json fileChanges"
         
         sub_env = os.environ.copy()
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30, env=sub_env)
         if res.returncode != 0:
             print(f"⚠️ [DEBUG ERROR] GitHub CLI query failed execution with code: {res.returncode}")
-            print(f"🔍 Stderr details: {res.stderr}")
             return changed_lines
             
         data = json.loads(res.stdout)
-        files = data.get('files', [])
+        file_changes = data.get('fileChanges', [])
         
         print("\n====================================================")
         print("📥 DEBUG LOG STEP 1: PARSING GIT PATCH DIFF HUNKS")
         print("====================================================")
-        print(f"Total raw file entries returned by GitHub API: {len(files)}")
 
-        for f in files:
-            path = f.get('path', '').strip()
+        # Regex to safely isolate the '+' addition chunk metadata (e.g., +42,10 or +105)
+        hunk_re = re.compile(r'@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,(\d+))?\s+@@')
+
+        for change in file_changes:
+            path = change.get('path', '').strip()
             if not path: 
                 continue
                 
             if path not in changed_lines:
                 changed_lines[path] = set()
             
-            # Extract line ranges using the 'hunks' meta data array
-            hunks = f.get('hunks', [])
-            if not hunks:
-                print(f"ℹ️ [DIFF TRACE] Skipping file '{path}' -> No chunk changes recorded.")
+            patch = change.get('patch', '')
+            if not patch:
                 continue
                 
-            for hunk in hunks:
-                # Target 'newStartLine' and 'newLinesCount' to map the additions footprint
-                start_line = hunk.get('newStartLine', 0)
-                lines_count = hunk.get('newLinesCount', 0)
-                
-                if start_line > 0 and lines_count > 0:
-                    for offset in range(lines_count):
-                        changed_lines[path].add(start_line + offset)
+            current_line = 0
+            for line in patch.split('\n'):
+                if line.startswith('@@'):
+                    match = hunk_re.match(line)
+                    if match:
+                        try:
+                            current_line = int(match.group(1))
+                        except Exception as ex:
+                            print(f"   ⚠️ Parsing int cast exception: {ex}")
+                            pass
+                elif line.startswith('+') and not line.startswith('+++'):
+                    # Record the exact line modified/introduced by the PR
+                    changed_lines[path].add(current_line)
+                    current_line += 1
+                elif not line.startswith('-'):
+                    current_line += 1
             
-            print(f"✅ [DIFF TRACE] File '{path}' -> Successfully extracted {len(changed_lines[path])} changed line boundaries.")
+            print(f"✅ [DIFF TRACE] File '{path}' -> Successfully extracted {len(changed_lines[path])} line coordinates.")
         print("====================================================\n")
                     
     except Exception as e:
         print(f"❌ [CRITICAL] Error parsing PR diff hunks footprint matrix: {e}")
     return changed_lines
-
+    
 def main():
     sarif_path = "results.sarif"
     if not os.path.exists(sarif_path):
-        print(f"❌ [DEBUG] Target SARIF file missing from workspace position: {sarif_path}")
         return
         
     try:
         with open(sarif_path, 'r') as f:
             data = json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError) as e:
-        print(f"❌ [DEBUG] Failed parsing SARIF JSON layout stream: {e}")
+    except (json.JSONDecodeError, FileNotFoundError):
         return
 
     runs = data.get('runs', [])
     if not runs or not isinstance(runs, list):
-        print("⚠️ [DEBUG] SARIF contains zero analytical run blocks.")
         return
 
     repo = os.environ.get('PR_REPO', '')
@@ -138,14 +142,14 @@ def main():
             primary_line = "?"
             
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr[0]
+                loc_entry = locs_arr
                 if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
                     if isinstance(locs, dict):
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🚀 STRICT DELTA FILTER GATEWAY WITH VERBOSE ALERTERS
+            # 🚀 STRICT DELTA FILTER GATEWAY
             if pr_diff_map:
                 matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p) or p.endswith(primary_path)), None)
                 if not matching_file:
@@ -168,9 +172,6 @@ def main():
                 res['_primary_path'] = primary_path
                 res['_primary_line'] = primary_line
                 consolidated_results.append(res)
-
-    print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
-    print("====================================================\n")
 
     # Overwrite results.sarif with only the filtered introduced findings
     if consolidated_results:
@@ -213,10 +214,8 @@ def main():
             icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level == 'warning' else "🔵 Low")
             
             raw_msg = res.get('message', {}).get('text', 'No description')
-            
-            # 🚀 FIXED STRING ISOLATION: Safely string-slice the first line to avoid list attribute crashes
             if isinstance(raw_msg, str):
-                msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
+                msg = raw_msg.split('\n') if '\n' in raw_msg else raw_msg
             else:
                 msg = "No description details provided."
                 
