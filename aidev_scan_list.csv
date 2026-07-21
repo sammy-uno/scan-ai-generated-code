@@ -1,4 +1,5 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
+mixpanel/mixpanel-android,862,Fix System.exit() security vulnerability in ExceptionHandler,java,Copilot,1031
 elizaOS/eliza,5490,fix: critical issues in action chaining implementation,typescript,Claude_Code,16507
 graphistry/pygraphistry,707,feat(gfql): PR 1.3 - Call Operations for safe method execution,python,Claude_Code,2307
 Skyvern-AI/skyvern,3063,Add skyvern_project table,python,OpenAI_Codex,13976
