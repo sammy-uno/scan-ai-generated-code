@@ -48,6 +48,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
+          # 🚀 THE FIXED INJECTION BLOCK: Maps matrix tokens cleanly to shell variables
+          TARGET_REPO: ${{ matrix.repo_name }}
+          PR_NUMBER: ${{ matrix.pr_num }}
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
@@ -58,19 +61,18 @@ jobs:
           # Forcefully clear everything to build a completely independent repository context
           rm -rf ./* ./.git
           
-          # 🎯 DYNAMIC TARGET REPOSITORY HANDSHAKE
-          # Initialize a completely fresh Git environment and point it directly to the target repo URL
+          # 🎯 SAFE NATIVE BASH CONCATENATION
+          # Initialize a completely fresh Git environment and point it directly to the target URL
           git init
-          # 🚀 FIXED URL SYNTAX: Added the required forward slash right after github.com
-          git remote add origin "https://github.com{{ matrix.repo_name }}.git"
+          git remote add origin "https://github.com{TARGET_REPO}.git"
           
-          echo "📥 Fetching full upstream baseline and PR reference trees from target: ${{ matrix.repo_name }}"
+          echo "📥 Fetching full upstream baseline and PR reference trees from target: ${TARGET_REPO}"
           
           # Fetch the target repository's main trunk using deep commit historical logs
           git fetch origin main --depth=500 || git fetch origin master --depth=500 || true
           
           # Fetch the exact Pull Request head branch reference cleanly from the target remote origin
-          git fetch origin pull/${{ matrix.pr_num }}/head:pr_branch --depth=500
+          git fetch origin "pull/${PR_NUMBER}/head:pr_branch" --depth=500
           
           # Switch completely into your freshly tracked target pull request branch
           git checkout pr_branch
