@@ -1,4 +1,7 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
+onetimesecret/onetimesecret,1538,Major Architecture Refactor - Configuration System Overhaul with RSFC Integration,python,Claude_Code,2447
+wolfi-dev/os,61007,management-api-for-apache-cassandra-5.0: update to v0.1.106,python,Claude_Code,1009
+Significant-Gravitas/AutoGPT,10340,feat(backend): Integrate GCS file storage with automatic expiration for Agent File Input,python,Claude_Code,177379
 Skyvern-AI/skyvern,3063,Add skyvern_project table,python,OpenAI_Codex,13976
 prebid/Prebid.js,13698,Core: use uuid for bid ids,javascript,OpenAI_Codex,1467
 MontrealAI/AGI-Alpha-Agent-v0,3931,[alpha_factory] Stabilize offline bridge test,python,OpenAI_Codex,251
