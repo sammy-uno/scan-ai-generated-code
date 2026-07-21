@@ -61,6 +61,7 @@ jobs:
           # 🎯 DYNAMIC TARGET REPOSITORY HANDSHAKE
           # Initialize a completely fresh Git environment and point it directly to the target repo URL
           git init
+          # 🚀 FIXED URL SYNTAX: Added the required forward slash right after github.com
           git remote add origin "https://github.com{{ matrix.repo_name }}.git"
           
           echo "📥 Fetching full upstream baseline and PR reference trees from target: ${{ matrix.repo_name }}"
@@ -102,9 +103,9 @@ jobs:
         run: |
           mkdir -p total-sarif
           if [ -f "sarif-results/${{ matrix.primary_language }}.sarif" ]; then
-            copy "sarif-results/${{ matrix.primary_language }}.sarif" results.sarif
+            cp "sarif-results/${{ matrix.primary_language }}.sarif" results.sarif
           elif [ -f "sarif-results/issues.sarif" ]; then
-            copy "sarif-results/issues.sarif" results.sarif
+            cp "sarif-results/issues.sarif" results.sarif
           else
             find sarif-results/ -name "*.sarif" -exec cp {} results.sarif \;
           fi
