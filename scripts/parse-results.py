@@ -1,75 +1,44 @@
 import json
 import os
-import re
 import subprocess
 import sys
 
-import json
-import os
-import re
-import subprocess
-import sys
-
-def get_pr_changed_lines(repo, pr_num):
+def get_pr_changed_files_list():
     """
-    🎯 BULLETPROOF GIT REF PARSER: Completely drops flakey JSON view APIs.
-    Queries the local workspace git diff log directly to grab accurate line mappings.
+    🎯 LOCAL WORKSPACE FILE STRIPPER: Ignores line hunk offsets completely.
+    Grabs a clean list of every base filename touched or modified by the PR.
     """
-    changed_lines = {}  # Maps file_path -> set of changed line numbers
+    changed_filenames = set()  # Stores base names like 'models.py', 'index.ts'
     try:
         print("\n====================================================")
-        print("📥 LOCAL WORKSPACE TRACE: PARSING ACTIVE GIT DIFF")
+        print("📥 LOCAL WORKSPACE TRACE: CAPTURING MODIFIED FILENAMES")
         print("====================================================")
         
-        # 🚀 STRATEGY FIX: Run standard local git diff on the active pull request branch head
-        # This bypasses all 'gh pr view' JSON fields API timeouts and exit codes entirely!
-        cmd = "git diff HEAD~1 HEAD"
+        # Pull every file name changed in the active PR branch commit footprint
+        cmd = "git diff --name-only HEAD~1 HEAD"
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
         
-        # Fallback if the merge commit depth differs on the runner workspace node
         if res.returncode != 0 or not res.stdout.strip():
-            cmd = "git diff origin/main...HEAD"
+            cmd = "git diff --name-only origin/main...HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
             
         if res.returncode != 0:
             print(f"⚠️ Local Workspace Git Query Warning code: {res.returncode}")
-            print(f"🔍 Stderr details: {res.stderr}")
-            return changed_lines
+            return changed_filenames
             
-        # Parse the unified diff text format directly from your local terminal buffer
-        current_file = None
-        current_line = 0
-        hunk_re = re.compile(r'@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,(\d+))?\s+@@')
-        
         for line in res.stdout.split('\n'):
-            if line.startswith('+++ b/'):
-                # Extract the standardized relative destination file path string
-                current_file = line[6:].strip()
-                if current_file not in changed_lines:
-                    changed_lines[current_file] = set()
-            elif line.startswith('@@') and current_file:
-                match = hunk_re.match(line)
-                if match:
-                    try:
-                        current_line = int(match.group(1))
-                    except Exception:
-                        pass
-            elif line.startswith('+') and not line.startswith('+++') and current_file:
-                # Record the coordinate position of the newly introduced line of code change
-                changed_lines[current_file].add(current_line)
-                current_line += 1
-            elif not line.startswith('-') and current_file:
-                current_line += 1
+            clean_line = line.strip()
+            if clean_line:
+                base_name = os.path.basename(clean_line)
+                changed_filenames.add(base_name)
+                print(f"✅ [GIT FILE TRACE] Target file detected: {clean_line} (Base: {base_name})")
                 
-        for path, line_set in changed_lines.items():
-            print(f"✅ [DIFF TRACE] File '{path}' -> Successfully captured {len(line_set)} line coordinates.")
         print("====================================================\n")
                     
     except Exception as e:
-        print(f"❌ [CRITICAL] Error parsing workspace diff map context: {e}")
-    return changed_lines
+        print(f"❌ [CRITICAL] Error parsing workspace filename map context: {e}")
+    return changed_filenames
 
-    
 def main():
     sarif_path = "results.sarif"
     if not os.path.exists(sarif_path):
@@ -91,9 +60,9 @@ def main():
 
     print(f"📋 [DEBUG ENVIRONMENT] Repo: {repo} | PR Num: {pr_num} | Declared Size: {pr_loc} LOC")
 
-    # Fetch the exact lines modified by the agent
-    pr_diff_map = get_pr_changed_lines(repo, pr_num) if repo and pr_num else {}
-    print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Map Keys: {list(pr_diff_map.keys())}")
+    # Fetch the exact file basenames modified by the agent
+    pr_changed_files = get_pr_changed_files_list()
+    print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_files)}")
         
     # --- BULLETPROOF CWE EXTRACTOR ---
     cwe_map = {}
@@ -123,7 +92,7 @@ def main():
     except Exception as e:
         print(f"Metadata mapping warning: {e}")
 
-    # --- AGGREGATE RESULTS & FILTER BY PR DELTA LINES ---
+    # --- AGGREGATE RESULTS & FILTER BY PR FILENAMES ---
     consolidated_results = []
     seen_findings = set()
 
@@ -147,29 +116,21 @@ def main():
             primary_line = "?"
             
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr
+                loc_entry = locs_arr[0]
                 if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
                     if isinstance(locs, dict):
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🚀 STRICT DELTA FILTER GATEWAY
-            if pr_diff_map:
-                matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p) or p.endswith(primary_path)), None)
-                if not matching_file:
-                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> File not changed in this PR.")
+            # 🚀 BASE NAME PASS FILTER: Check if the base file name matches any file touched in the PR
+            if pr_changed_files:
+                alert_base_name = os.path.basename(primary_path)
+                if alert_base_name not in pr_changed_files:
+                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> File name '{alert_base_name}' not in PR changes list.")
                     continue
                 
-                if primary_line == '?':
-                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> Missing specific line coordinate markers.")
-                    continue
-                    
-                if int(primary_line) not in pr_diff_map[matching_file]:
-                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> Line pre-existed (Repository Technical Debt).")
-                    continue
-                
-                print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` explicitly sits inside the introduced PR diff hunk footprint!")
+                print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` matches modified file '{alert_base_name}'!")
 
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
@@ -178,7 +139,10 @@ def main():
                 res['_primary_line'] = primary_line
                 consolidated_results.append(res)
 
-    # Overwrite results.sarif with only the filtered introduced findings
+    print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
+    print("====================================================\n")
+
+    # Overwrite results.sarif with only the filtered findings
     if consolidated_results:
         for run in runs:
             if isinstance(run, dict) and 'results' in run:
@@ -220,7 +184,7 @@ def main():
             
             raw_msg = res.get('message', {}).get('text', 'No description')
             if isinstance(raw_msg, str):
-                msg = raw_msg.split('\n') if '\n' in raw_msg else raw_msg
+                msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
             else:
                 msg = "No description details provided."
                 
