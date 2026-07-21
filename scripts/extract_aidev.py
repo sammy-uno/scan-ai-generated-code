@@ -19,7 +19,7 @@ def extract_data():
     supported_langs = ['Python', 'JavaScript', 'TypeScript', 'Java', 'Ruby']
     
     filtered_df = merged_df[
-        (merged_df['stars'] > 500) &
+        (merged_df['stars'] > 100) &
         (merged_df['language'].isin(supported_langs)) &
         (merged_df['agent'].notna())
     ].copy()
