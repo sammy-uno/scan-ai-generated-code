@@ -5,27 +5,35 @@ import sys
 
 def get_pr_changed_files_list():
     """
-    🎯 LOCAL WORKSPACE FILE STRIPPER: Ignores line hunk offsets completely.
-    Grabs a clean list of every base filename touched or modified by the PR.
+    🎯 PRECISE BRANCH FORK PARSER: Uses the native Git triple-dot syntax 
+    to isolate 100% of the files modified across all commits in this PR.
     """
-    changed_filenames = set()  # Stores base names like 'models.py', 'index.ts'
+    changed_filenames = set()  # Stores base names like 'program.cs', 'WinHttpHandler.xml'
     try:
         print("\n====================================================")
-        print("📥 LOCAL WORKSPACE TRACE: CAPTURING MODIFIED FILENAMES")
+        print("📥 LOCAL WORKSPACE TRACE: CAPTURING COMPLETE PR FILENAMES")
         print("====================================================")
         
-        # Pull every file name changed in the active PR branch commit footprint
-        cmd = "git diff --name-only HEAD~1 HEAD"
+        # 🚀 STRATEGY FIX: Primary check uses the absolute branch ancestor fork point.
+        # This dynamically captures all files across all PR commits automatically.
+        cmd = "git diff --name-only origin/main...HEAD"
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
         
+        # Fallback 1: If main is named 'master' or origin isn't fetched, try local branch tracking
         if res.returncode != 0 or not res.stdout.strip():
-            cmd = "git diff --name-only origin/main...HEAD"
+            cmd = "git diff --name-only origin/master...HEAD"
+            res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+            
+        # Fallback 2: Ultimate fallback to the single last commit if running a shallow checkout
+        if res.returncode != 0 or not res.stdout.strip():
+            cmd = "git diff --name-only HEAD~1 HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
             
         if res.returncode != 0:
             print(f"⚠️ Local Workspace Git Query Warning code: {res.returncode}")
             return changed_filenames
             
+        # Unpack and deduplicate every filename changed across the PR branch lifecycle
         for line in res.stdout.split('\n'):
             clean_line = line.strip()
             if clean_line:
@@ -60,7 +68,7 @@ def main():
 
     print(f"📋 [DEBUG ENVIRONMENT] Repo: {repo} | PR Num: {pr_num} | Declared Size: {pr_loc} LOC")
 
-    # Fetch the exact file basenames modified by the agent
+    # Fetch the exact file basenames modified across all commits in the PR
     pr_changed_files = get_pr_changed_files_list()
     print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_files)}")
         
@@ -126,7 +134,7 @@ def main():
             # 🚀 BASE NAME PASS FILTER: Check if the base file name matches any file touched in the PR
             if pr_changed_files:
                 alert_base_name = os.path.basename(primary_path)
-                if alert_base_name not in pr_changed_files:
+                if alert_base_name.lower() not in [b.lower() for b in pr_changed_files]:
                     print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> File name '{alert_base_name}' not in PR changes list.")
                     continue
                 
@@ -173,14 +181,14 @@ def main():
         for res in consolidated_results:
             path = res.get('_primary_path', 'Unknown')
             line = res.get('_primary_line', '?')
-            level = res.get('level', 'warning')
+            level = str(res.get('level', 'warning')).lower()
             rule_id = res.get('ruleId', 'Unknown')
             
             cwes_set = cwe_map.get(rule_id, set())
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             is_top_25 = any(c in CWE_TOP_25 for c in cwes_set)
             
-            icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level == 'warning' else "🔵 Low")
+            icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level in ['warning', 'recommendation', 'note', 'none'] else "🔵 Low")
             
             raw_msg = res.get('message', {}).get('text', 'No description')
             if isinstance(raw_msg, str):
