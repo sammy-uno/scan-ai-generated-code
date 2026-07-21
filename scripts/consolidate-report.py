@@ -48,7 +48,7 @@ def main():
     total_issues_found = 0
     
     is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.path.basename(f) for f in all_files)
-
+    
     for f in all_files:
         fname = os.path.basename(f)
         if fname == 'results.sarif' or '--' not in fname: 
@@ -77,6 +77,27 @@ def main():
                 
             res = []
             seen_findings = set()
+            local_cwe_map = {}
+            
+            # Pre-extract rules metadata mapping to track CWE Discovered array strings
+            for run in runs:
+                if not isinstance(run, dict): continue
+                tool = run.get('tool', {})
+                all_rules = tool.get('driver', {}).get('rules', [])
+                extensions = tool.get('extensions', [])
+                if isinstance(extensions, list):
+                    for ext in extensions:
+                        if isinstance(ext, dict): all_rules.extend(ext.get('rules', []))
+                
+                for rule in all_rules:
+                    if not isinstance(rule, dict): continue
+                    r_id = rule.get('id')
+                    tags = rule.get('properties', {}).get('tags', [])
+                    if r_id not in local_cwe_map: local_cwe_map[r_id] = set()
+                    for t in tags:
+                        if isinstance(t, str) and 'cwe-' in t.lower():
+                            c_num = t.lower().split('cwe-')[-1].zfill(3)
+                            local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
             
             for run in runs:
                 if not isinstance(run, dict): continue
@@ -99,10 +120,10 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # 🚀 FIXED CONSOLIDATION GATEKEEPER: Match purely by base filename to prevent path drop leaks
+                    # 🚀 CASE-INSENSITIVE FILENAME GATEKEEPER
                     if pr_diff_map:
-                        alert_base = os.path.basename(primary_path)
-                        changed_bases = [os.path.basename(p) for p in pr_diff_map.keys()]
+                        alert_base = os.path.basename(primary_path).lower()
+                        changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
                         if alert_base not in changed_bases:
                             continue
 
@@ -112,13 +133,21 @@ def main():
                         res.append(result)
             
             h, m, l = 0, 0, 0
+            pr_cwes = set()
             for r in res:
-                lvl = r.get('level', 'warning')
+                r_id = r.get('ruleId', '')
+                lvl = str(r.get('level', 'warning')).lower()
+                cwes_for_rule = local_cwe_map.get(r_id, set())
+                
                 if lvl == 'error': h += 1
-                elif lvl == 'warning': m += 1
+                elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
                 else: l += 1
+                
+                for cwe_id in cwes_for_rule:
+                    pr_cwes.add(cwe_id)
             
             row_severity_badge = '🔴 High' if h > 0 else ('🟡 Medium' if m > 0 else ('🔵 Low' if l > 0 else '🟢 Clean'))
+            cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
             total_scanned += 1
             total_loc_scanned += live_loc
@@ -131,27 +160,29 @@ def main():
             link_md = f'[#{pr_num}]({full_url})'
             
             if is_human_run:
-                table_rows.append(f'| {repo_path} | {link_md} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | {len(res)} |')
+                table_rows.append(f'| {repo_path} | {link_md} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
             else:
-                table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | {len(res)} |')
+                table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
             
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w') as out:
-        out.write('# 📊 PR Delta Sizing Security Summary\n\n### Executive Summary\n')
+        # 🚀 RESTORED ORIGINAL REPORT TITLE
+        out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
-        out.write(f'- **Total Code Slices Scanned:** {total_loc_scanned} lines\n')
+        out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         macro_density = round(total_issues_found / total_loc_scanned, 5) if total_loc_scanned > 0 else 0.0
-        out.write(f'- **Group Introduced CWE Density:** {macro_density} Issues per submission Line of Code (LOC)\n')
-        out.write(f'- **PRs with Introduced Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
+        out.write(f'- **Macro Group CWE Footprint Density:** {macro_density} Issues per Line of Code (LOC)\n')
+        out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
+        # 🚀 RESTORED ORIGINAL 9-COLUMN LAYOUT CONVENTIONS EXPLICITLY
         if is_human_run:
-            out.write('\n| Repository | PR | Lang | PR Size (LOC) | Introduced CWE Density | Overall Severity | Total Introduced Issues |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        else:
-            out.write('\n| Repository | PR | AI Tool | Lang | PR Size (LOC) | Introduced CWE Density | Overall Severity | Total Introduced Issues |\n')
+            out.write('\n| Repository | PR | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        else:
+            out.write('\n| Repository | PR | AI Tool | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
+            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
         for r in sorted(table_rows): 
             out.write(f'{r}\n')
