@@ -60,11 +60,12 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            repo_path = parts.replace('_SLASH_', '/')
-            pr_num = parts
-            lang = parts
-            agent = parts.replace('_', ' ')
-            live_loc = int(parts)
+            repo_path = parts[0].replace('_SLASH_', '/')
+            pr_num = parts[1]
+            lang = parts[2]
+            # 🚀 FIXED: Renamed variable to prevent inner loop property hijacking collisions
+            ai_agent_tool = parts[3].replace('_', ' ')
+            live_loc = int(parts[4])
             
             # Fetch the precise files map for this specific row entry
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
@@ -113,7 +114,7 @@ def main():
                     primary_line = "?"
                     
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr
+                        loc_entry = locs_arr[0]
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -162,7 +163,8 @@ def main():
             if is_human_run:
                 table_rows.append(f'| {repo_path} | {link_md} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
             else:
-                table_rows.append(f'| {repo_path} | {link_md} | {agent} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
+                # 🚀 FIXED TOOL EXTRACTION CONTEXT TO ENSURE SAFE STRINGS PRINT
+                table_rows.append(f'| {repo_path} | {link_md} | {ai_agent_tool} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
             
@@ -171,14 +173,13 @@ def main():
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
-        # 🚀 REMOVED THE DENSITY FOOTPRINT LINE FROM HERE ENTIRELY
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
         if is_human_run:
             out.write('\n| Repository | PR | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            out.write('\n| Repository | PR | AI Tool | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
+            out.write('\n| Repository | PR | AI Tool | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | Convert Discovered | Total Issues |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
         for r in sorted(table_rows): 
