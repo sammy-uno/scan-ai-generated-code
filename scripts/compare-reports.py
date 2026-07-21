@@ -2,7 +2,6 @@ import json
 import glob
 import os
 import subprocess
-import shutil
 
 def get_pr_changed_lines_compare(repo, pr_num):
     """
@@ -26,20 +25,8 @@ def get_pr_changed_lines_compare(repo, pr_num):
     return changed_lines
 
 def main():
-    # 🚀 FORCE CACHE PURGE: Clear out any hidden nested results.sarif clones 
-    # to stop the runner from loading stale data streams from previous runs
-    results_root = 'all-results'
-    if os.path.exists(results_root):
-        for root, dirs, files in os.walk(results_root):
-            for file in files:
-                if file == 'results.sarif':
-                    try:
-                        os.remove(os.path.join(root, file))
-                    except Exception:
-                        pass
-
-    search_path = os.path.join(results_root, '**', '*.sarif')
-    all_files = sorted(glob.glob(search_path, recursive=True))
+    search_path = os.path.join('all-results', '**', '*.sarif')
+    all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "total_loc": 0}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "vuln_prs": 0, "total_loc": 0}
@@ -53,7 +40,7 @@ def main():
 
     for f in all_files:
         fname = os.path.basename(f)
-        if '--' not in fname: 
+        if fname == 'results.sarif' or '--' not in fname: 
             continue
             
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
@@ -63,9 +50,9 @@ def main():
             if len(parts) < 5: 
                 continue
                 
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            live_loc = int(parts[4])
+            repo_path = parts.replace('_SLASH_', '/')
+            pr_num = parts
+            live_loc = int(parts)
 
             # Fetch the precise files map for this specific file entry
             pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
@@ -112,14 +99,14 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # MATCH BY BASE FILENAME TO AVOID PATH ISSUES
+                    # MATCH BY BASE FILENAME INSENSITIVELY TO PREVENT DATA LEAKS
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
                         changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
