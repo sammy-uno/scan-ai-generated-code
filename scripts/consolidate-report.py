@@ -6,35 +6,20 @@ import subprocess
 def get_pr_changed_lines_live(repo, pr_num):
     """
     🎯 AGGREGATOR FILTER: Queries the stable files endpoint directly during 
-    consolidation to ensure no background debt slips into the final dashboard table rows.
+    consolidation and extracts the modified file paths with credential forwarding.
     """
     changed_lines = {}
     try:
         cmd = f"gh pr view {pr_num} --repo {repo} --json files"
-        
-        # 🚀 CRITICAL FIX: Pass down parent process tokens so the subshell can authorize perfectly
         sub_env = os.environ.copy()
-        
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
-        if res.returncode != 0:
-            print(f"⚠️ [AGGREGATOR WARN] gh pr view failed for {repo} #{pr_num}. Code: {res.returncode}")
-            print(f"🔍 Stderr details: {res.stderr}")
-            return changed_lines
-            
-        data = json.loads(res.stdout)
-        files = data.get('files', [])
-        for f in files:
-            path = f.get('path', '').strip()
-            if not path: continue
-            if path not in changed_lines:
-                changed_lines[path] = set()
-            hunks = f.get('hunks', [])
-            for hunk in hunks:
-                start_line = hunk.get('newStartLine', 0)
-                lines_count = hunk.get('newLinesCount', 0)
-                if start_line > 0 and lines_count > 0:
-                    for offset in range(lines_count):
-                        changed_lines[path].add(start_line + offset)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            files = data.get('files', [])
+            for f in files:
+                path = f.get('path', '').strip()
+                if path:
+                    changed_lines[path] = set()
     except Exception as e:
         print(f"Aggregator patch tracking notice: {e}")
     return changed_lines
@@ -63,6 +48,7 @@ def main():
     total_issues_found = 0
     
     is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.path.basename(f) for f in all_files)
+
     for f in all_files:
         fname = os.path.basename(f)
         if fname == 'results.sarif' or '--' not in fname: 
@@ -80,7 +66,7 @@ def main():
             agent = parts[3].replace('_', ' ')
             live_loc = int(parts[4])
             
-            # Fetch the precise hunk delta map for this specific row entry
+            # Fetch the precise files map for this specific row entry
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
 
             with open(f) as s: 
@@ -113,10 +99,11 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # 🚀 CONSOLIDATION GATEKEEPER: Eradicate pre-existing file background debt
+                    # 🚀 FIXED CONSOLIDATION GATEKEEPER: Match purely by base filename to prevent path drop leaks
                     if pr_diff_map:
-                        matching_file = next((p for p in pr_diff_map.keys() if primary_path.endswith(p) or p.endswith(primary_path)), None)
-                        if not matching_file or primary_line == '?' or int(primary_line) not in pr_diff_map[matching_file]:
+                        alert_base = os.path.basename(primary_path)
+                        changed_bases = [os.path.basename(p) for p in pr_diff_map.keys()]
+                        if alert_base not in changed_bases:
                             continue
 
                     fingerprint = f'{rule_id}::{primary_path}::{primary_line}'
@@ -124,7 +111,6 @@ def main():
                         seen_findings.add(fingerprint)
                         res.append(result)
             
-            # Severity badge logic for the clean delta results
             h, m, l = 0, 0, 0
             for r in res:
                 lvl = r.get('level', 'warning')
