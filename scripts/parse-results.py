@@ -4,66 +4,71 @@ import re
 import subprocess
 import sys
 
+import json
+import os
+import re
+import subprocess
+import sys
+
 def get_pr_changed_lines(repo, pr_num):
     """
-    🎯 REGEX DIFF PARSER: Uses robust regular expression matching to parse 
-    unified patch chunks safely, eliminating string split type exceptions.
+    🎯 BULLETPROOF GIT REF PARSER: Completely drops flakey JSON view APIs.
+    Queries the local workspace git diff log directly to grab accurate line mappings.
     """
     changed_lines = {}  # Maps file_path -> set of changed line numbers
     try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json fileChanges"
+        print("\n====================================================")
+        print("📥 LOCAL WORKSPACE TRACE: PARSING ACTIVE GIT DIFF")
+        print("====================================================")
         
-        sub_env = os.environ.copy()
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30, env=sub_env)
+        # 🚀 STRATEGY FIX: Run standard local git diff on the active pull request branch head
+        # This bypasses all 'gh pr view' JSON fields API timeouts and exit codes entirely!
+        cmd = "git diff HEAD~1 HEAD"
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+        
+        # Fallback if the merge commit depth differs on the runner workspace node
+        if res.returncode != 0 or not res.stdout.strip():
+            cmd = "git diff origin/main...HEAD"
+            res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+            
         if res.returncode != 0:
-            print(f"⚠️ [DEBUG ERROR] GitHub CLI query failed execution with code: {res.returncode}")
+            print(f"⚠️ Local Workspace Git Query Warning code: {res.returncode}")
+            print(f"🔍 Stderr details: {res.stderr}")
             return changed_lines
             
-        data = json.loads(res.stdout)
-        file_changes = data.get('fileChanges', [])
-        
-        print("\n====================================================")
-        print("📥 DEBUG LOG STEP 1: PARSING GIT PATCH DIFF HUNKS")
-        print("====================================================")
-
-        # Regex to safely isolate the '+' addition chunk metadata (e.g., +42,10 or +105)
+        # Parse the unified diff text format directly from your local terminal buffer
+        current_file = None
+        current_line = 0
         hunk_re = re.compile(r'@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,(\d+))?\s+@@')
-
-        for change in file_changes:
-            path = change.get('path', '').strip()
-            if not path: 
-                continue
+        
+        for line in res.stdout.split('\n'):
+            if line.startswith('+++ b/'):
+                # Extract the standardized relative destination file path string
+                current_file = line[6:].strip()
+                if current_file not in changed_lines:
+                    changed_lines[current_file] = set()
+            elif line.startswith('@@') and current_file:
+                match = hunk_re.match(line)
+                if match:
+                    try:
+                        current_line = int(match.group(1))
+                    except Exception:
+                        pass
+            elif line.startswith('+') and not line.startswith('+++') and current_file:
+                # Record the coordinate position of the newly introduced line of code change
+                changed_lines[current_file].add(current_line)
+                current_line += 1
+            elif not line.startswith('-') and current_file:
+                current_line += 1
                 
-            if path not in changed_lines:
-                changed_lines[path] = set()
-            
-            patch = change.get('patch', '')
-            if not patch:
-                continue
-                
-            current_line = 0
-            for line in patch.split('\n'):
-                if line.startswith('@@'):
-                    match = hunk_re.match(line)
-                    if match:
-                        try:
-                            current_line = int(match.group(1))
-                        except Exception as ex:
-                            print(f"   ⚠️ Parsing int cast exception: {ex}")
-                            pass
-                elif line.startswith('+') and not line.startswith('+++'):
-                    # Record the exact line modified/introduced by the PR
-                    changed_lines[path].add(current_line)
-                    current_line += 1
-                elif not line.startswith('-'):
-                    current_line += 1
-            
-            print(f"✅ [DIFF TRACE] File '{path}' -> Successfully extracted {len(changed_lines[path])} line coordinates.")
+        for path, line_set in changed_lines.items():
+            print(f"✅ [DIFF TRACE] File '{path}' -> Successfully captured {len(line_set)} line coordinates.")
         print("====================================================\n")
                     
     except Exception as e:
-        print(f"❌ [CRITICAL] Error parsing PR diff hunks footprint matrix: {e}")
+        print(f"❌ [CRITICAL] Error parsing workspace diff map context: {e}")
     return changed_lines
+
     
 def main():
     sarif_path = "results.sarif"
