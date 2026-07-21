@@ -50,9 +50,9 @@ def main():
             if len(parts) < 5: 
                 continue
                 
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            live_loc = int(parts[4])
+            repo_path = parts.replace('_SLASH_', '/')
+            pr_num = parts
+            live_loc = int(parts)
 
             # Fetch the precise files map for this specific file entry
             pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
@@ -99,7 +99,7 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -121,10 +121,15 @@ def main():
             h, m, l = 0, 0, 0
             for r in res:
                 cwes_for_rule = local_cwe_map.get(r.get('ruleId', ''), set())
-                if any(c in CWE_TOP_25 for c in cwes_for_rule): h += 1
-                elif r.get('level') == 'error': h += 1
-                elif r.get('level') == 'warning': m += 1
-                else: l += 1
+                level_str = str(r.get('level', 'warning')).lower()
+                
+                if any(c in CWE_TOP_25 for c in cwes_for_rule) or level_str == 'error': 
+                    h += 1
+                # 🚀 SEVERITY FIX: Group normal warnings and recommendation notes (CWE-754) into Medium
+                elif level_str in ['warning', 'recommendation', 'note', 'none']: 
+                    m += 1
+                else: 
+                    l += 1
 
             target = human_metrics if is_human else ai_metrics
             target["scanned_prs"] += 1
