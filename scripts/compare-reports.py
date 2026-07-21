@@ -23,7 +23,7 @@ def get_pr_changed_lines_compare(repo, pr_num):
     except Exception as e:
         print(f"Comparison asset tracking notice: {e}")
     return changed_lines
-    
+
 def main():
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
@@ -106,7 +106,7 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # 🚀 FIXED MASTER GATEKEEPER: Enforce case-insensitive lower string checks to prevent casing drops
+                    # MATCH BY BASE FILENAME TO AVOID PATH ISSUES
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
                         changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
@@ -123,7 +123,7 @@ def main():
                 cwes_for_rule = local_cwe_map.get(r.get('ruleId', ''), set())
                 if any(c in CWE_TOP_25 for c in cwes_for_rule): h += 1
                 elif r.get('level') == 'error': h += 1
-                elif r.get('level') == 'warning': m += 1
+                elif r.get('level') == 'warning': m += 1 # 🚀 FICTION REFIXED
                 else: l += 1
 
             target = human_metrics if is_human else ai_metrics
