@@ -14,7 +14,6 @@ def get_pr_metadata_live(repo, pr_num):
         return changed_lines, pr_state
         
     try:
-        # Query files, the underlying open/closed state, and the merged boolean indicator
         cmd = f"gh pr view {pr_num} --repo {repo} --json files,state,merged"
         sub_env = os.environ.copy()
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
@@ -27,14 +26,17 @@ def get_pr_metadata_live(repo, pr_num):
                 if path:
                     changed_lines[path] = set()
                     
-            raw_state = str(data.get('state', 'closed')).strip().capitalize()
-            is_merged = data.get('merged', False)
+            # 🚀 FIXED STATE DETECTOR: Evaluate raw API properties directly 
+            # to prevent forked merges from being misclassified as closed.
+            raw_state_upper = str(data.get('state', 'CLOSED')).strip().upper()
+            is_merged_bool = data.get('merged', False)
             
-            # Standardize status tracking to map Merged separate from Closed
-            if is_merged:
+            if raw_state_upper == "MERGED" or is_merged_bool is True:
                 pr_state = "Merged"
+            elif raw_state_upper == "OPEN":
+                pr_state = "Open"
             else:
-                pr_state = raw_state
+                pr_state = "Closed"
     except Exception as e:
         print(f"PR metadata lookup tracking notice: {e}")
         
@@ -51,13 +53,12 @@ def main():
     vulnerable_count = 0
     total_loc_scanned = 0
     
-    # 🚀 NEW SUMMARY METRIC LIFECYCLE LIFE COUNTERS
     open_count = 0
     merged_count = 0
     closed_count = 0
     
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
-    
+
     # Locate all unpacked .sarif files in your workspace results directory
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
 
@@ -90,11 +91,11 @@ def main():
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
-            # 🚀 LIVE METADATA INTEGRATION: Extract files map AND pr lifecycle status string
+            # Extract live change files count maps and real-time lifecycle state strings
             pr_diff_map, pr_lifecycle_status = get_pr_metadata_live(repo_path, pr_num)
             committed_files_count = len(pr_diff_map) if pr_diff_map else 1
 
-            # Update our dynamic Executive Summary counters based on real-time state values
+            # Update our dynamic Executive Summary counters based on verified states
             if pr_lifecycle_status == "Open":
                 open_count += 1
                 status_badge = "🟢 Open"
@@ -115,7 +116,7 @@ def main():
             seen_findings = set()
             local_cwe_map = {}
             
-            # Build rules description index mapping for tags extraction loops
+            # Build rule-to-tags map for primary lookup fallbacks
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -136,7 +137,6 @@ def main():
                         if isinstance(t, str) and 'cwe-' in t.lower():
                             c_num = t.lower().split('cwe-')[-1].zfill(3)
                             local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
-            
             for run in runs:
                 if not isinstance(run, dict): continue
                 results = run.get('results', [])
@@ -151,7 +151,7 @@ def main():
                     primary_line = "?"
                     
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr
+                        loc_entry = locs_arr[0]
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -178,26 +178,47 @@ def main():
                         seen_findings.add(fingerprint)
                         res.append(result)
             
-            # Severity Counters
+            # Severity Counters and Targeted CWE Extraction Loop
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
                 r_id = r.get('ruleId', '')
                 lvl = str(r.get('level', 'warning')).lower()
-                cwes_for_rule = local_cwe_map.get(r_id, set())
+                msg_text = str(r.get('message', {}).get('text', '')).lower()
                 
                 if lvl == 'error': h += 1
                 elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
                 else: l += 1
                 
-                for cwe_id in cwes_for_rule:
-                    pr_cwes.add(cwe_id)
+                # 🚀 STRICT PRIMARIES FILTER: Scan the ruleId and text directly first
+                # to extract only the actual explicit vulnerability target.
+                isolated_cwe = None
+                for token in [r_id.lower(), msg_text]:
+                    if 'cwe-' in token:
+                        try:
+                            c_num = token.split('cwe-')[-1][:3]
+                            if c_num.isdigit():
+                                isolated_cwe = f"CWE-{c_num.zfill(3)}".upper()
+                                break
+                        except Exception:
+                            pass
+                
+                if isolated_cwe:
+                    pr_cwes.add(isolated_cwe)
+                else:
+                    # Fallback to the first available tag if text strings hold no direct index keys
+                    tags_set = local_cwe_map.get(r_id, set())
+                    if tags_set:
+                        for tag_item in tags_set:
+                            pr_cwes.add(tag_item)
             
             if "promptfoo" in repo_path.lower() and not is_row_human and len(res) == 0:
                 res.append({"ruleId": "js/incomplete-sanitization"})
                 m = 1
                 pr_cwes.add("CWE-754")
-            
+                
+            # Filter empty values from displaying
+            pr_cwes = {c for c in pr_cwes if c and len(c) > 4}
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
             total_scanned += 1
@@ -230,19 +251,16 @@ def main():
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
-        # 🚀 NEW ADDITION: Executive summary breakdown metrics
         out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
         
         if is_human_run:
-            # 🚀 Human Layout: Added Status column (11 columns)
             out.write('\n| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            # 🚀 AI Agent Layout: Added Status column (12 columns)
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
+        for is_hum, r in sorted(table_rows, key=lambda x: (x["repo"], x["link"])): 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
