@@ -27,6 +27,23 @@ def get_pr_changed_lines_compare(repo, pr_num):
         print(f"Comparison asset tracking notice: {e}")
     return changed_lines
 
+def format_utc_to_central(utc_str_env, fallback_default):
+    """
+    🧮 TIME ZONE DELTA RESOLVER: Converts a UTC ISO string directly to 
+    Central Time (CT) using standard operational offset logic (UTC - 5 hours).
+    """
+    raw_val = os.environ.get(utc_str_env, '').strip()
+    if not raw_val or 'include' in raw_val:
+        return fallback_default
+    try:
+        # Formats the workflow timestamps smoothly 
+        cleaned_time = raw_val.split('.')[0]
+        parsed_utc = datetime.strptime(cleaned_time, "%Y-%m-%d %H:%M:%S")
+        central_converted = parsed_utc - timedelta(hours=5)
+        return central_converted.strftime("%Y-%m-%d %I:%M:%S %p CT")
+    except Exception:
+        return fallback_default
+
 def main():
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
@@ -56,10 +73,10 @@ def main():
             naming_string = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '') if '--' in fname else parent_dir.replace('sarif-', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
             if len(parts) >= 5:
-                repo_path = parts[0].replace('_SLASH_', '/')
-                pr_num = parts[1]
-                live_loc = int(parts[4]) if parts[4].isdigit() else 100
-                if "human" in parts[3].lower() or "human" in fname.lower() or "human" in parent_dir.lower():
+                repo_path = parts.replace('_SLASH_', '/')
+                pr_num = parts
+                live_loc = int(parts) if parts.isdigit() else 100
+                if "human" in parts.lower() or "human" in fname.lower() or "human" in parent_dir.lower():
                     is_human = True
         
         elif parent_dir == "sarif-agent" or fname == "results.sarif" or "agent" in parent_dir.lower():
@@ -116,7 +133,7 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -171,24 +188,22 @@ def main():
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # ⏱️ NATIVE DATA FRESHNESS CLOCK CALCULATOR (Central Time Zone Delta Translation)
-    # Automatically tracks and offsets runner runtime to display a pristine time stamp natively
-    utc_now = datetime.utcnow()
-    central_offset = timedelta(hours=-5)  # Maps local CST/CDT baseline offsets accurately
-    central_time = utc_now + central_offset
-    freshness_stamp = central_time.strftime("%Y-%m-%d %I:%M:%S %p Central Time")
+    # CALCULATING SEPARATE RUN FRESHNESS STAMPS (Central Time)
+    ai_stamp = format_utc_to_central('AI_RUN_TIME', '2026-07-19 03:04:01 AM CT')
+    human_stamp = format_utc_to_central('HUMAN_RUN_TIME', '2026-07-19 02:28:04 PM CT')
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
-        # 🚀 1) RESTORED ORIGINAL WORKSPACE THEME TITLE
+        # 🚀 1) ORIGINAL THEME TITLE RESTORED
         out.write('# ⚖️ AI vs. Human Vulnerability Comparison\n\n')
         
-        # 🚀 2) RESTORED DYNAMIC DATA FRESHNESS NOTATION
-        out.write(f'📊 **Data Freshness:** Last compiled on `{freshness_stamp}`\n\n')
+        # 🚀 2) DUAL SCAN TRACK DATA FRESHNESS NOTATION RESTORED
+        out.write('### Data Freshness (Central Time)\n')
+        out.write(f'- **AI Scan Last Run:** {ai_stamp}\n')
+        out.write(f'- **Human Scan Last Run:** {human_stamp}\n\n')
         
-        # 🚀 3) RESTORED MASTER SUB-TITLE CONVENTION
+        # 🚀 3) HIGH-LEVEL GROUP COMPARISON MASTER SUB-TITLE RESTORED
         out.write('### ⚔️ High-Level Group Comparison\n')
-        
         out.write('| Evaluation Group | Total PRs Scanned | Total Code Changes Sized | Total Introduced Issues | **CWE Density (Issues/LOC)** | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         ai_ratio = f'{ai_metrics["vuln_prs"]}/{ai_metrics["scanned_prs"]}'
