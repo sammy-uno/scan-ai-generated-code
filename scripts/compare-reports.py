@@ -46,13 +46,21 @@ def main():
         is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
 
         try:
-            parts = fname.replace('.sarif', '').split('--')
+            name_root = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '')
+            parts = name_root.split('--')
             if len(parts) < 5: 
                 continue
                 
-            repo_path = parts.replace('_SLASH_', '/')
-            pr_num = parts
-            live_loc = int(parts)
+            # 🚀 SYNCED TO YOUR ORIGINAL SCHEMA CONFIGURATIONS:
+            # parts[0]=repo, parts[1]=pr_num, parts[2]=language, parts[3]=agent_name, parts[4]=live_loc
+            repo_path = parts[0].replace('_SLASH_', '/')
+            pr_num = parts[1]
+            ai_agent_tool = parts[3].lower()
+            live_loc = int(parts[4]) if parts[4].isdigit() else 1
+
+            # Override human check if the explicit structural token reads human
+            if "human" in ai_agent_tool:
+                is_human = True
 
             # Fetch the precise files map for this specific file entry
             pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
@@ -106,7 +114,7 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # MATCH BY BASE FILENAME INSENSITIVELY TO PREVENT DATA LEAKS
+                    # MATCH BY BASE FILENAME CASE-INSENSITIVELY TO ALIGN ALERTS CLEANLY
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
                         changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
