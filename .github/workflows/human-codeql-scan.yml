@@ -1,7 +1,17 @@
-name: Human CodeQL Scan Auditing
+name: "Human CodeQL Scan Auditing"
 
 on:
   workflow_dispatch:
+
+env:
+  CODEQL_ACTION_EXPERIMENTAL_FEATURES: "false"
+  CODEQL_ACTION_DISABLE_DEPRECATION_WARNINGS: "true"
+  CODEQL_ACTION_IS_PERFORMANCE_TESTING: "true"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
   discover:
@@ -10,7 +20,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -24,22 +34,21 @@ jobs:
         run: |
           pip install pandas
           python scripts/human-scanner.py
-
   analyze:
-    name: CodeQL Human Audit
+    name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
     needs: discover
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null }} 
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    if: ${{ needs.discover.outputs.matrix != '' && needs.discover.outputs.matrix != '{"include":[]}' }}
+    timeout-minutes: 20
+    env:
+      CODEQL_RAM: 12000
     strategy:
       fail-fast: false
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
@@ -51,69 +60,64 @@ jobs:
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           rm -rf ./*
-          
-          # Stable, working original checkout logic
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
-          
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
-
-      - name: Initialize CodeQL Engine
-        uses: github/codeql-action/init@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.primary_language }}
-          queries: security-extended,security-and-quality
+          languages: ${{ matrix.language }}
+          build-mode: none
+          db-location: ${{ runner.temp }}/codeql_db
+          trap-caching: false
+          queries: code-scanning
 
-      - name: Autobuild Repository Source
-        uses: github/codeql-action/autobuild@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
         continue-on-error: true
-
-      - name: Perform CodeQL Analysis Sweep
-        uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.primary_language }}"
-          upload: false
+          category: "/pr:${{ matrix.category_name }}"
           output: sarif-results
+          upload: false
+          upload-database: false
+          wait-for-processing: false 
+          threads: 2
 
-      - name: Standardize SARIF Asset Output File
-        run: |
-          mkdir -p total-sarif
-          if [ -f "sarif-results/${{ matrix.primary_language }}.sarif" ]; then
-            cp "sarif-results/${{ matrix.primary_language }}.sarif" results.sarif
-          elif [ -f "sarif-results/issues.sarif" ]; then
-            cp "sarif-results/issues.sarif" results.sarif
-          else
-            find sarif-results/ -name "*.sarif" -exec cp {} results.sarif \;
-          fi
-
-      - name: Execute PR Introduced Isolated Line Filters
-        env:
-          PR_REPO: ${{ matrix.repo_name }}
-          PR_NUM:  ${{ matrix.pr_num }}
-          PR_LOC:  ${{ matrix.live_loc }}
-        run: |
-          python scripts/parse-results.py
-
-      # 🚀 FIXED ARTIFACT PACKAGING LOGIC:
-      # Explicitly sanitizes the 'matrix.repo_name' string natively in the shell, 
-      # ensuring the stashed filename matches what consolidate-report.py expects!
-      - name: Standardize and Stash Processed Summary Artifact
+      - name: Create Summary
         if: always()
         run: |
-          SAFE_REPO_STRING=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
-          echo "📦 Stashing artifact name: sarif-human--$SAFE_REPO_STRING--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}"
+          SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          SAFE_AGENT=$(echo "${{ matrix.agent_name }}" | sed 's/ /_/g')
           
-          # Use an explicit copy step to cleanly name the stashed target asset path
-          mkdir -p current-artifact-payload
-          cp results.sarif "current-artifact-payload/human--$SAFE_REPO_STRING--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}.sarif"
+          # Query live PR line modifications from workspace checkout
+          LIVE_LOC=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json additions,deletions --jq '.additions + .deletions' 2>/dev/null || echo "1")
+          if [ -z "$LIVE_LOC" ] || [ "$LIVE_LOC" = "0" ]; then LIVE_LOC="1"; fi
           
-          echo "TARGET_ARTIFACT_NAME=sarif-human--$SAFE_REPO_STRING--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}" >> $GITHUB_ENV
+          # 🚀 PASS DELTA CONFIGURATIONS TO PYTHON RUNNER CONTEXT
+          export PR_LOC=$LIVE_LOC
+          export PR_REPO="${{ matrix.repo_name }}"
+          export PR_NUM="${{ matrix.pr_num }}"
+          if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.sarif" 2>/dev/null || true
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.success"
+            
+            # Executes the line-filtered delta calculation engine
+            python scripts/parse-results.py || true
+          else
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
 
-      - name: Upload Standardized Summary Artifact
+      - name: Save Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.TARGET_ARTIFACT_NAME }}
-          path: current-artifact-payload/
+          name: sarif-${{ matrix.category_name }}
+          path: |
+            *.sarif
+            *.success
+            *.failed
           retention-days: 1
 
   report:
@@ -122,7 +126,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Download Available Artifacts
         uses: actions/download-artifact@v4
@@ -131,11 +135,6 @@ jobs:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
-
-      - name: Verify Downloaded Artifact Structure
-        run: |
-          echo "📁 Unpacked Artifact Files Queue Check:"
-          ls -R all-results/
 
       - name: Generate Consolidated Summary Table
         env:
