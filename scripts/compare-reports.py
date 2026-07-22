@@ -206,11 +206,18 @@ def main():
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # 🚀 LIVE METADATA INJECTION: Queries active run history timestamps and IDs natively from GitHub
+    # LIVE METADATA INJECTION: Queries active run history timestamps and IDs natively from GitHub
     ai_run_id, ai_stamp = get_live_workflow_metadata("General AI Multi-Language Scanner")
     human_run_id, human_stamp = get_live_workflow_metadata("Human CodeQL Scan Auditing")
 
-    current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'sammy-uno/scan-ai-generated-code').strip()
+    raw_repo_context = os.environ.get('GITHUB_REPOSITORY', 'sammy-uno/scan-ai-generated-code').strip()
+    # Ensure there are no leading/trailing slashes that can throw off URL concatenation paths
+    clean_repo = raw_repo_context.strip('/')
+
+    if not ai_run_id:
+        ai_run_id = os.environ.get('GITHUB_RUN_ID', '')
+    if not human_run_id:
+        human_run_id = os.environ.get('GITHUB_RUN_ID', '')
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -231,15 +238,23 @@ def main():
         out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["total_loc"]} lines | {human_metrics["total"]} | **{human_density_loc}** | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
 
         out.write('### 🔗 Detailed Actions Summaries\n')
+        
+        # 🚀 IRONCLAD NATIVE STRING CONCATENATION FIX: 
+        # Breaks apart the base domain completely to force the forward slash onto the runner output!
+        base_domain = "https://github.com"
+        
         if ai_run_id:
-            out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#{ai_run_id}](https://github.com{current_repo_context}/actions/runs/{ai_run_id}) 🔍\n')
+            full_ai_url = f"{base_domain}/{clean_repo}/actions/runs/{ai_run_id}"
+            out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#{ai_run_id}]({full_ai_url}) 🔍\n')
         else:
             out.write('- 🤖 **View Detailed AI Scanner Workflow Summary:** Check repository Actions panel history profiles. 🔍\n')
             
         if human_run_id:
-            out.write(f'- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Go to Actions Run [#{human_run_id}](https://github.com{current_repo_context}/actions/runs/{human_run_id}) 🔍\n')
+            full_human_url = f"{base_domain}/{clean_repo}/actions/runs/{human_run_id}"
+            out.write(f'- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Go to Actions Run [#{human_run_id}]({full_human_url}) 🔍\n')
         else:
             out.write('- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Check repository Actions panel history profiles. 🔍\n')
 
 if __name__ == "__main__": 
     main()
+
