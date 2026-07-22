@@ -39,8 +39,9 @@ jobs:
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
+      # 🚀 FIX: Clones your framework natively to preserve the correct working directory focus
       - uses: actions/checkout@v5
-      
+
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
@@ -49,17 +50,26 @@ jobs:
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
+          
+          # Protect tracking scripts
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
-          rm -rf ./*
           
-          # Your original working checkout command
-          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          # 🚀 FIX: Use native Git branch clone boundaries to target the exact repo 
+          # without creating raw empty workspaces that cause 30-minute timeouts!
+          TARGET_DIR="target_repo_workspace"
+          rm -rf "$TARGET_DIR"
+          git clone --depth=500 "https://github.com{{ matrix.repo_name }}.git" "$TARGET_DIR"
           
-          # 🚀 THE TARGETED ONE-LINE FIX: Unshallows the freshly cloned target repo branch 
-          # so git diff can look back in time and find program.cs and Project.csproj!
-          git fetch --unshallow || git fetch --depth=100 || true
+          cd "$TARGET_DIR"
+          git fetch origin "pull/${{ matrix.pr_num }}/head:pr_branch" --depth=500
+          git checkout pr_branch
           
+          # Sync scripts into the newly isolated source directory path
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
+          
+          # Move target files up to the active analysis root workspace
+          cp -r ./* ../ 2>/dev/null || true
+          cd ..
 
       - name: Initialize CodeQL Engine
         uses: github/codeql-action/init@v3
@@ -75,6 +85,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.primary_language }}"
+          # 🚀 FIX: Disables the automatic remote server upload to clear the retry database failure!
           upload: false
           output: sarif-results
 
