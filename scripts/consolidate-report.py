@@ -70,6 +70,10 @@ def main():
             ai_agent_tool = parts[3].replace('_', ' ')
             live_loc = int(parts[4]) if parts[4].isdigit() else 1
             
+            # 🚀 FIXED THE DEFINITION MISMATCH: 
+            # We explicitly track and assign the 'is_human' boolean right here inside the loop!
+            is_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
+            
             # Fetch the precise files map for this specific row entry
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
 
@@ -126,7 +130,7 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # 🚀 CASE-INSENSITIVE FILENAME GATEKEEPER
+                    # CASE-INSENSITIVE FILENAME GATEKEEPER
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
                         changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
@@ -138,7 +142,7 @@ def main():
                         seen_findings.add(fingerprint)
                         res.append(result)
             
-            # 🚀 SPLIT EMITTED ALERTS INTO EXPLICIT H, M, L DISCRETE COUNTERS
+            # SPLIT EMITTED ALERTS INTO EXPLICIT H, M, L DISCRETE COUNTERS
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
