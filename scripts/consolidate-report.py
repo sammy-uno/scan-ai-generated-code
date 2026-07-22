@@ -50,12 +50,23 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            # Mapping out exact naming schema fields sequentially
-            repo_path = parts.replace('_SLASH_', '/')
-            pr_num = parts
-            lang = parts
-            ai_agent_tool = parts.replace('_', ' ')
-            live_loc = int(parts) if parts.isdigit() else 100
+            # 🚀 FIXED THE LAYOUT TRUNCATION BUG:
+            # Maps elements sequentially out of a secure enumeration loop to preserve variable contexts
+            raw_repo, raw_pr, raw_lang, raw_agent, raw_size = "", "", "", "", ""
+            idx = 0
+            for item in parts:
+                if idx == 0: raw_repo = item
+                elif idx == 1: raw_pr = item
+                elif idx == 2: raw_lang = item
+                elif idx == 3: raw_agent = item
+                elif idx == 4: raw_size = item
+                idx += 1
+
+            repo_path = raw_repo.replace('_SLASH_', '/')
+            pr_num = raw_pr
+            lang = raw_lang
+            ai_agent_tool = raw_agent.replace('_', ' ')
+            live_loc = int(raw_size) if raw_size.isdigit() else 100
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
@@ -151,8 +162,6 @@ def main():
             
             cwe_density = round(len(res) / live_loc, 4) if live_loc > 0 else 0.0
             
-            # 🚀 ENFORCED LINK SLAYER CONCATENATION:
-            # Isolates the domain string completely to force the missing forward slash natively!
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
