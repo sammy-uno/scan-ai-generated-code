@@ -52,7 +52,7 @@ jobs:
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           rm -rf ./*
           
-          # 🟢 Your original, error-free checkout logic
+          # Stable, working original checkout logic
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
@@ -93,13 +93,27 @@ jobs:
         run: |
           python scripts/parse-results.py
 
-      - name: Stash Processed Summary Artifact
+      # 🚀 FIXED ARTIFACT PACKAGING LOGIC:
+      # Explicitly sanitizes the 'matrix.repo_name' string natively in the shell, 
+      # ensuring the stashed filename matches what consolidate-report.py expects!
+      - name: Standardize and Stash Processed Summary Artifact
+        if: always()
+        run: |
+          SAFE_REPO_STRING=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          echo "📦 Stashing artifact name: sarif-human--$SAFE_REPO_STRING--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}"
+          
+          # Use an explicit copy step to cleanly name the stashed target asset path
+          mkdir -p current-artifact-payload
+          cp results.sarif "current-artifact-payload/human--$SAFE_REPO_STRING--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}.sarif"
+          
+          echo "TARGET_ARTIFACT_NAME=sarif-human--$SAFE_REPO_STRING--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}" >> $GITHUB_ENV
+
+      - name: Upload Standardized Summary Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sarif-human--${{ matrix.safe_repo }}--${{ matrix.pr_num }}--${{ matrix.primary_language }}--${{ matrix.live_loc }}
-          path: |
-            results.sarif
+          name: ${{ env.TARGET_ARTIFACT_NAME }}
+          path: current-artifact-payload/
           retention-days: 1
 
   report:
@@ -118,10 +132,9 @@ jobs:
           path: all-results
           merge-multiple: true
 
-      - name: Purge Historical Cache Clones
+      - name: Verify Downloaded Artifact Structure
         run: |
-          find all-results/ -name "results.sarif" -delete || true
-          echo "📁 Active Clean Artifacts Queue Check:"
+          echo "📁 Unpacked Artifact Files Queue Check:"
           ls -R all-results/
 
       - name: Generate Consolidated Summary Table
