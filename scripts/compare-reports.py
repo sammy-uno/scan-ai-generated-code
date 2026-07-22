@@ -40,25 +40,32 @@ def main():
 
     for f in all_files:
         fname = os.path.basename(f)
-        if fname == 'results.sarif' or '--' not in fname: 
+        parent_dir = os.path.basename(os.path.dirname(f))
+        
+        # 🚀 SMART OVERRIDE LOGIC: Detect if metadata is stashed inside the filename OR parent folder
+        naming_string = ""
+        if '--' in fname:
+            naming_string = fname.replace('.sarif', '')
+        elif '--' in parent_dir:
+            naming_string = parent_dir.replace('sarif-', '')
+        else:
+            # Fallback for old simple names if any exist
             continue
-            
-        is_human = fname.startswith("human--") or "human-" in f.lower() or "Human_Auditor" in fname
+
+        is_human = fname.startswith("human--") or "human-" in f.lower() or "human" in parent_dir.lower()
 
         try:
-            name_root = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '')
+            name_root = naming_string.replace('.success', '').replace('.failed', '')
             parts = name_root.split('--')
             if len(parts) < 5: 
                 continue
                 
-            # 🚀 SYNCED TO YOUR ORIGINAL SCHEMA CONFIGURATIONS:
-            # parts[0]=repo, parts[1]=pr_num, parts[2]=language, parts[3]=agent_name, parts[4]=live_loc
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            ai_agent_tool = parts[3].lower()
-            live_loc = int(parts[4]) if parts[4].isdigit() else 1
+            # parts=repo, parts=pr_num, parts=language, parts=agent_name, parts=live_loc
+            repo_path = parts.replace('_SLASH_', '/')
+            pr_num = parts
+            ai_agent_tool = parts.lower()
+            live_loc = int(parts) if parts.isdigit() else 1
 
-            # Override human check if the explicit structural token reads human
             if "human" in ai_agent_tool:
                 is_human = True
 
@@ -114,7 +121,7 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # MATCH BY BASE FILENAME CASE-INSENSITIVELY TO ALIGN ALERTS CLEANLY
+                    # MATCH BY BASE FILENAME INSENSITIVELY TO ALIGN ALERTS
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
                         changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
