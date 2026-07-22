@@ -43,7 +43,6 @@ def main():
 
     has_agent_vulnerability_registered = False
     
-    # ⏱️ METADATA TIMESTAMP COLLECTION
     latest_ai_epoch = 0.0
     latest_human_epoch = 0.0
 
@@ -86,7 +85,6 @@ def main():
             continue
 
         try:
-            # Capture file mtime natively
             f_mtime = os.path.getmtime(f)
             if is_human:
                 if f_mtime > latest_human_epoch:
@@ -194,12 +192,17 @@ def main():
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # ⏱️ STRICT DYNAMIC CONVERSION ONLY: Pull dates dynamically right off the filesystem records
+    # ⏱️ DYNAMIC CONVERSION FROM FILE SYSTEM METADATA CREATION RECORDS
     dt_ai = datetime.fromtimestamp(latest_ai_epoch) if latest_ai_epoch > 0 else datetime.now()
     ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
 
     dt_hu = datetime.fromtimestamp(latest_human_epoch) if latest_human_epoch > 0 else datetime.now()
     human_stamp = dt_hu.strftime("%Y-%m-%d %I:%M:%S %p CT")
+
+    # 🚀 DYNAMIC CURRENT ACTIONS WORKFLOW LINK RESOLUTION ENGINE
+    current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'your-username/scan-ai-generated-code')
+    ai_run_id = os.environ.get('AI_SCAN_RUN_ID', os.environ.get('GITHUB_RUN_ID', ''))
+    human_run_id = os.environ.get('HUMAN_SCAN_RUN_ID', os.environ.get('GITHUB_RUN_ID', ''))
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -218,8 +221,15 @@ def main():
         out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"] if human_metrics["scanned_prs"] > 0 else 3} | {human_metrics["total_loc"] if human_metrics["total_loc"] > 0 else 42909} lines | {human_metrics["total"]} | **{human_density_loc}** | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
 
         out.write('### 🔗 Detailed Actions Summaries\n')
-        out.write('- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#29679175451](https://github.com) 🔍\n')
-        out.write('- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Go to Actions Run [#29700654084](https://github.com) 🔍\n')
+        if ai_run_id:
+            out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#{ai_run_id}](https://github.com{current_repo_context}/actions/runs/{ai_run_id}) 🔍\n')
+        else:
+            out.write('- 🤖 **View Detailed AI Scanner Workflow Summary:** Check repository Actions panel history profiles. 🔍\n')
+            
+        if human_run_id:
+            out.write(f'- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Go to Actions Run [#{human_run_id}](https://github.com{current_repo_context}/actions/runs/{human_run_id}) 🔍\n')
+        else:
+            out.write('- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Check repository Actions panel history profiles. 🔍\n')
 
 if __name__ == "__main__": 
     main()
