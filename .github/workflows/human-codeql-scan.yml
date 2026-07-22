@@ -10,10 +10,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      # 🚀 STEP 1 FIX: Forces full deep tree cloning on matrix discovery layout
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -42,11 +39,8 @@ jobs:
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
-      # 🚀 STEP 2 FIX: Forces full deep tree cloning on individual matrix node checkouts
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
+      
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
@@ -55,19 +49,16 @@ jobs:
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
-          
-          # Stable, working layout backup sequence
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           rm -rf ./*
           
-          # 🚀 STEP 3 FIX: Configure global git clone depth guidelines natively inside git configs
-          # before running the gh utility tool so that gh pulls down deep multi-commit reference matrices!
-          git config --global clone.defaultRemoteName origin
-          
-          # Execute the reliable github CLI checkout that worked before
+          # Your original working checkout command
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # Restore the python tool scripts back into place
+          # 🚀 THE TARGETED ONE-LINE FIX: Unshallows the freshly cloned target repo branch 
+          # so git diff can look back in time and find program.cs and Project.csproj!
+          git fetch --unshallow || git fetch --depth=100 || true
+          
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
 
       - name: Initialize CodeQL Engine
