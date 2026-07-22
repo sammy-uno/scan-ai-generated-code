@@ -191,15 +191,17 @@ def main():
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
         if is_human_run:
-            # Human Track Layout: 10 Columns with Severity Dots and Paren Formatting
+            # Human Track Layout: 10 Columns
             out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
-            out.write('\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            # AI Agent Track Layout: 11 Columns with Severity Dots and Paren Formatting
+            # AI Agent Track Layout: 11 Columns
             out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
+        # 🚀 FIXED THE LOOKUP ERRORS:
+        # We cleanly separate the list components before printing rows to avoid sorting lookups
+        for row_is_human, r in table_rows: 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
@@ -207,4 +209,5 @@ def main():
 
 if __name__ == "__main__": 
     main()
+
 
