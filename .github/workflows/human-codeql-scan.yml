@@ -46,8 +46,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
-          # 🚀 THE BULLETPROOF FALLBACK INJECTION: Maps all possible naming fields directly 
-          # from your data rows so that the runner never expands a blank string again!
           M_REPO_A: ${{ matrix.repo_name }}
           M_REPO_B: ${{ matrix.repo }}
           M_REPO_C: ${{ matrix.repository }}
@@ -59,13 +57,13 @@ jobs:
           # Protect tracking scripts
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           
-          # 🎯 AUTOMATED FALLBACK RESOLVER: Dynamically captures whichever key holds the text data
-          TARGET_REPO=""
-          if [ ! -z "$M_REPO_A" ]; then TARGET_REPO="$M_REPO_A"; fi
-          if [ -z "$TARGET_REPO" ] && [ ! -z "$M_REPO_B" ]; then TARGET_REPO="$M_REPO_B"; fi
-          if [ -z "$TARGET_REPO" ] && [ ! -z "$M_REPO_C" ]; then TARGET_REPO="$M_REPO_C"; fi
+          # 🎯 AUTOMATED FALLBACK RESOLVER
+          DETECTED_REPO=""
+          if [ ! -z "$M_REPO_A" ]; then DETECTED_REPO="$M_REPO_A"; fi
+          if [ -z "$DETECTED_REPO" ] && [ ! -z "$M_REPO_B" ]; then DETECTED_REPO="$M_REPO_B"; fi
+          if [ -z "$DETECTED_REPO" ] && [ ! -z "$M_REPO_C" ]; then DETECTED_REPO="$M_REPO_C"; fi
           
-          if [ -z "$TARGET_REPO" ]; then
+          if [ -z "$DETECTED_REPO" ]; then
             echo "❌ [CRITICAL ERROR] Unable to extract the target repository name from matrix payload variables!"
             exit 1
           fi
@@ -73,8 +71,8 @@ jobs:
           TARGET_DIR="target_repo_workspace"
           rm -rf "$TARGET_DIR"
           
-          # Execute clean native clone tracking using the verified string
-          git clone --depth=500 "https://github.com{TARGET_REPO}.git" "$TARGET_DIR"
+          # 🚀 FIXED BASH SYNTAX: Using native $ variable expansion natively
+          git clone --depth=500 "https://github.com" "$TARGET_DIR"
           
           cd "$TARGET_DIR"
           git fetch origin "pull/$PR_NUMBER/head:pr_branch" --depth=500
