@@ -190,23 +190,21 @@ def main():
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
-        # 🚀 CUSTOM RESTORED LAYOUT STRUCTURES
         if is_human_run:
-            # Human Track Layout: 10 Columns
-            out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | H | M | L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+            # Human Track Layout: 10 Columns with Severity Dots and Paren Formatting
+            out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            out.write('\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            # AI Agent Track Layout: Exactly your requested 11 Columns
-            out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | H | M | L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            # AI Agent Track Layout: 11 Columns with Severity Dots and Paren Formatting
+            out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
         for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
             if is_human_run:
-                # Output matched to the 10-column human baseline schema
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | {r["total_issues"]} | **{r["density"]}** |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
-                # Output matched to your exact 11-column AI Agent specification layout
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | {r["total_issues"]} | **{r["density"]}** |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
 
 if __name__ == "__main__": 
     main()
+
