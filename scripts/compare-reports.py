@@ -36,9 +36,8 @@ def format_utc_to_central(utc_str_env, fallback_default):
     if not raw_val or 'include' in raw_val:
         return fallback_default
     try:
-        # Formats the workflow timestamps smoothly 
-        cleaned_time = raw_val.split('.')[0]
-        parsed_utc = datetime.strptime(cleaned_time, "%Y-%m-%d %H:%M:%S")
+        cleaned_time = raw_val.split('.')
+        parsed_utc = datetime.strptime(cleaned_time[0], "%Y-%m-%d %H:%M:%S")
         central_converted = parsed_utc - timedelta(hours=5)
         return central_converted.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception:
@@ -70,13 +69,24 @@ def main():
         is_human = False
 
         if '--' in fname or '--' in parent_dir:
-            naming_string = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '') if '--' in fname else parent_dir.replace('sarif-', '')
+            naming_string = fname.replace('.sarif', '') if '--' in fname else parent_dir.replace('sarif-', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
             if len(parts) >= 5:
-                repo_path = parts.replace('_SLASH_', '/')
-                pr_num = parts
-                live_loc = int(parts) if parts.isdigit() else 100
-                if "human" in parts.lower() or "human" in fname.lower() or "human" in parent_dir.lower():
+                # 🚀 SAFE ITEM STRIPPING: Extracts text values sequentially by clearing bracket issues
+                idx = 0
+                for item in parts:
+                    if idx == 0:
+                        repo_path = item.replace('_SLASH_', '/')
+                    elif idx == 1:
+                        pr_num = item
+                    elif idx == 3:
+                        if "human" in item.lower():
+                            is_human = True
+                    elif idx == 4:
+                        live_loc = int(item) if item.isdigit() else 100
+                    idx += 1
+                    
+                if "human" in fname.lower() or "human" in parent_dir.lower():
                     is_human = True
         
         elif parent_dir == "sarif-agent" or fname == "results.sarif" or "agent" in parent_dir.lower():
@@ -133,7 +143,7 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr
+                        loc_entry = locs_arr[0]
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -194,15 +204,12 @@ def main():
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
-        # 🚀 1) ORIGINAL THEME TITLE RESTORED
         out.write('# ⚖️ AI vs. Human Vulnerability Comparison\n\n')
         
-        # 🚀 2) DUAL SCAN TRACK DATA FRESHNESS NOTATION RESTORED
         out.write('### Data Freshness (Central Time)\n')
         out.write(f'- **AI Scan Last Run:** {ai_stamp}\n')
         out.write(f'- **Human Scan Last Run:** {human_stamp}\n\n')
         
-        # 🚀 3) HIGH-LEVEL GROUP COMPARISON MASTER SUB-TITLE RESTORED
         out.write('### ⚔️ High-Level Group Comparison\n')
         out.write('| Evaluation Group | Total PRs Scanned | Total Code Changes Sized | Total Introduced Issues | **CWE Density (Issues/LOC)** | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
