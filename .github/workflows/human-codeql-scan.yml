@@ -10,6 +10,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
+      # 🚀 STEP 1 FIX: Forces full deep tree cloning on matrix discovery layout
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -41,7 +42,10 @@ jobs:
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
+      # 🚀 STEP 2 FIX: Forces full deep tree cloning on individual matrix node checkouts
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
@@ -52,32 +56,18 @@ jobs:
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
-          # 📁 SAFE CLEANUP: Back up your internal scripts folder first
+          # Stable, working layout backup sequence
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
+          rm -rf ./*
           
-          # Forcefully clear everything to build a completely independent repository context
-          rm -rf ./* ./.git
+          # 🚀 STEP 3 FIX: Configure global git clone depth guidelines natively inside git configs
+          # before running the gh utility tool so that gh pulls down deep multi-commit reference matrices!
+          git config --global clone.defaultRemoteName origin
           
-          echo "📥 Fetching full upstream baseline and PR reference trees from target: ${{ matrix.repo_name }}"
+          # Execute the reliable github CLI checkout that worked before
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # 🚀 THE NO-VARIABLE STRATEGY: Inject the matrix tokens directly into the native command strings
-          git init
-          git remote add origin "https://github.com{{ matrix.repo_name }}.git"
-          
-          # Fetch the target repository's main trunk using deep commit historical logs
-          git fetch origin main --depth=500 || git fetch origin master --depth=500 || true
-          
-          # Fetch the exact Pull Request head branch reference cleanly from the target remote origin
-          git fetch origin "pull/${{ matrix.pr_num }}/head:pr_branch" --depth=500
-          
-          # Switch completely into your freshly tracked target pull request branch
-          git checkout pr_branch
-          
-          # Create an explicit local tracking branch marker named 'origin/main' 
-          # This guarantees that 'git diff origin/main...HEAD' always works perfectly inside parse-results.py!
-          git branch origin/main FETCH_HEAD || git branch origin/master FETCH_HEAD || true
-          
-          # Restore tracking utility scripts
+          # Restore the python tool scripts back into place
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
 
       - name: Initialize CodeQL Engine
