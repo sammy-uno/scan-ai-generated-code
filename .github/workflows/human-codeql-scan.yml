@@ -10,7 +10,7 @@ jobs:
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -39,16 +39,18 @@ jobs:
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
-          # 🚀 THE FIX: We map the matrix variable to a native environment variable block
-          # This protects the string layout from being mangled or having slashes stripped by the YAML parser!
-          TARGET_REPO: ${{ matrix.repo_name }}
+          # 🚀 THE BULLETPROOF FALLBACK INJECTION: Maps all possible naming fields directly 
+          # from your data rows so that the runner never expands a blank string again!
+          M_REPO_A: ${{ matrix.repo_name }}
+          M_REPO_B: ${{ matrix.repo }}
+          M_REPO_C: ${{ matrix.repository }}
           PR_NUMBER: ${{ matrix.pr_num }}
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
@@ -57,12 +59,22 @@ jobs:
           # Protect tracking scripts
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           
-          # Native Git branch clone boundaries targeting the shell variable
+          # 🎯 AUTOMATED FALLBACK RESOLVER: Dynamically captures whichever key holds the text data
+          TARGET_REPO=""
+          if [ ! -z "$M_REPO_A" ]; then TARGET_REPO="$M_REPO_A"; fi
+          if [ -z "$TARGET_REPO" ] && [ ! -z "$M_REPO_B" ]; then TARGET_REPO="$M_REPO_B"; fi
+          if [ -z "$TARGET_REPO" ] && [ ! -z "$M_REPO_C" ]; then TARGET_REPO="$M_REPO_C"; fi
+          
+          if [ -z "$TARGET_REPO" ]; then
+            echo "❌ [CRITICAL ERROR] Unable to extract the target repository name from matrix payload variables!"
+            exit 1
+          fi
+          
           TARGET_DIR="target_repo_workspace"
           rm -rf "$TARGET_DIR"
           
-          # 🎯 SAFE SHELL EXPANSION: Uses the clean $TARGET_REPO shell syntax natively
-          git clone --depth=500 "https://github.com" "$TARGET_DIR"
+          # Execute clean native clone tracking using the verified string
+          git clone --depth=500 "https://github.com{TARGET_REPO}.git" "$TARGET_DIR"
           
           cd "$TARGET_DIR"
           git fetch origin "pull/$PR_NUMBER/head:pr_branch" --depth=500
@@ -126,7 +138,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       
       - name: Download Available Artifacts
         uses: actions/download-artifact@v4
