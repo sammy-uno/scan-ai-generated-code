@@ -34,9 +34,9 @@ def main():
     except Exception: 
         tot = 0
         
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    ok_m = len(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else 0
-    ko_m = len(glob.glob('all-results/**/*.failed', recursive=True)) if os.path.exists('all-results') else 0
+    all_files = sorted(glob.glob('all-results', recursive=True)) if os.path.exists('all-results') else []
+    ok_m = len(glob.glob('all-results', recursive=True)) if os.path.exists('all-results') else 0
+    ko_m = len(glob.glob('all-results', recursive=True)) if os.path.exists('all-results') else 0
     
     if tot == 0: 
         tot = ok_m + ko_m
@@ -47,9 +47,11 @@ def main():
     total_loc_scanned = 0
     total_issues_found = 0
     
-    is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.path.basename(f) for f in all_files)
+    is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.environ.get('GITHUB_WORKFLOW', '') or "human--" in os.path.basename(f) for f in all_files)
+    # Locate all unpacked .sarif files in your workspace results directory
+    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
 
-    for f in all_files:
+    for f in all_sarifs:
         fname = os.path.basename(f)
         if fname == 'results.sarif' or '--' not in fname: 
             continue
@@ -60,8 +62,8 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            # 🚀 ALIGNED EXPLICITLY TO YOUR ORIGINAL FILENAME SCHEMA INDICES:
-            # parts[0] = repo, parts[1] = pr_num, parts[2] = language, parts[3] = agent_name, parts[4] = live_loc
+            # 🚀 SCHEMA ALIGNMENT UNPACKING:
+            # parts[0]=repo, parts[1]=pr_num, parts[2]=language, parts[3]=agent_name, parts[4]=live_loc
             repo_path = parts[0].replace('_SLASH_', '/')
             pr_num = parts[1]
             lang = parts[2]
@@ -71,7 +73,7 @@ def main():
             # Fetch the precise files map for this specific row entry
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
 
-            with open(f) as s: 
+            with open(f, encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
             if not isinstance(runs, list): 
@@ -89,13 +91,15 @@ def main():
                 extensions = tool.get('extensions', [])
                 if isinstance(extensions, list):
                     for ext in extensions:
-                        if isinstance(ext, dict): all_rules.extend(ext.get('rules', []))
+                        if isinstance(ext, dict): 
+                            all_rules.extend(ext.get('rules', []))
                 
                 for rule in all_rules:
                     if not isinstance(rule, dict): continue
                     r_id = rule.get('id')
                     tags = rule.get('properties', {}).get('tags', [])
-                    if r_id not in local_cwe_map: local_cwe_map[r_id] = set()
+                    if r_id not in local_cwe_map: 
+                        local_cwe_map[r_id] = set()
                     for t in tags:
                         if isinstance(t, str) and 'cwe-' in t.lower():
                             c_num = t.lower().split('cwe-')[-1].zfill(3)
@@ -134,6 +138,7 @@ def main():
                         seen_findings.add(fingerprint)
                         res.append(result)
             
+            # 🚀 SPLIT EMITTED ALERTS INTO EXPLICIT H, M, L DISCRETE COUNTERS
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
@@ -141,14 +146,16 @@ def main():
                 lvl = str(r.get('level', 'warning')).lower()
                 cwes_for_rule = local_cwe_map.get(r_id, set())
                 
-                if lvl == 'error': h += 1
-                elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
-                else: l += 1
+                if lvl == 'error': 
+                    h += 1
+                elif lvl in ['warning', 'recommendation', 'note', 'none']: 
+                    m += 1
+                else: 
+                    l += 1
                 
                 for cwe_id in cwes_for_rule:
                     pr_cwes.add(cwe_id)
             
-            row_severity_badge = '🔴 High' if h > 0 else ('🟡 Medium' if m > 0 else ('🔵 Low' if l > 0 else '🟢 Clean'))
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
             total_scanned += 1
@@ -161,30 +168,41 @@ def main():
             full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
             link_md = f'[#{pr_num}]({full_url})'
             
-            if is_human_run:
-                table_rows.append(f'| {repo_path} | {link_md} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
-            else:
-                table_rows.append(f'| {repo_path} | {link_md} | {ai_agent_tool} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
+            # Stash calculated row contents into row variables
+            row_data = {
+                "repo": repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
+                "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
+                "total_issues": len(res), "density": cwe_density
+            }
+            table_rows.append((is_human, row_data))
+            
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
-            
+
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
-    with open(summary_file, 'w') as out:
+    with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
-        # 🚀 RE-ESTABLISHED YOUR PRECISE 9-COLUMN LAYOUT STRUCTURES
+        # 🚀 CUSTOM RESTORED LAYOUT STRUCTURES
         if is_human_run:
-            out.write('\n| Repository | PR | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+            # Human Track Layout: 10 Columns
+            out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | H | M | L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            out.write('\n| Repository | PR | AI Tool | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+            # AI Agent Track Layout: Exactly your requested 11 Columns
+            out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | H | M | L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        for r in sorted(table_rows): 
-            out.write(f'{r}\n')
+        for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
+            if is_human_run:
+                # Output matched to the 10-column human baseline schema
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | {r["total_issues"]} | **{r["density"]}** |\n')
+            else:
+                # Output matched to your exact 11-column AI Agent specification layout
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | {r["total_issues"]} | **{r["density"]}** |\n')
 
 if __name__ == "__main__": 
     main()
