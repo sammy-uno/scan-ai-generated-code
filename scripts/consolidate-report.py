@@ -55,17 +55,18 @@ def main():
             continue
 
         try:
-            name_root = fname.replace('.sarif', '')
+            name_root = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '')
             parts = name_root.split('--')
             if len(parts) < 5: 
                 continue
             
+            # 🚀 ALIGNED EXPLICITLY TO YOUR ORIGINAL FILENAME SCHEMA INDICES:
+            # parts[0] = repo, parts[1] = pr_num, parts[2] = language, parts[3] = agent_name, parts[4] = live_loc
             repo_path = parts[0].replace('_SLASH_', '/')
             pr_num = parts[1]
             lang = parts[2]
-            # 🚀 FIXED: Renamed variable to prevent inner loop property hijacking collisions
             ai_agent_tool = parts[3].replace('_', ' ')
-            live_loc = int(parts[4])
+            live_loc = int(parts[4]) if parts[4].isdigit() else 1
             
             # Fetch the precise files map for this specific row entry
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
@@ -163,7 +164,6 @@ def main():
             if is_human_run:
                 table_rows.append(f'| {repo_path} | {link_md} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
             else:
-                # 🚀 FIXED TOOL EXTRACTION CONTEXT TO ENSURE SAFE STRINGS PRINT
                 table_rows.append(f'| {repo_path} | {link_md} | {ai_agent_tool} | {lang} | {live_loc} | **{cwe_density}** | {row_severity_badge} | **{cwe_display}** | {len(res)} |')
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
@@ -175,11 +175,12 @@ def main():
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
+        # 🚀 RE-ESTABLISHED YOUR PRECISE 9-COLUMN LAYOUT STRUCTURES
         if is_human_run:
             out.write('\n| Repository | PR | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            out.write('\n| Repository | PR | AI Tool | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | Convert Discovered | Total Issues |\n')
+            out.write('\n| Repository | PR | AI Tool | Lang | Exact Size (LOC) | CWE Density (Issues/LOC) | Overall Severity | CWE Discovered | Total Issues |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
         for r in sorted(table_rows): 
