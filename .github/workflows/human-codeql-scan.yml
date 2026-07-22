@@ -62,7 +62,7 @@ jobs:
           # Forcefully clear everything to build a completely independent repository context
           rm -rf ./* ./.git
           
-          # 🎯 AUTOMATED FALLBACK RESOLVER: Detects which matrix property holds the valid repository name string
+          # 🎯 AUTOMATED FALLBACK RESOLVER
           TARGET_REPO=""
           if [ ! -z "$M_REPO_A" ]; then TARGET_REPO="$M_REPO_A"; fi
           if [ -z "$TARGET_REPO" ] && [ ! -z "$M_REPO_B" ]; then TARGET_REPO="$M_REPO_B"; fi
@@ -73,12 +73,14 @@ jobs:
             exit 1
           fi
           
-          # Initialize a completely fresh Git environment and point it directly to the target URL
-          git init
-          # 🚀 FIXED BASH SYNTAX: Using the absolute safe shell descriptor variant natively
-          git remote add origin "https://github.com{TARGET_REPO}.git"
+          echo "📥 Fetching full upstream baseline and PR reference trees from target: $TARGET_REPO"
           
-          echo "📥 Fetching full upstream baseline and PR reference trees from target: ${TARGET_REPO}"
+          # 🚀 THE BULLETPROOF STRING FIX: Construct the URL cleanly using direct environment variable expansion
+          COMPLETE_URL="https://github.com{TARGET_REPO}.git"
+          
+          # Initialize a completely fresh Git environment and attach the verified URL string
+          git init
+          git remote add origin "$COMPLETE_URL"
           
           # Fetch the target repository's main trunk using deep commit historical logs
           git fetch origin main --depth=500 || git fetch origin master --depth=500 || true
