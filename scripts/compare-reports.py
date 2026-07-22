@@ -27,22 +27,6 @@ def get_pr_changed_lines_compare(repo, pr_num):
         print(f"Comparison asset tracking notice: {e}")
     return changed_lines
 
-def format_utc_to_central(utc_str_env, fallback_default):
-    """
-    🧮 TIME ZONE DELTA RESOLVER: Converts a UTC ISO string directly to 
-    Central Time (CT) using standard operational offset logic (UTC - 5 hours).
-    """
-    raw_val = os.environ.get(utc_str_env, '').strip()
-    if not raw_val or 'include' in raw_val:
-        return fallback_default
-    try:
-        cleaned_time = raw_val.split('.')
-        parsed_utc = datetime.strptime(cleaned_time[0], "%Y-%m-%d %H:%M:%S")
-        central_converted = parsed_utc - timedelta(hours=5)
-        return central_converted.strftime("%Y-%m-%d %I:%M:%S %p CT")
-    except Exception:
-        return fallback_default
-
 def main():
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
@@ -58,6 +42,10 @@ def main():
     ]
 
     has_agent_vulnerability_registered = False
+    
+    # ⏱️ TRACKING TRUE FILE WORKFLOW RUNTIME TIMESTAMPS FROM DISK METADATA
+    latest_ai_epoch = 0.0
+    latest_human_epoch = 0.0
 
     for f in all_files:
         fname = os.path.basename(f)
@@ -72,7 +60,6 @@ def main():
             naming_string = fname.replace('.sarif', '') if '--' in fname else parent_dir.replace('sarif-', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
             if len(parts) >= 5:
-                # 🚀 SAFE ITEM STRIPPING: Extracts text values sequentially by clearing bracket issues
                 idx = 0
                 for item in parts:
                     if idx == 0:
@@ -99,6 +86,15 @@ def main():
             continue
 
         try:
+            # Capture the file's dynamic modification timestamp from the disk layer
+            f_mtime = os.path.getmtime(f)
+            if is_human:
+                if f_mtime > latest_human_epoch:
+                    latest_human_epoch = f_mtime
+            else:
+                if f_mtime > latest_ai_epoch:
+                    latest_ai_epoch = f_mtime
+
             pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
 
             with open(f, 'r', encoding='utf-8') as s: 
@@ -143,7 +139,7 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -198,9 +194,19 @@ def main():
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # CALCULATING SEPARATE RUN FRESHNESS STAMPS (Central Time)
-    ai_stamp = format_utc_to_central('AI_RUN_TIME', '2026-07-19 03:04:01 AM CT')
-    human_stamp = format_utc_to_central('HUMAN_RUN_TIME', '2026-07-19 02:28:04 PM CT')
+    # 🧮 TIME STAMP TRANSLATOR FROM FILE METADATA MODIFICATION TIMES
+    # Read the exact file timestamps from disk, parse their values, and convert to CT
+    if latest_ai_epoch > 0:
+        dt_ai = datetime.utcfromtimestamp(latest_ai_epoch) - timedelta(hours=5)
+        ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
+    else:
+        ai_stamp = (datetime.utcnow() - timedelta(hours=5)).strftime("%Y-%m-%d %I:%M:%S %p CT")
+
+    if latest_human_epoch > 0:
+        dt_hu = datetime.utcfromtimestamp(latest_human_epoch) - timedelta(hours=5)
+        human_stamp = dt_hu.strftime("%Y-%m-%d %I:%M:%S %p CT")
+    else:
+        human_stamp = (datetime.utcnow() - timedelta(hours=5)).strftime("%Y-%m-%d %I:%M:%S %p CT")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
