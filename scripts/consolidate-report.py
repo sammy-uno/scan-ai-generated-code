@@ -3,18 +3,22 @@ import glob
 import os
 import subprocess
 
-def get_pr_changed_lines_live(repo, pr_num):
+def get_pr_metadata_live(repo, pr_num):
     """
-    🎯 PR LIVE FILE QUERY: Pulls down modified file boundaries using 
-    the native GitHub CLI package safely with error fallbacks.
+    🎯 LIVE PR LIFECYCLE QUERY: Pulls down modified file boundaries 
+    and the exact real-time pull request status via the GitHub CLI.
     """
     changed_lines = {}
+    pr_state = "Closed"
     if not repo or not pr_num:
-        return changed_lines
+        return changed_lines, pr_state
+        
     try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        # Query files, the underlying open/closed state, and the merged boolean indicator
+        cmd = f"gh pr view {pr_num} --repo {repo} --json files,state,merged"
         sub_env = os.environ.copy()
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        
         if res.returncode == 0:
             data = json.loads(res.stdout)
             files = data.get('files', [])
@@ -22,9 +26,19 @@ def get_pr_changed_lines_live(repo, pr_num):
                 path = f.get('path', '').strip()
                 if path:
                     changed_lines[path] = set()
+                    
+            raw_state = str(data.get('state', 'closed')).strip().capitalize()
+            is_merged = data.get('merged', False)
+            
+            # Standardize status tracking to map Merged separate from Closed
+            if is_merged:
+                pr_state = "Merged"
+            else:
+                pr_state = raw_state
     except Exception as e:
-        print(f"File lookup fallback notice: {e}")
-    return changed_lines
+        print(f"PR metadata lookup tracking notice: {e}")
+        
+    return changed_lines, pr_state
 
 def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
@@ -36,6 +50,11 @@ def main():
     total_scanned = 0
     vulnerable_count = 0
     total_loc_scanned = 0
+    
+    # 🚀 NEW SUMMARY METRIC LIFECYCLE LIFE COUNTERS
+    open_count = 0
+    merged_count = 0
+    closed_count = 0
     
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
     
@@ -71,9 +90,20 @@ def main():
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
-            # Extract live change files count maps
-            pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
+            # 🚀 LIVE METADATA INTEGRATION: Extract files map AND pr lifecycle status string
+            pr_diff_map, pr_lifecycle_status = get_pr_metadata_live(repo_path, pr_num)
             committed_files_count = len(pr_diff_map) if pr_diff_map else 1
+
+            # Update our dynamic Executive Summary counters based on real-time state values
+            if pr_lifecycle_status == "Open":
+                open_count += 1
+                status_badge = "🟢 Open"
+            elif pr_lifecycle_status == "Merged":
+                merged_count += 1
+                status_badge = "🟣 Merged"
+            else:
+                closed_count += 1
+                status_badge = "🔴 Closed"
 
             with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
@@ -121,7 +151,7 @@ def main():
                     primary_line = "?"
                     
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -187,7 +217,7 @@ def main():
             row_entry = {
                 "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
-                "issues_files": paren_issues_files, "density": cwe_density
+                "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge
             }
             table_rows.append((is_row_human, row_entry))
             
@@ -199,22 +229,24 @@ def main():
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
-        out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
+        out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
+        # 🚀 NEW ADDITION: Executive summary breakdown metrics
+        out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
         
         if is_human_run:
-            out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        else:
-            out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            # 🚀 Human Layout: Added Status column (11 columns)
+            out.write('\n| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        else:
+            # 🚀 AI Agent Layout: Added Status column (12 columns)
+            out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # Sort rows to stay grouped cleanly by repo name and pull request links
         for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
             if is_human_run:
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
 
 if __name__ == "__main__": 
     main()
-
