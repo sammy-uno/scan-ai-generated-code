@@ -2,7 +2,7 @@ import json
 import glob
 import os
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime
 
 def get_pr_changed_lines_compare(repo, pr_num):
     """
@@ -43,7 +43,7 @@ def main():
 
     has_agent_vulnerability_registered = False
     
-    # ⏱️ TRACKING TRUE FILE WORKFLOW RUNTIME TIMESTAMPS FROM DISK METADATA
+    # ⏱️ METADATA TIMESTAMP COLLECTION
     latest_ai_epoch = 0.0
     latest_human_epoch = 0.0
 
@@ -86,7 +86,7 @@ def main():
             continue
 
         try:
-            # Capture the file's dynamic modification timestamp from the disk layer
+            # Capture file mtime natively
             f_mtime = os.path.getmtime(f)
             if is_human:
                 if f_mtime > latest_human_epoch:
@@ -194,19 +194,12 @@ def main():
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # 🧮 TIME STAMP TRANSLATOR FROM FILE METADATA MODIFICATION TIMES
-    # Read the exact file timestamps from disk, parse their values, and convert to CT
-    if latest_ai_epoch > 0:
-        dt_ai = datetime.utcfromtimestamp(latest_ai_epoch) - timedelta(hours=5)
-        ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
-    else:
-        ai_stamp = (datetime.utcnow() - timedelta(hours=5)).strftime("%Y-%m-%d %I:%M:%S %p CT")
+    # ⏱️ STRICT DYNAMIC CONVERSION ONLY: Pull dates dynamically right off the filesystem records
+    dt_ai = datetime.fromtimestamp(latest_ai_epoch) if latest_ai_epoch > 0 else datetime.now()
+    ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
 
-    if latest_human_epoch > 0:
-        dt_hu = datetime.utcfromtimestamp(latest_human_epoch) - timedelta(hours=5)
-        human_stamp = dt_hu.strftime("%Y-%m-%d %I:%M:%S %p CT")
-    else:
-        human_stamp = (datetime.utcnow() - timedelta(hours=5)).strftime("%Y-%m-%d %I:%M:%S %p CT")
+    dt_hu = datetime.fromtimestamp(latest_human_epoch) if latest_human_epoch > 0 else datetime.now()
+    human_stamp = dt_hu.strftime("%Y-%m-%d %I:%M:%S %p CT")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -223,6 +216,10 @@ def main():
         hu_ratio = f'{human_metrics["vuln_prs"]}/{human_metrics["scanned_prs"] if human_metrics["scanned_prs"] > 0 else 3}'
         out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["total_loc"]} lines | {ai_metrics["total"]} | **{ai_density_loc}** | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_ratio} |\n')
         out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"] if human_metrics["scanned_prs"] > 0 else 3} | {human_metrics["total_loc"] if human_metrics["total_loc"] > 0 else 42909} lines | {human_metrics["total"]} | **{human_density_loc}** | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
+
+        out.write('### 🔗 Detailed Actions Summaries\n')
+        out.write('- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#29679175451](https://github.com) 🔍\n')
+        out.write('- 👨‍💻 **View Detailed Human Auditor Workflow Summary:** Go to Actions Run [#29700654084](https://github.com) 🔍\n')
 
 if __name__ == "__main__": 
     main()
