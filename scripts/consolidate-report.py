@@ -51,11 +51,11 @@ def main():
                 continue
             
             # Mapping out exact naming schema fields sequentially
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            lang = parts[2]
-            ai_agent_tool = parts[3].replace('_', ' ')
-            live_loc = int(parts[4]) if parts[4].isdigit() else 100
+            repo_path = parts.replace('_SLASH_', '/')
+            pr_num = parts
+            lang = parts
+            ai_agent_tool = parts.replace('_', ' ')
+            live_loc = int(parts) if parts.isdigit() else 100
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
@@ -109,7 +109,7 @@ def main():
                     primary_line = "?"
                     
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -150,14 +150,18 @@ def main():
                 vulnerable_count += 1
             
             cwe_density = round(len(res) / live_loc, 4) if live_loc > 0 else 0.0
-            full_url = f"https://github.com{repo_path}/pull/{pr_num}"
+            
+            # 🚀 ENFORCED LINK SLAYER CONCATENATION:
+            # Isolates the domain string completely to force the missing forward slash natively!
+            base_domain = "https://github.com"
+            clean_repo_path = repo_path.strip('/')
+            full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
             
-            # 🚀 THE GATED CONSTRUCTOR: Forces exact row formatting string definitions natively
             paren_issues_files = f"{len(res)} ({committed_files_count})"
             
             row_entry = {
-                "repo": repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
+                "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density
             }
@@ -173,7 +177,6 @@ def main():
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
-        # 🚀 OUTPUT WRITER MATRIX BLOCKS
         if is_human_run:
             out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
