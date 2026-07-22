@@ -203,9 +203,6 @@ def main():
         except Exception as e: 
             print(f"Error evaluating artifact: {e}")
 
-    ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
-    human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
-
     # LIVE METADATA INJECTION: Queries active run history timestamps and IDs natively from GitHub
     ai_run_id, ai_stamp = get_live_workflow_metadata("General AI Multi-Language Scanner")
     human_run_id, human_stamp = get_live_workflow_metadata("Human CodeQL Scan Auditing")
@@ -228,19 +225,20 @@ def main():
         out.write(f'- **Human Scan Last Run:** {human_stamp}\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total Introduced Issues | **CWE Density (Issues/LOC)** | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
-        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        
+        # 🚀 CUSTOM LAYOUT ADJUSTMENTS:
+        # 1) Changed header column name to "Total PRs LOC"
+        # 2) Removed "CWE Density (Issues/LOC)" data column entirely from the layout
+        out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total Introduced Issues | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
+        out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         
         ai_ratio = f'{ai_metrics["vuln_prs"]}/{ai_metrics["scanned_prs"]}'
         hu_ratio = f'{human_metrics["vuln_prs"]}/{human_metrics["scanned_prs"]}'
         
-        out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["total_loc"]} lines | {ai_metrics["total"]} | **{ai_density_loc}** | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_ratio} |\n')
-        out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["total_loc"]} lines | {human_metrics["total"]} | **{human_density_loc}** | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
+        out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["total_loc"]} lines | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_ratio} |\n')
+        out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["total_loc"]} lines | {human_metrics["total"]} | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
 
         out.write('### 🔗 Detailed Actions Summaries\n')
-        
-        # 🚀 IRONCLAD NATIVE STRING CONCATENATION FIX: 
-        # Breaks apart the base domain completely to force the forward slash onto the runner output!
         base_domain = "https://github.com"
         
         if ai_run_id:
