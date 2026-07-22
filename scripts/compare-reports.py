@@ -2,7 +2,7 @@ import json
 import glob
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def get_pr_changed_lines_compare(repo, pr_num):
     """
@@ -27,6 +27,33 @@ def get_pr_changed_lines_compare(repo, pr_num):
         print(f"Comparison asset tracking notice: {e}")
     return changed_lines
 
+def get_live_workflow_metadata(workflow_name):
+    """
+    🛰️ LIVE GITHUB API ENGINE: Queries the repository actions system directly to
+    extract the true timestamp and execution Run ID of the last successful run.
+    """
+    run_id = ""
+    timestamp_str = "No Run Log Found"
+    try:
+        cmd = f'gh run list --workflow="{workflow_name}" --status=success --limit=1 --json databaseId,updatedAt'
+        sub_env = os.environ.copy()
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            if data and isinstance(data, list) and len(data) > 0:
+                run_entry = data[0]
+                run_id = str(run_entry.get('databaseId', ''))
+                raw_iso = run_entry.get('updatedAt', '')
+                if raw_iso:
+                    # Parse ISO-8601 formatting ("2026-07-22T08:34:01Z") and offset to Central Time (UTC - 5)
+                    clean_iso = raw_iso.replace('Z', '').split('.')[0]
+                    parsed_utc = datetime.strptime(clean_iso, "%Y-%m-%dT%H:%M:%S")
+                    central_time = parsed_utc - timedelta(hours=5)
+                    timestamp_str = central_time.strftime("%Y-%m-%d %I:%M:%S %p CT")
+    except Exception as e:
+        print(f"Metadata API tracking error for {workflow_name}: {e}")
+    return run_id, timestamp_str
+
 def main():
     search_path = os.path.join('all-results', '**', '*.sarif')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
@@ -41,10 +68,8 @@ def main():
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
-    has_agent_vulnerability_registered = False
-    
-    latest_ai_epoch = 0.0
-    latest_human_epoch = 0.0
+    seen_prs_ai = set()
+    seen_prs_human = set()
 
     for f in all_files:
         fname = os.path.basename(f)
@@ -85,14 +110,6 @@ def main():
             continue
 
         try:
-            f_mtime = os.path.getmtime(f)
-            if is_human:
-                if f_mtime > latest_human_epoch:
-                    latest_human_epoch = f_mtime
-            else:
-                if f_mtime > latest_ai_epoch:
-                    latest_ai_epoch = f_mtime
-
             pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
 
             with open(f, 'r', encoding='utf-8') as s: 
@@ -137,7 +154,7 @@ def main():
                     primary_path = "Unknown"
                     primary_line = "?"
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr
+                        loc_entry = locs_arr[0]
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
@@ -164,45 +181,36 @@ def main():
                     h += 1
                 elif level_str in ['warning', 'recommendation', 'note', 'none']: 
                     m += 1
-                    if not is_human:
-                        has_agent_vulnerability_registered = True
                 else: 
                     l += 1
 
             target = human_metrics if is_human else ai_metrics
+            target_seen = seen_prs_human if is_human else seen_prs_ai
+            pr_key = f"{repo_path}#{pr_num}"
+
+            if pr_key not in target_seen:
+                target_seen.add(pr_key)
+                target["scanned_prs"] += 1
+                target["total_loc"] += live_loc
+                if len(res) > 0:
+                    target["vuln_prs"] += 1
+
             target["total"] += len(res)
             target["high"] += h
             target["medium"] += m
             target["low"] += l
-            target["scanned_prs"] += 1
-            target["total_loc"] += live_loc
 
         except Exception as e: 
             print(f"Error evaluating artifact: {e}")
 
-    # FORCE ARCHITECTURAL OVERRIDES FOR ACCURATE STUDY DEFINITION CONTROLS
-    ai_metrics["scanned_prs"] = 3
-    ai_metrics["total_loc"] = 660
-    if has_agent_vulnerability_registered or ai_metrics["total"] > 0:
-        ai_metrics["vuln_prs"] = 1
-        if ai_metrics["total"] == 0:
-            ai_metrics["total"] = 1
-            ai_metrics["medium"] = 1
-
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # ⏱️ DYNAMIC CONVERSION FROM FILE SYSTEM METADATA CREATION RECORDS
-    dt_ai = datetime.fromtimestamp(latest_ai_epoch) if latest_ai_epoch > 0 else datetime.now()
-    ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
+    # 🚀 LIVE METADATA INJECTION: Queries active run history timestamps and IDs natively from GitHub
+    ai_run_id, ai_stamp = get_live_workflow_metadata("General AI Multi-Language Scanner")
+    human_run_id, human_stamp = get_live_workflow_metadata("Human CodeQL Scan Auditing")
 
-    dt_hu = datetime.fromtimestamp(latest_human_epoch) if latest_human_epoch > 0 else datetime.now()
-    human_stamp = dt_hu.strftime("%Y-%m-%d %I:%M:%S %p CT")
-
-    # 🚀 DYNAMIC CURRENT ACTIONS WORKFLOW LINK RESOLUTION ENGINE
-    current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'your-username/scan-ai-generated-code')
-    ai_run_id = os.environ.get('AI_SCAN_RUN_ID', os.environ.get('GITHUB_RUN_ID', ''))
-    human_run_id = os.environ.get('HUMAN_SCAN_RUN_ID', os.environ.get('GITHUB_RUN_ID', ''))
+    current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'sammy-uno/scan-ai-generated-code').strip()
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -215,10 +223,12 @@ def main():
         out.write('### ⚔️ High-Level Group Comparison\n')
         out.write('| Evaluation Group | Total PRs Scanned | Total Code Changes Sized | Total Introduced Issues | **CWE Density (Issues/LOC)** | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        
         ai_ratio = f'{ai_metrics["vuln_prs"]}/{ai_metrics["scanned_prs"]}'
-        hu_ratio = f'{human_metrics["vuln_prs"]}/{human_metrics["scanned_prs"] if human_metrics["scanned_prs"] > 0 else 3}'
+        hu_ratio = f'{human_metrics["vuln_prs"]}/{human_metrics["scanned_prs"]}'
+        
         out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["total_loc"]} lines | {ai_metrics["total"]} | **{ai_density_loc}** | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_ratio} |\n')
-        out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"] if human_metrics["scanned_prs"] > 0 else 3} | {human_metrics["total_loc"] if human_metrics["total_loc"] > 0 else 42909} lines | {human_metrics["total"]} | **{human_density_loc}** | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
+        out.write(f'| 👨‍💻 **Human-Written PR** | {human_metrics["scanned_prs"]} | {human_metrics["total_loc"]} lines | {human_metrics["total"]} | **{human_density_loc}** | {human_metrics["high"]} | {human_metrics["medium"]} | {hu_ratio} |\n\n')
 
         out.write('### 🔗 Detailed Actions Summaries\n')
         if ai_run_id:
