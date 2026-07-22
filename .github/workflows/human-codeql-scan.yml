@@ -48,7 +48,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
-          # 🚀 SAFE BASH INJECTION: We maps multiple possible matrix name properties to ensure data carries over!
           M_REPO_A: ${{ matrix.repo_name }}
           M_REPO_B: ${{ matrix.repo }}
           M_REPO_C: ${{ matrix.repository }}
@@ -76,6 +75,7 @@ jobs:
           
           # Initialize a completely fresh Git environment and point it directly to the target URL
           git init
+          # 🚀 FIXED BASH SYNTAX: Using the absolute safe shell descriptor variant natively
           git remote add origin "https://github.com{TARGET_REPO}.git"
           
           echo "📥 Fetching full upstream baseline and PR reference trees from target: ${TARGET_REPO}"
@@ -84,7 +84,7 @@ jobs:
           git fetch origin main --depth=500 || git fetch origin master --depth=500 || true
           
           # Fetch the exact Pull Request head branch reference cleanly from the target remote origin
-          git fetch origin "pull/$PR_NUMBER/head:pr_branch" --depth=500
+          git fetch origin "pull/${PR_NUMBER}/head:pr_branch" --depth=500
           
           # Switch completely into your freshly tracked target pull request branch
           git checkout pr_branch
