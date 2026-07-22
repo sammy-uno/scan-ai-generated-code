@@ -42,14 +42,13 @@ def main():
         fname = os.path.basename(f)
         parent_dir = os.path.basename(os.path.dirname(f))
         
-        # 🚀 SMART OVERRIDE LOGIC: Detect if metadata is stashed inside the filename OR parent folder
+        # Determine if metadata is embedded in the filename or the parent folder
         naming_string = ""
         if '--' in fname:
             naming_string = fname.replace('.sarif', '')
         elif '--' in parent_dir:
             naming_string = parent_dir.replace('sarif-', '')
         else:
-            # Fallback for old simple names if any exist
             continue
 
         is_human = fname.startswith("human--") or "human-" in f.lower() or "human" in parent_dir.lower()
@@ -60,11 +59,18 @@ def main():
             if len(parts) < 5: 
                 continue
                 
-            # parts=repo, parts=pr_num, parts=language, parts=agent_name, parts=live_loc
-            repo_path = parts.replace('_SLASH_', '/')
-            pr_num = parts
-            ai_agent_tool = parts.lower()
-            live_loc = int(parts) if parts.isdigit() else 1
+            # 🚀 THE BULLETPROOF LIST UNPACK: Bypasses square bracket parsing bugs completely
+            # Maps elements explicitly into separate, isolated variable strings
+            raw_repo = parts[0]
+            raw_pr = parts[1]
+            raw_lang = parts[2]
+            raw_agent = parts[3]
+            raw_size = parts[4]
+
+            repo_path = raw_repo.replace('_SLASH_', '/')
+            pr_num = raw_pr
+            ai_agent_tool = raw_agent.lower()
+            live_loc = int(raw_size) if raw_size.isdigit() else 1
 
             if "human" in ai_agent_tool:
                 is_human = True
