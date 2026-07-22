@@ -40,50 +40,22 @@ jobs:
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
-          M_REPO_A: ${{ matrix.repo_name }}
-          M_REPO_B: ${{ matrix.repo }}
-          M_REPO_C: ${{ matrix.repository }}
-          PR_NUMBER: ${{ matrix.pr_num }}
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
-          
-          # Protect tracking scripts
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
+          rm -rf ./*
           
-          # 🎯 AUTOMATED FALLBACK RESOLVER
-          DETECTED_REPO=""
-          if [ ! -z "$M_REPO_A" ]; then DETECTED_REPO="$M_REPO_A"; fi
-          if [ -z "$DETECTED_REPO" ] && [ ! -z "$M_REPO_B" ]; then DETECTED_REPO="$M_REPO_B"; fi
-          if [ -z "$DETECTED_REPO" ] && [ ! -z "$M_REPO_C" ]; then DETECTED_REPO="$M_REPO_C"; fi
+          # 🟢 Your original, error-free checkout logic
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          if [ -z "$DETECTED_REPO" ]; then
-            echo "❌ [CRITICAL ERROR] Unable to extract the target repository name from matrix payload variables!"
-            exit 1
-          fi
-          
-          TARGET_DIR="target_repo_workspace"
-          rm -rf "$TARGET_DIR"
-          
-          # 🚀 FIXED BASH SYNTAX: Using native $ variable expansion natively
-          git clone --depth=500 "https://github.com" "$TARGET_DIR"
-          
-          cd "$TARGET_DIR"
-          git fetch origin "pull/$PR_NUMBER/head:pr_branch" --depth=500
-          git checkout pr_branch
-          
-          # Sync scripts into the newly isolated source directory path
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
-          
-          # Move target files up to the active analysis root workspace
-          cp -r ./* ../ 2>/dev/null || true
-          cd ..
 
       - name: Initialize CodeQL Engine
         uses: github/codeql-action/init@v3
