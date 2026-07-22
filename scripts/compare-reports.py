@@ -228,7 +228,7 @@ def main():
         out.write(f'- **Human Scan Last Run:** {human_stamp}\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        out.write('| Evaluation Group | Total PRs Scanned | Total Code Changes Sized | Total Introduced Issues | **CWE Density (Issues/LOC)** | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
+        out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total Introduced Issues | **CWE Density (Issues/LOC)** | 🔴 High | 🟡 Medium | Vulnerable PR Ratio |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         
         ai_ratio = f'{ai_metrics["vuln_prs"]}/{ai_metrics["scanned_prs"]}'
