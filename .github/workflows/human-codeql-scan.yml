@@ -48,10 +48,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
-          M_REPO_A: ${{ matrix.repo_name }}
-          M_REPO_B: ${{ matrix.repo }}
-          M_REPO_C: ${{ matrix.repository }}
-          PR_NUMBER: ${{ matrix.pr_num }}
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
@@ -62,31 +58,17 @@ jobs:
           # Forcefully clear everything to build a completely independent repository context
           rm -rf ./* ./.git
           
-          # 🎯 AUTOMATED FALLBACK RESOLVER (Escaped for GitHub YAML parser engine)
-          TARGET_REPO=""
-          if [ ! -z "$$M_REPO_A" ]; then TARGET_REPO="$$M_REPO_A"; fi
-          if [ -z "$$TARGET_REPO" ] && [ ! -z "$$M_REPO_B" ]; then TARGET_REPO="$$M_REPO_B"; fi
-          if [ -z "$$TARGET_REPO" ] && [ ! -z "$$M_REPO_C" ]; then TARGET_REPO="$$M_REPO_C"; fi
+          echo "📥 Fetching full upstream baseline and PR reference trees from target: ${{ matrix.repo_name }}"
           
-          if [ -z "$$TARGET_REPO" ]; then
-            echo "❌ [CRITICAL ERROR] Unable to resolve the target repository string name from matrix variables!"
-            exit 1
-          fi
-          
-          echo "📥 Fetching full upstream baseline and PR reference trees from target: $$TARGET_REPO"
-          
-          # 🚀 THE ESCAPED STRING FIX: Uses double dollar signs to force literal string delivery to Bash
-          COMPLETE_URL="https://github.com{TARGET_REPO}.git"
-          
-          # Initialize a completely fresh Git environment and attach the verified URL string
+          # 🚀 THE NO-VARIABLE STRATEGY: Inject the matrix tokens directly into the native command strings
           git init
-          git remote add origin "$$COMPLETE_URL"
+          git remote add origin "https://github.com{{ matrix.repo_name }}.git"
           
           # Fetch the target repository's main trunk using deep commit historical logs
           git fetch origin main --depth=500 || git fetch origin master --depth=500 || true
           
           # Fetch the exact Pull Request head branch reference cleanly from the target remote origin
-          git fetch origin "pull/$${PR_NUMBER}/head:pr_branch" --depth=500
+          git fetch origin "pull/${{ matrix.pr_num }}/head:pr_branch" --depth=500
           
           # Switch completely into your freshly tracked target pull request branch
           git checkout pr_branch
