@@ -8,29 +8,24 @@ def get_pr_changed_files_list():
     🎯 PRECISE BRANCH FORK PARSER: Uses the native Git triple-dot syntax 
     to isolate 100% of the files modified across all commits in this PR.
     """
-    changed_filenames = set()  # Stores base names like 'program.cs', 'WinHttpHandler.xml'
+    changed_filenames = set()
     try:
         print("\n====================================================")
         print("📥 LOCAL WORKSPACE TRACE: CAPTURING COMPLETE PR FILENAMES")
         print("====================================================")
         
-        # 🚀 STRATEGY FIX: Primary check uses the absolute branch ancestor fork point.
-        # This dynamically captures all files across all PR commits automatically.
         cmd = "git diff --name-only origin/main...HEAD"
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
         
-        # Fallback 1: If main is named 'master' or origin isn't fetched, try local branch tracking
         if res.returncode != 0 or not res.stdout.strip():
             cmd = "git diff --name-only origin/master...HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
             
-        # Fallback 2: Query GitHub Action environment target ref definitions directly
         if res.returncode != 0 or not res.stdout.strip():
             base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
             cmd = f"git diff --name-only origin/{base_ref}...HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
             
-        # Fallback 3: Ultimate fallback to the single last commit if running a shallow checkout
         if res.returncode != 0 or not res.stdout.strip():
             cmd = "git diff --name-only HEAD~1 HEAD"
             res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
@@ -39,7 +34,6 @@ def get_pr_changed_files_list():
             print(f"⚠️ Local Workspace Git Query Warning code: {res.returncode}")
             return changed_filenames
             
-        # Unpack and deduplicate every filename changed across the PR branch lifecycle
         for line in res.stdout.split('\n'):
             clean_line = line.strip()
             if clean_line:
@@ -70,15 +64,19 @@ def main():
 
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
-    pr_loc = int(os.environ.get('PR_LOC', '1'))
+    
+    # 🚀 FIX: Bulletproof integer fallback assignment prevents base-10 exceptions
+    raw_loc = os.environ.get('PR_LOC', '').strip()
+    if not raw_loc or not raw_loc.isdigit():
+        pr_loc = 1
+    else:
+        pr_loc = int(raw_loc)
 
     print(f"📋 [DEBUG ENVIRONMENT] Repo: {repo} | PR Num: {pr_num} | Declared Size: {pr_loc} LOC")
 
-    # Fetch the exact file basenames modified across all commits in the PR
     pr_changed_files = get_pr_changed_files_list()
     print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_files)}")
         
-    # --- BULLETPROOF CWE EXTRACTOR ---
     cwe_map = {}
     try:
         all_rules = []
@@ -106,7 +104,6 @@ def main():
     except Exception as e:
         print(f"Metadata mapping warning: {e}")
 
-    # --- AGGREGATE RESULTS & FILTER BY PR FILENAMES ---
     consolidated_results = []
     seen_findings = set()
 
@@ -130,14 +127,13 @@ def main():
             primary_line = "?"
             
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr
+                loc_entry = locs_arr[0]
                 if isinstance(loc_entry, dict):
                     locs = loc_entry.get('physicalLocation', {})
                     if isinstance(locs, dict):
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🚀 BASE NAME PASS FILTER: Check if the base file name matches any file touched in the PR
             if pr_changed_files:
                 alert_base_name = os.path.basename(primary_path)
                 if alert_base_name.lower() not in [b.lower() for b in pr_changed_files]:
@@ -156,7 +152,6 @@ def main():
     print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
     print("====================================================\n")
 
-    # Overwrite results.sarif with only the filtered findings
     if consolidated_results:
         for run in runs:
             if isinstance(run, dict) and 'results' in run:
@@ -198,12 +193,11 @@ def main():
             
             raw_msg = res.get('message', {}).get('text', 'No description')
             if isinstance(raw_msg, str):
-                msg = raw_msg.split('\n') if '\n' in raw_msg else raw_msg
+                msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
             else:
                 msg = "No description details provided."
                 
             msg = msg.replace('|', '\\|')
-            
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
