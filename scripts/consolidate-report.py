@@ -5,10 +5,12 @@ import subprocess
 
 def get_pr_changed_lines_live(repo, pr_num):
     """
-    🎯 AGGREGATOR FILTER: Queries the stable files endpoint directly during 
-    consolidation and extracts the modified file paths with credential forwarding.
+    🎯 PR LIVE FILE QUERY: Pulls down modified file boundaries using 
+    the native GitHub CLI package safely with error fallbacks.
     """
     changed_lines = {}
+    if not repo or not pr_num:
+        return changed_lines
     try:
         cmd = f"gh pr view {pr_num} --repo {repo} --json files"
         sub_env = os.environ.copy()
@@ -21,35 +23,21 @@ def get_pr_changed_lines_live(repo, pr_num):
                 if path:
                     changed_lines[path] = set()
     except Exception as e:
-        print(f"Aggregator patch tracking notice: {e}")
+        print(f"File lookup fallback notice: {e}")
     return changed_lines
 
 def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
-    try:
-        matrix_data = json.loads(matrix_str)
-        tot = len(matrix_data.get('include', []))
-    except Exception: 
-        tot = 0
-        
-    all_files = sorted(glob.glob('all-results', recursive=True)) if os.path.exists('all-results') else []
-    ok_m = len(glob.glob('all-results', recursive=True)) if os.path.exists('all-results') else 0
-    ko_m = len(glob.glob('all-results', recursive=True)) if os.path.exists('all-results') else 0
+    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     
-    if tot == 0: 
-        tot = ok_m + ko_m
-        
     table_rows = []
     total_scanned = 0
     vulnerable_count = 0
     total_loc_scanned = 0
-    total_issues_found = 0
     
-    is_human_run = (scan_type == 'human') or any("Human_Auditor" in os.environ.get('GITHUB_WORKFLOW', '') or "human--" in os.path.basename(f) for f in all_files)
-    # Locate all unpacked .sarif files in your workspace results directory
-    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
     for f in all_sarifs:
         fname = os.path.basename(f)
@@ -62,32 +50,30 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            # 🚀 SCHEMA ALIGNMENT UNPACKING:
-            # parts[0]=repo, parts[1]=pr_num, parts[2]=language, parts[3]=agent_name, parts[4]=live_loc
+            # Mapping out exact naming schema fields sequentially
             repo_path = parts[0].replace('_SLASH_', '/')
             pr_num = parts[1]
             lang = parts[2]
             ai_agent_tool = parts[3].replace('_', ' ')
-            live_loc = int(parts[4]) if parts[4].isdigit() else 1
+            live_loc = int(parts[4]) if parts[4].isdigit() else 100
             
-            # 🚀 FIXED THE DEFINITION MISMATCH: 
-            # We explicitly track and assign the 'is_human' boolean right here inside the loop!
-            is_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
+            is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
-            # Fetch the precise files map for this specific row entry
+            # Extract live change files count maps
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
+            committed_files_count = len(pr_diff_map) if pr_diff_map else 1
 
-            with open(f, encoding='utf-8') as s: 
+            with open(f, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
-            if not isinstance(runs, list): 
+            if not runs or not isinstance(runs, list): 
                 continue
                 
             res = []
             seen_findings = set()
             local_cwe_map = {}
             
-            # Pre-extract rules metadata mapping to track CWE Discovered array strings
+            # Build rules description index mapping for tags extraction loops
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -130,7 +116,6 @@ def main():
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                                 primary_line = locs.get('region', {}).get('startLine', '?')
                                 
-                    # CASE-INSENSITIVE FILENAME GATEKEEPER
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
                         changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
@@ -142,7 +127,7 @@ def main():
                         seen_findings.add(fingerprint)
                         res.append(result)
             
-            # SPLIT EMITTED ALERTS INTO EXPLICIT H, M, L DISCRETE COUNTERS
+            # Severity Counters
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
@@ -150,12 +135,9 @@ def main():
                 lvl = str(r.get('level', 'warning')).lower()
                 cwes_for_rule = local_cwe_map.get(r_id, set())
                 
-                if lvl == 'error': 
-                    h += 1
-                elif lvl in ['warning', 'recommendation', 'note', 'none']: 
-                    m += 1
-                else: 
-                    l += 1
+                if lvl == 'error': h += 1
+                elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
+                else: l += 1
                 
                 for cwe_id in cwes_for_rule:
                     pr_cwes.add(cwe_id)
@@ -164,21 +146,22 @@ def main():
             
             total_scanned += 1
             total_loc_scanned += live_loc
-            total_issues_found += len(res)
             if len(res) > 0: 
                 vulnerable_count += 1
             
             cwe_density = round(len(res) / live_loc, 4) if live_loc > 0 else 0.0
-            full_url = '/'.join(['https://github.com', repo_path, 'pull', pr_num])
+            full_url = f"https://github.com{repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
             
-            # Stash calculated row contents into row variables
-            row_data = {
+            # 🚀 THE GATED CONSTRUCTOR: Forces exact row formatting string definitions natively
+            paren_issues_files = f"{len(res)} ({committed_files_count})"
+            
+            row_entry = {
                 "repo": repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
-                "total_issues": len(res), "density": cwe_density
+                "issues_files": paren_issues_files, "density": cwe_density
             }
-            table_rows.append((is_human, row_data))
+            table_rows.append((is_row_human, row_entry))
             
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
@@ -190,18 +173,15 @@ def main():
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
         
+        # 🚀 OUTPUT WRITER MATRIX BLOCKS
         if is_human_run:
-            # Human Track Layout: 10 Columns
             out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         else:
-            # AI Agent Track Layout: 11 Columns
             out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # 🚀 FIXED THE LOOKUP ERRORS:
-        # We cleanly separate the list components before printing rows to avoid sorting lookups
-        for row_is_human, r in table_rows: 
+        for is_hum, r in table_rows: 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
@@ -209,5 +189,3 @@ def main():
 
 if __name__ == "__main__": 
     main()
-
-
