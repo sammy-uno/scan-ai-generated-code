@@ -39,7 +39,6 @@ jobs:
       max-parallel: 10
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
-      # 🚀 FIX: Clones your framework natively to preserve the correct working directory focus
       - uses: actions/checkout@v5
 
       - name: Prepare Workspace and Checkout PR
@@ -47,6 +46,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
+          # 🚀 THE FIX: We map the matrix variable to a native environment variable block
+          # This protects the string layout from being mangled or having slashes stripped by the YAML parser!
+          TARGET_REPO: ${{ matrix.repo_name }}
+          PR_NUMBER: ${{ matrix.pr_num }}
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
@@ -54,14 +57,15 @@ jobs:
           # Protect tracking scripts
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           
-          # 🚀 FIX: Use native Git branch clone boundaries to target the exact repo 
-          # without creating raw empty workspaces that cause 30-minute timeouts!
+          # Native Git branch clone boundaries targeting the shell variable
           TARGET_DIR="target_repo_workspace"
           rm -rf "$TARGET_DIR"
-          git clone --depth=500 "https://github.com{{ matrix.repo_name }}.git" "$TARGET_DIR"
+          
+          # 🎯 SAFE SHELL EXPANSION: Uses the clean $TARGET_REPO shell syntax natively
+          git clone --depth=500 "https://github.com" "$TARGET_DIR"
           
           cd "$TARGET_DIR"
-          git fetch origin "pull/${{ matrix.pr_num }}/head:pr_branch" --depth=500
+          git fetch origin "pull/$PR_NUMBER/head:pr_branch" --depth=500
           git checkout pr_branch
           
           # Sync scripts into the newly isolated source directory path
@@ -85,7 +89,6 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.primary_language }}"
-          # 🚀 FIX: Disables the automatic remote server upload to clear the retry database failure!
           upload: false
           output: sarif-results
 
