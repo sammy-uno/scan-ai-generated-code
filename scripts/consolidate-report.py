@@ -68,7 +68,7 @@ def main():
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in success_markers)
 
     # 🚀 ACCURATE SUMMARY EXTRACTION LAYER: 
-    # Loops directly through success markers to match your exact PR scan step summaries!
+    # 🚀 RE-ENGINEERED ARTIFACT FINDER: Loops directly through success markers!
     success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
 
     for f in success_markers:
@@ -103,11 +103,29 @@ def main():
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
             committed_files_count = len(pr_diff_map) if pr_diff_map else 1
 
-            # 🚀 TARGET THE PRE-FILTERED RESULTS FILE EXCLUSIVELY:
-            # This completely avoids loading raw, cluttered background tool databases.
-            sarif_target_path = os.path.join(parent_dir, "results.sarif")
-            if not os.path.exists(sarif_target_path):
-                continue
+            # 🚀 RESILIENT ASSET FINDER FIX:
+            # Locates the line-filtered pull request results data file anywhere inside the workspace
+            # container directory to bypass GitHub's artifact flattening behavior completely!
+            sarif_target_path = ""
+            possible_paths = [
+                os.path.join(parent_dir, "results.sarif"),
+                os.path.join(parent_dir, f"{name_root}.sarif"),
+                os.path.join("all-results", parent_dir, "results.sarif"),
+                f.replace('.success', '.sarif')
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    sarif_target_path = path
+                    break
+                    
+            if not sarif_target_path or not os.path.exists(sarif_target_path):
+                # Global scan fallback loop to ensure the file is never missed
+                fallback_matches = glob.glob(f"all-results/**/{name_root}.sarif", recursive=True)
+                if fallback_matches:
+                    sarif_target_path = fallback_matches[0]
+                else:
+                    continue
 
             with open(sarif_target_path, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
@@ -148,7 +166,6 @@ def main():
             h, m, l = 0, 0, 0
             pr_cwes = set()
             
-            # 🚀 TRIPLE SHIELD RE-ENFORCEMENT:
             # If your pre-filtered results file holds 0 findings, force clean states instantly!
             if len(res) == 0:
                 h, m, l = 0, 0, 0
@@ -194,7 +211,7 @@ def main():
                 "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge
             }
-            table_rows.append((is_row_human, row_entry))
+            table_rows.append(row_entry)
             
         except Exception as e: 
             print(f'Error processing success metadata {fname}: {e}')
@@ -214,10 +231,9 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # Clean dictionary sorting flat row configuration (Bypasses the tuple index TypeError)
-        sorted_rows = sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"]))
+        sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
 
-        for is_hum, r in sorted_rows: 
+        for r in sorted_rows: 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
