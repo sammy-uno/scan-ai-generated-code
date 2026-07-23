@@ -215,5 +215,5 @@ def main():
             else:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | {r["cwes"]} | {r["h"]} | {r["m"]} | {r["l"]} | {r["issues_files"]} | {r["density"]} |\n')
 
-if name == "main":
+if __name__ == "__main__": 
     main()
