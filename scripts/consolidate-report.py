@@ -3,6 +3,29 @@ import glob
 import os
 import subprocess
 
+def get_pr_changed_lines_live(repo, pr_num):
+    """
+    🎯 PR LIVE FILE QUERY: Queries the GitHub CLI safely during consolidation
+    to isolate true file modifications for line-level filtering context.
+    """
+    changed_lines = {}
+    if not repo or not pr_num:
+        return changed_lines
+    try:
+        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        sub_env = os.environ.copy()
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            files = data.get('files', [])
+            for f in files:
+                path = f.get('path', '').strip()
+                if path:
+                    changed_lines[path] = set()
+    except Exception as e:
+        print(f"File lookup fallback notice: {e}")
+    return changed_lines
+
 def get_live_pr_status(repo, pr_num):
     """
     🎯 LIVE PR STATUS ENGINE: Queries the GitHub CLI live loop directly to resolve
@@ -40,13 +63,30 @@ def main():
     merged_count = 0
     closed_count = 0
     
-    # Locate all unpacked success file markers in your workspace results directory
-    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+    # Locate all unpacked .sarif files in your workspace results directory to determine run track styles
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
-    # Locate all unpacked .success file markers in your workspace results directory
-    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+    # 🚀 PATH-RESILIENT SUCCESS FINDER:
+    # Searches both flat unzipped root structures and multi-nested directory patterns!
+    success_markers = []
+    if os.path.exists('all-results'):
+        # Gather flat files inside the directory
+        success_markers.extend(glob.glob('all-results/*.success'))
+        # Gather nested files down the directory tree
+        success_markers.extend(glob.glob('all-results/**/*.success', recursive=True))
+        # Unique and sort the files pool cleanly
+        success_markers = sorted(list(set(success_markers)))
+
+    # 🔬 AUTOMATED DIAGNOSTIC LOG TRACER:
+    # Prints exactly what the script sees on disk straight into your step run console log tracker.
+    print("\n====================================================")
+    print("📁 CONSOLIDATION DIAGNOSTIC TRACE: SCANNING DISK ASSETS")
+    print("====================================================")
+    print(f"Total Success Markers Discovered on Disk: {len(success_markers)}")
+    for marker in success_markers:
+        print(f"📦 [FOUND ASSET] Active marker: {marker}")
+    print("====================================================\n")
 
     for f in success_markers:
         fname = os.path.basename(f)
@@ -85,7 +125,7 @@ def main():
             cwe_display = "None"
             total_issues = 0
 
-            # 🚀 ENHANCED INTEGRITY COMBINATION ENGINE
+            # Enhanced Summary JSON context verification loop
             summary_json_path = os.path.join(parent_dir, "summary.json")
             metrics_json_path = os.path.join(parent_dir, "parsed-metrics.json")
             target_json_path = summary_json_path if os.path.exists(summary_json_path) else (metrics_json_path if os.path.exists(metrics_json_path) else "")
@@ -107,12 +147,16 @@ def main():
                     else:
                         cwe_display = str(cwes_list)
                     parsed_from_summary = True
-
-            # 🚀 THE STRICT INTEGRITY FALLBACK SHIELD:
-            # If the JSON summary was not bundled, read the line-filtered results.sarif file directly.
+                    
+            # 🚀 FLUID ARTIFACT FINDER HOOK:
+            # If the json summary was not packed, read the line-filtered results.sarif file directly.
             if not parsed_from_summary:
                 sarif_target_path = os.path.join(parent_dir, "results.sarif")
                 if not os.path.exists(sarif_target_path):
+                    # Flat location query check style mapping
+                    sarif_target_path = os.path.join(parent_dir, f"{name_root}.sarif")
+                if not os.path.exists(sarif_target_path):
+                    # Global recursive lookup matrix fallback safety layer
                     fallback_matches = glob.glob(f"all-results/**/{name_root}.sarif", recursive=True)
                     if fallback_matches:
                         sarif_target_path = fallback_matches[0]
@@ -128,7 +172,7 @@ def main():
                         
                         total_issues = len(results)
                         
-                        # 🛡️ STRICT EXCLUSION: If the results file contains 0 findings, drop out instantly!
+                        # Shield validation isolation block triggers on clean alerts count conditions
                         if total_issues == 0:
                             h, m, l = 0, 0, 0
                             cwe_display = "None"
@@ -156,7 +200,7 @@ def main():
                                 for cwe_id in local_cwe_map.get(r_id, set()):
                                     pr_cwes.add(cwe_id)
                             
-                            # Generic text fallback string check for abstract string rule tags (like js/incomplete-sanitization)
+                            # Text fallback evaluation handles text letters tags strings
                             if not pr_cwes and ("incomplete-sanitization" in str(results).lower() or "incomplete-url" in str(results).lower()):
                                 pr_cwes.add("CWE-754")
                                 if m == 0: m = 1
@@ -219,5 +263,3 @@ def main():
 
 if __name__ == "__main__": 
     main()
-
-
