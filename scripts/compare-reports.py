@@ -191,11 +191,11 @@ def main():
         except Exception as e: 
             print(f"Error evaluating comparison artifact: {e}")
 
-    # 🚀 100% PROGRAMMATIC METRIC GENERATION (All hardcoded overrides removed)
+    # Calculate density metrics programmatically
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # Convert epochs natively to dynamic Central Time fields
+    # Convert filesystem epochs natively to dynamic Central Time fields
     dt_ai = datetime.fromtimestamp(latest_ai_epoch) if latest_ai_epoch > 0 else datetime.now()
     ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
 
@@ -204,8 +204,39 @@ def main():
 
     current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'sammy-uno/scan-ai-generated-code').strip()
     clean_repo = current_repo_context.strip('/')
-    ai_run_id = os.environ.get('AI_SCAN_RUN_ID', os.environ.get('GITHUB_RUN_ID', ''))
-    human_run_id = os.environ.get('HUMAN_SCAN_RUN_ID', os.environ.get('GITHUB_RUN_ID', ''))
+    
+    # 🚀 DYNAMIC LIVE WORKFLOW REDIRECT ENGINE (Uses GitHub CLI API Queries)
+    ai_run_id = ""
+    human_run_id = ""
+    sub_env = os.environ.copy()
+
+    # Query the exact last successful Run ID for the AI Scanner Workflow file natively
+    try:
+        cmd_ai = 'gh run list --workflow="General AI Multi-Language Scanner" --status=success --limit=1 --json databaseId'
+        res_ai = subprocess.run(cmd_ai, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        if res_ai.returncode == 0:
+            data_ai = json.loads(res_ai.stdout)
+            if data_ai and isinstance(data_ai, list) and len(data_ai) > 0:
+                ai_run_id = str(data_ai[0].get('databaseId', ''))
+    except Exception:
+        pass
+
+    # Query the exact last successful Run ID for the Human Scanner Workflow file natively
+    try:
+        cmd_hu = 'gh run list --workflow="Human CodeQL Scan Auditing" --status=success --limit=1 --json databaseId'
+        res_hu = subprocess.run(cmd_hu, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        if res_hu.returncode == 0:
+            data_hu = json.loads(res_hu.stdout)
+            if data_hu and isinstance(data_hu, list) and len(data_hu) > 0:
+                human_run_id = str(data_hu[0].get('databaseId', ''))
+    except Exception:
+        pass
+
+    # Dynamic fallback to current runner context only if API queries return completely empty strings
+    if not ai_run_id:
+        ai_run_id = os.environ.get('GITHUB_RUN_ID', '')
+    if not human_run_id:
+        human_run_id = os.environ.get('GITHUB_RUN_ID', '')
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -225,6 +256,7 @@ def main():
         out.write('### 🔗 Detailed Actions Summaries\n')
         base_domain = "https://github.com"
         
+        # 🚀 REDIRECT MATRIX HOOKS: Links will point to their separate workflow runs automatically
         if ai_run_id:
             full_ai_url = f"{base_domain}/{clean_repo}/actions/runs/{ai_run_id}"
             out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#{ai_run_id}]({full_ai_url}) 🔍\n')
@@ -239,4 +271,5 @@ def main():
 
 if __name__ == "__main__": 
     main()
+
 
