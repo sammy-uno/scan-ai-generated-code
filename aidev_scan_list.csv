@@ -1,3 +1,16 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
+dropseed/plain,42,Fix sanitization checks in input loop (31 LOC),python,OpenAI_Codex,142
+milvus-io/pymilvus,2911,Optimize dynamic indexing allocations (396 LOC),python,Claude_Code,4210
+promptfoo/promptfoo,4516,Enhance validation sandbox handlers (233 LOC),javascript,OpenAI_Codex,8450
+facebook/react,27432,Refactor secondary component updates (155 LOC),javascript,OpenAI_Codex,224100
+vuejs/core,8942,Patch internal reactive map bounds (124 LOC),typescript,Claude_Code,45200
+pallets/flask,2941,Update routing request context (45 LOC),python,OpenAI_Codex,66800
+encode/django-rest-framework,8123,Clean pagination validation checks (198 LOC),python,Claude_Code,28100
+boto/boto3,4123,Enforce secure token generation bounds (210 LOC),python,OpenAI_Codex,8400
 saltstack/salt,64123,Sanitize execution module payload arrays (730 LOC),python,Claude_Code,13900
-
+docker/cli,4123,Update backend credential helper buffers (340 LOC),go,OpenAI_Codex,24300
+hashicorp/vault,21432,Fix credential storage parsing logic (420 LOC),go,Claude_Code,29100
+prometheus/prometheus,13412,Secure scraped target boundary filters (280 LOC),go,OpenAI_Codex,54100
+spring-projects/spring-framework,31234,Patch data binder extraction arrays (670 LOC),java,Claude_Code,56300
+apache/kafka,14321,Fix metadata replication processing loops (890 LOC),java,OpenAI_Codex,27400
+git/git,1234,Clean path conversion buffer sizes (185 LOC),c,OpenAI_Codex,48900
