@@ -213,7 +213,7 @@ def main():
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | {r["cwes"]} | {r["h"]} | {r["m"]} | {r["l"]} | {r["issues_files"]} | {r["density"]} |\n')
 
-if __name__ == "__main__": 
+if name == "main":
     main()
