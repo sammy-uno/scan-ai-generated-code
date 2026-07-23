@@ -45,6 +45,9 @@ def main():
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
+    # Locate all unpacked .success file markers in your workspace results directory
+    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
@@ -73,20 +76,24 @@ def main():
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
+            # Extract live change files count maps
+            pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
+            committed_files_count = len(pr_diff_map) if pr_diff_map else 1
+
             # Initialize metrics variables standard baselines
             h, m, l = 0, 0, 0
             cwe_display = "None"
             total_issues = 0
-            committed_files_count = 1
 
-            # 🚀 PURE EXCLUSIVE SUMMARY EXTRACTION ENGINE (All fallback parsing deleted)
+            # 🚀 ENHANCED INTEGRITY COMBINATION ENGINE
             summary_json_path = os.path.join(parent_dir, "summary.json")
             metrics_json_path = os.path.join(parent_dir, "parsed-metrics.json")
+            target_json_path = summary_json_path if os.path.exists(summary_json_path) else (metrics_json_path if os.path.exists(metrics_json_path) else "")
             
-            target_path = summary_json_path if os.path.exists(summary_json_path) else (metrics_json_path if os.path.exists(metrics_json_path) else "")
+            parsed_from_summary = False
             
-            if target_path and os.path.exists(target_path):
-                with open(target_path, 'r', encoding='utf-8') as sm_f:
+            if target_json_path and os.path.exists(target_json_path):
+                with open(target_json_path, 'r', encoding='utf-8') as sm_f:
                     summary_data = json.load(sm_f)
                     h = int(summary_data.get('high', summary_data.get('H', 0)))
                     m = int(summary_data.get('medium', summary_data.get('M', 0)))
@@ -99,11 +106,62 @@ def main():
                         cwe_display = ', '.join(sorted(cwes_list)) if cwes_list else "None"
                     else:
                         cwe_display = str(cwes_list)
-            else:
-                # If no summary file exists, force clean defaults automatically
-                h, m, l = 0, 0, 0
-                cwe_display = "None"
-                total_issues = 0
+                    parsed_from_summary = True
+
+            # 🚀 THE STRICT INTEGRITY FALLBACK SHIELD:
+            # If the JSON summary was not bundled, read the line-filtered results.sarif file directly.
+            if not parsed_from_summary:
+                sarif_target_path = os.path.join(parent_dir, "results.sarif")
+                if not os.path.exists(sarif_target_path):
+                    fallback_matches = glob.glob(f"all-results/**/{name_root}.sarif", recursive=True)
+                    if fallback_matches:
+                        sarif_target_path = fallback_matches[0]
+
+                if sarif_target_path and os.path.exists(sarif_target_path):
+                    with open(sarif_target_path, 'r', encoding='utf-8') as s_f:
+                        data = json.load(s_f)
+                    runs = data.get('runs', [])
+                    for run in runs:
+                        if not isinstance(run, dict): continue
+                        results = run.get('results', [])
+                        if not isinstance(results, list): continue
+                        
+                        total_issues = len(results)
+                        
+                        # 🛡️ STRICT EXCLUSION: If the results file contains 0 findings, drop out instantly!
+                        if total_issues == 0:
+                            h, m, l = 0, 0, 0
+                            cwe_display = "None"
+                        else:
+                            local_cwe_map = {}
+                            driver = run.get('tool', {}).get('driver', {})
+                            for rule in driver.get('rules', []):
+                                if isinstance(rule, dict) and 'id' in rule:
+                                    tags = rule.get('properties', {}).get('tags', [])
+                                    for t in tags:
+                                        if isinstance(t, str) and 'cwe-' in t.lower():
+                                            c_num = t.lower().split('cwe-')[-1].zfill(3)
+                                            if rule['id'] not in local_cwe_map:
+                                                local_cwe_map[rule['id']] = set()
+                                            local_cwe_map[rule['id']].add(f'CWE-{c_num}'.upper())
+                            
+                            pr_cwes = set()
+                            for r in results:
+                                r_id = r.get('ruleId', '')
+                                lvl = str(r.get('level', 'warning')).lower()
+                                if lvl == 'error': h += 1
+                                elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
+                                else: l += 1
+                                
+                                for cwe_id in local_cwe_map.get(r_id, set()):
+                                    pr_cwes.add(cwe_id)
+                            
+                            # Generic text fallback string check for abstract string rule tags (like js/incomplete-sanitization)
+                            if not pr_cwes and ("incomplete-sanitization" in str(results).lower() or "incomplete-url" in str(results).lower()):
+                                pr_cwes.add("CWE-754")
+                                if m == 0: m = 1
+                                
+                            cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
 
             total_scanned += 1
             total_loc_scanned += live_loc
@@ -161,4 +219,5 @@ def main():
 
 if __name__ == "__main__": 
     main()
+
 
