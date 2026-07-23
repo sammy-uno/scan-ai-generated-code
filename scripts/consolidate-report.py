@@ -5,8 +5,8 @@ import subprocess
 
 def get_pr_changed_lines_live(repo, pr_num):
     """
-    🎯 PR LIVE FILE QUERY: Pulls down modified file boundaries using 
-    the native GitHub CLI package safely with error fallbacks.
+    🎯 PR LIVE FILE QUERY: Queries the GitHub CLI safely during consolidation
+    to isolate true file modifications for line-level filtering context.
     """
     changed_lines = {}
     if not repo or not pr_num:
@@ -28,8 +28,8 @@ def get_pr_changed_lines_live(repo, pr_num):
 
 def get_live_pr_status(repo, pr_num):
     """
-    🎯 LIVE GENERIC LIFECYCLE QUERY: Queries the GitHub CLI API directly to pull 
-    the absolute real-time state of the pull request, handling merged states correctly.
+    🎯 LIVE PR STATUS ENGINE: Queries the GitHub CLI live loop directly to resolve
+    open, closed, or merged parameters natively without static lookups.
     """
     if not repo or not pr_num:
         return "🟣 Merged"
@@ -54,20 +54,17 @@ def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    
     table_rows = []
     total_scanned = 0
     vulnerable_count = 0
     total_loc_scanned = 0
     
-    # Live Lifecycle Breakdown Counters
     open_count = 0
     merged_count = 0
     closed_count = 0
     
+    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_files)
-    
     # Locate all unpacked .sarif files in your workspace results directory
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
 
@@ -109,14 +106,12 @@ def main():
             runs = data.get('runs', [])
             if not runs or not isinstance(runs, list): 
                 continue
-
-            # 🚀 THE MEMORY Bug FIX: Completely flushes and clears the lookup indexes
-            # at the absolute beginning of every file pass to prevent cross-contamination!
+                
             local_cwe_map = {}
             res = []
             seen_findings = set()
             
-            # Build rules description index mapping for this file's tags extraction ONLY
+            # Build rules description index mapping for tags extraction loops
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -168,8 +163,6 @@ def main():
                             matched = True
                         elif alert_base in changed_bases:
                             matched = True
-                        elif "promptfoo" in repo_path.lower() and "evaluation" in alert_base:
-                            matched = True
                             
                         if not matched:
                             continue
@@ -182,24 +175,27 @@ def main():
             # Severity Counters
             h, m, l = 0, 0, 0
             pr_cwes = set()
-            for r in res:
-                r_id = r.get('ruleId', '')
-                lvl = str(r.get('level', 'warning')).lower()
-                cwes_for_rule = local_cwe_map.get(r_id, set())
-                
-                if lvl == 'error': h += 1
-                elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
-                else: l += 1
-                
-                for cwe_id in cwes_for_rule:
-                    pr_cwes.add(cwe_id)
             
-            if "promptfoo" in repo_path.lower() and not is_row_human and len(res) == 0:
-                res.append({"ruleId": "js/incomplete-sanitization"})
-                m = 1
-                pr_cwes.add("CWE-754")
-            
-            cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
+            # 🚀 PURE GENERIC CALCULATION ENFORCEMENT:
+            # If line-level filtering has returned an empty finding array, we zero-out 
+            # all output strings, blocking stale global definitions or residual leaks completely.
+            if len(res) == 0:
+                h, m, l = 0, 0, 0
+                cwe_display = "None"
+            else:
+                for r in res:
+                    r_id = r.get('ruleId', '')
+                    lvl = str(r.get('level', 'warning')).lower()
+                    cwes_for_rule = local_cwe_map.get(r_id, set())
+                    
+                    if lvl == 'error': h += 1
+                    elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
+                    else: l += 1
+                    
+                    for cwe_id in cwes_for_rule:
+                        pr_cwes.add(cwe_id)
+                        
+                cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
             total_scanned += 1
             total_loc_scanned += live_loc
@@ -215,20 +211,9 @@ def main():
             
             paren_issues_files = f"{len(res)} ({committed_files_count})"
             
-            # GENERIC LIVE STATUS LOOKUP: Resolves the pull request state string dynamically
-            status_badge = "🟣 Merged"
-            try:
-                check_cmd = f"gh pr view {pr_num} --repo {repo_path} --json state"
-                res_status = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, timeout=15)
-                if res_status.returncode == 0:
-                    status_data = json.loads(res_status.stdout)
-                    raw_state = str(status_data.get('state', 'CLOSED')).upper()
-                    if raw_state == "MERGED": status_badge = "🟣 Merged"
-                    elif raw_state == "OPEN": status_badge = "🟢 Open"
-                    else: status_badge = "🔴 Closed"
-            except Exception:
-                pass
-
+            # GENERIC LIVE PR STATUS RESOLVER
+            status_badge = get_live_pr_status(clean_repo_path, pr_num)
+            
             if "Open" in status_badge: open_count += 1
             elif "Merged" in status_badge: merged_count += 1
             else: closed_count += 1
@@ -258,7 +243,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
+        for is_hum, r in sorted(table_rows, key=lambda x: (x["repo"], x["link"])): 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
