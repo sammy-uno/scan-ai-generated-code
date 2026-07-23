@@ -3,29 +3,6 @@ import glob
 import os
 import subprocess
 
-def get_pr_changed_lines_live(repo, pr_num):
-    """
-    🎯 PR LIVE FILE QUERY: Queries the GitHub CLI safely during consolidation
-    to isolate true file modifications for line-level filtering context.
-    """
-    changed_lines = {}
-    if not repo or not pr_num:
-        return changed_lines
-    try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
-        sub_env = os.environ.copy()
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
-        if res.returncode == 0:
-            data = json.loads(res.stdout)
-            files = data.get('files', [])
-            for f in files:
-                path = f.get('path', '').strip()
-                if path:
-                    changed_lines[path] = set()
-    except Exception as e:
-        print(f"File lookup fallback notice: {e}")
-    return changed_lines
-
 def get_live_pr_status(repo, pr_num):
     """
     🎯 LIVE PR STATUS ENGINE: Queries the GitHub CLI live loop directly to resolve
@@ -63,20 +40,17 @@ def main():
     merged_count = 0
     closed_count = 0
     
-    # Check markers to track active run styles dynamically
+    # Locate all unpacked success file markers in your workspace results directory
     success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
-    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in success_markers)
-
-    # 🚀 ACCURATE SUMMARY EXTRACTION LAYER: 
-    # 🚀 RE-ENGINEERED ARTIFACT FINDER: Loops directly through success markers!
-    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
 
         try:
-            name_root = fname.replace('.success', '')
+            name_root = fname.replace('.success', '').replace('.failed', '')
             parts = name_root.split('--')
             if len(parts) < 5: 
                 continue
@@ -99,107 +73,53 @@ def main():
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
-            # Extract live change files count maps
-            pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
-            committed_files_count = len(pr_diff_map) if pr_diff_map else 1
-
-            # 🚀 RESILIENT ASSET FINDER FIX:
-            # Locates the line-filtered pull request results data file anywhere inside the workspace
-            # container directory to bypass GitHub's artifact flattening behavior completely!
-            sarif_target_path = ""
-            possible_paths = [
-                os.path.join(parent_dir, "results.sarif"),
-                os.path.join(parent_dir, f"{name_root}.sarif"),
-                os.path.join("all-results", parent_dir, "results.sarif"),
-                f.replace('.success', '.sarif')
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    sarif_target_path = path
-                    break
-                    
-            if not sarif_target_path or not os.path.exists(sarif_target_path):
-                # Global scan fallback loop to ensure the file is never missed
-                fallback_matches = glob.glob(f"all-results/**/{name_root}.sarif", recursive=True)
-                if fallback_matches:
-                    sarif_target_path = fallback_matches[0]
-                else:
-                    continue
-
-            with open(sarif_target_path, 'r', encoding='utf-8') as s: 
-                data = json.load(s)
-            runs = data.get('runs', [])
-            if not runs or not isinstance(runs, list): 
-                continue
-                
-            local_cwe_map = {}
-            res = []
-            seen_findings = set()
-            
-            for run in runs:
-                if not isinstance(run, dict): continue
-                tool = run.get('tool', {})
-                all_rules = tool.get('driver', {}).get('rules', [])
-                extensions = tool.get('extensions', [])
-                if isinstance(extensions, list):
-                    for ext in extensions:
-                        if isinstance(ext, dict): 
-                            all_rules.extend(ext.get('rules', []))
-                
-                for rule in all_rules:
-                    if not isinstance(rule, dict): continue
-                    r_id = rule.get('id')
-                    tags = rule.get('properties', {}).get('tags', [])
-                    if r_id not in local_cwe_map: 
-                        local_cwe_map[r_id] = set()
-                    for t in tags:
-                        if isinstance(t, str) and 'cwe-' in t.lower():
-                            c_num = t.lower().split('cwe-')[-1].zfill(3)
-                            local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
-
-                results = run.get('results', [])
-                if isinstance(results, list):
-                    res.extend(results)
-            
-            # Severity Counters
+            # Initialize metrics variables standard baselines
             h, m, l = 0, 0, 0
-            pr_cwes = set()
+            cwe_display = "None"
+            total_issues = 0
+            committed_files_count = 1
+
+            # 🚀 PURE EXCLUSIVE SUMMARY EXTRACTION ENGINE (All fallback parsing deleted)
+            summary_json_path = os.path.join(parent_dir, "summary.json")
+            metrics_json_path = os.path.join(parent_dir, "parsed-metrics.json")
             
-            # If your pre-filtered results file holds 0 findings, force clean states instantly!
-            if len(res) == 0:
+            target_path = summary_json_path if os.path.exists(summary_json_path) else (metrics_json_path if os.path.exists(metrics_json_path) else "")
+            
+            if target_path and os.path.exists(target_path):
+                with open(target_path, 'r', encoding='utf-8') as sm_f:
+                    summary_data = json.load(sm_f)
+                    h = int(summary_data.get('high', summary_data.get('H', 0)))
+                    m = int(summary_data.get('medium', summary_data.get('M', 0)))
+                    l = int(summary_data.get('low', summary_data.get('L', 0)))
+                    total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
+                    committed_files_count = int(summary_data.get('files_changed', summary_data.get('files', 1)))
+                    
+                    cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
+                    if isinstance(cwes_list, list):
+                        cwe_display = ', '.join(sorted(cwes_list)) if cwes_list else "None"
+                    else:
+                        cwe_display = str(cwes_list)
+            else:
+                # If no summary file exists, force clean defaults automatically
                 h, m, l = 0, 0, 0
                 cwe_display = "None"
-            else:
-                for r in res:
-                    r_id = r.get('ruleId', '')
-                    lvl = str(r.get('level', 'warning')).lower()
-                    cwes_for_rule = local_cwe_map.get(r_id, set())
-                    
-                    if lvl == 'error': h += 1
-                    elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
-                    else: l += 1
-                    
-                    for cwe_id in cwes_for_rule:
-                        pr_cwes.add(cwe_id)
-                        
-                cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
-            
+                total_issues = 0
+
             total_scanned += 1
             total_loc_scanned += live_loc
-            if len(res) > 0: 
+            if total_issues > 0: 
                 vulnerable_count += 1
             
-            cwe_density = round(len(res) / live_loc, 4) if live_loc > 0 else 0.0
+            cwe_density = round(total_issues / live_loc, 4) if live_loc > 0 else 0.0
             
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
             
-            paren_issues_files = f"{len(res)} ({committed_files_count})"
+            paren_issues_files = f"{total_issues} ({committed_files_count})"
             
-            # GENERIC LIVE PR STATUS RESOLVER
+            # Fetch dynamic real-time lifecycle status badges
             status_badge = get_live_pr_status(clean_repo_path, pr_num)
             
             if "Open" in status_badge: open_count += 1
@@ -241,3 +161,4 @@ def main():
 
 if __name__ == "__main__": 
     main()
+
