@@ -176,7 +176,7 @@ def main():
             h, m, l = 0, 0, 0
             pr_cwes = set()
             
-            # 🚀 PURE GENERIC CALCULATION ENFORCEMENT:
+            # 🚀 PROGRAMMATIC EMPTY SHIELD LAYER:
             # If line-level filtering has returned an empty finding array, we zero-out 
             # all output strings, blocking stale global definitions or residual leaks completely.
             if len(res) == 0:
@@ -243,7 +243,11 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        for is_hum, r in sorted(table_rows, key=lambda x: (x["repo"], x["link"])): 
+        # 🚀 CLEAN TUPLE SORTING ADJUSTMENT:
+        # Targeting x[1] safely opens up the inner data dictionary to resolve the type crash.
+        sorted_rows = sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"]))
+
+        for is_hum, r in sorted_rows: 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
