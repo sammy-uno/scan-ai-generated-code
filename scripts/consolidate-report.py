@@ -26,23 +26,47 @@ def get_pr_changed_lines_live(repo, pr_num):
         print(f"File lookup fallback notice: {e}")
     return changed_lines
 
+def get_live_pr_status(repo, pr_num):
+    """
+    🎯 LIVE GENERIC LIFECYCLE QUERY: Queries the GitHub CLI API directly to pull 
+    the absolute real-time state of the pull request, handling merged states correctly.
+    """
+    if not repo or not pr_num:
+        return "🟣 Merged"
+    try:
+        cmd = f"gh pr view {pr_num} --repo {repo} --json state"
+        sub_env = os.environ.copy()
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            raw_state = str(data.get('state', 'CLOSED')).strip().upper()
+            if raw_state == "MERGED":
+                return "🟣 Merged"
+            elif raw_state == "OPEN":
+                return "🟢 Open"
+            else:
+                return "🔴 Closed"
+    except Exception:
+        pass
+    return "🟣 Merged"
+
 def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
-    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     
     table_rows = []
     total_scanned = 0
     vulnerable_count = 0
     total_loc_scanned = 0
     
-    # 🚀 LIVE SUMMARY METRIC COUNTERS
+    # Live Lifecycle Breakdown Counters
     open_count = 0
     merged_count = 0
     closed_count = 0
     
-    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
+    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_files)
     
     # Locate all unpacked .sarif files in your workspace results directory
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
@@ -85,12 +109,14 @@ def main():
             runs = data.get('runs', [])
             if not runs or not isinstance(runs, list): 
                 continue
-                
+
+            # 🚀 THE MEMORY Bug FIX: Completely flushes and clears the lookup indexes
+            # at the absolute beginning of every file pass to prevent cross-contamination!
+            local_cwe_map = {}
             res = []
             seen_findings = set()
-            local_cwe_map = {}
             
-            # Build rules description index mapping for tags extraction loops
+            # Build rules description index mapping for this file's tags extraction ONLY
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -182,7 +208,14 @@ def main():
             
             cwe_density = round(len(res) / live_loc, 4) if live_loc > 0 else 0.0
             
-            # 🚀 INLINE LIFECYCLE QUERY: Fetches state string directly using your subprocess model
+            base_domain = "https://github.com"
+            clean_repo_path = repo_path.strip('/')
+            full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
+            link_md = f'[#{pr_num}]({full_url})'
+            
+            paren_issues_files = f"{len(res)} ({committed_files_count})"
+            
+            # GENERIC LIVE STATUS LOOKUP: Resolves the pull request state string dynamically
             status_badge = "🟣 Merged"
             try:
                 check_cmd = f"gh pr view {pr_num} --repo {repo_path} --json state"
@@ -199,20 +232,13 @@ def main():
             if "Open" in status_badge: open_count += 1
             elif "Merged" in status_badge: merged_count += 1
             else: closed_count += 1
-
-            base_domain = "https://github.com"
-            clean_repo_path = repo_path.strip('/')
-            full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
-            link_md = f'[#{pr_num}]({full_url})'
-            
-            paren_issues_files = f"{len(res)} ({committed_files_count})"
             
             row_entry = {
                 "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge
             }
-            table_rows.append(row_entry)
+            table_rows.append((is_row_human, row_entry))
             
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
@@ -232,9 +258,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
-
-        for r in sorted_rows: 
+        for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
