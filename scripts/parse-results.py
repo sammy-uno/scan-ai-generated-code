@@ -167,17 +167,20 @@ def main():
 
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
+    # 🚀 CALCULATE SEVERITY METRICS FOR BUCKET TRACKING
+    h, m, l = 0, 0, 0
+    all_discovered_cwes = set()
+    CWE_TOP_25 = [
+        'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
+        'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
+    ]
+
     if consolidated_results:
         cwe_per_loc = round(len(consolidated_results) / pr_loc, 4) if pr_loc > 0 else 0.0
         summary_md += f"**PR Code Change CWE Density:** {cwe_per_loc} Issues per Line of Code (LOC)\n\n"
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
-        
-        CWE_TOP_25 = [
-            'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
-            'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
-            'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
-            'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
-        ]
         
         for res in consolidated_results:
             path = res.get('_primary_path', 'Unknown')
@@ -186,11 +189,22 @@ def main():
             rule_id = res.get('ruleId', 'Unknown')
             
             cwes_set = cwe_map.get(rule_id, set())
-            cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             is_top_25 = any(c in CWE_TOP_25 for c in cwes_set)
             
-            icon_display = "🔴 High" if (level == 'error' or is_top_25) else ("🟡 Medium" if level in ['warning', 'recommendation', 'note', 'none'] else "🔵 Low")
+            if level == 'error' or is_top_25:
+                h += 1
+                icon_display = "🔴 High"
+            elif level in ['warning', 'recommendation', 'note', 'none']:
+                m += 1
+                icon_display = "🟡 Medium"
+            else:
+                l += 1
+                icon_display = "🔵 Low"
+                
+            for cwe_id in cwes_set:
+                all_discovered_cwes.add(cwe_id)
             
+            cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             raw_msg = res.get('message', {}).get('text', 'No description')
             if isinstance(raw_msg, str):
                 msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
@@ -199,6 +213,25 @@ def main():
                 
             msg = msg.replace('|', '\\|')
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
+
+    # 🚀 THE CRITICAL AUTOMATION FIX: 
+    # Write summary metrics directly into a summary.json file inside the output context!
+    output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', 'sarif-results')
+    if not os.path.exists(output_dir):
+        output_dir = "."
+        
+    summary_payload = {
+        "high": h,
+        "medium": m,
+        "low": l,
+        "total_issues": len(consolidated_results),
+        "files_changed": len(pr_changed_files) if pr_changed_files else 1,
+        "cwes_discovered": sorted(list(all_discovered_cwes)) if all_discovered_cwes else []
+    }
+    
+    with open(os.path.join(output_dir, "summary.json"), "w", encoding="utf-8") as sm_f:
+        json.dump(summary_payload, sm_f, indent=2)
+    print(f"✅ [METRICS PASSED] Saved clean metrics summary metadata to {output_dir}/summary.json")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'a') as f: 
