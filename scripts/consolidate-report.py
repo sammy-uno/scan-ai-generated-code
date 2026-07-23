@@ -1,6 +1,7 @@
 import json
 import glob
 import os
+import re
 import subprocess
 
 def get_pr_metadata_live(repo, pr_num):
@@ -26,12 +27,10 @@ def get_pr_metadata_live(repo, pr_num):
                 if path:
                     changed_lines[path] = set()
                     
-            # 🚀 FIXED STATE DETECTOR: Evaluate raw API properties directly 
-            # to prevent forked merges from being misclassified as closed.
             raw_state_upper = str(data.get('state', 'CLOSED')).strip().upper()
-            is_merged_bool = data.get('merged', False)
+            is_merged_val = data.get('merged', False)
             
-            if raw_state_upper == "MERGED" or is_merged_bool is True:
+            if raw_state_upper == "MERGED" or is_merged_val == True or str(is_merged_val).lower() == 'true':
                 pr_state = "Merged"
             elif raw_state_upper == "OPEN":
                 pr_state = "Open"
@@ -137,6 +136,7 @@ def main():
                         if isinstance(t, str) and 'cwe-' in t.lower():
                             c_num = t.lower().split('cwe-')[-1].zfill(3)
                             local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
+            
             for run in runs:
                 if not isinstance(run, dict): continue
                 results = run.get('results', [])
@@ -184,40 +184,27 @@ def main():
             for r in res:
                 r_id = r.get('ruleId', '')
                 lvl = str(r.get('level', 'warning')).lower()
-                msg_text = str(r.get('message', {}).get('text', '')).lower()
+                msg_text = str(r.get('message', {}).get('text', ''))
                 
                 if lvl == 'error': h += 1
                 elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
                 else: l += 1
                 
-                # 🚀 STRICT PRIMARIES FILTER: Scan the ruleId and text directly first
-                # to extract only the actual explicit vulnerability target.
-                isolated_cwe = None
-                for token in [r_id.lower(), msg_text]:
-                    if 'cwe-' in token:
-                        try:
-                            c_num = token.split('cwe-')[-1][:3]
-                            if c_num.isdigit():
-                                isolated_cwe = f"CWE-{c_num.zfill(3)}".upper()
-                                break
-                        except Exception:
-                            pass
-                
-                if isolated_cwe:
-                    pr_cwes.add(isolated_cwe)
+                # 🚀 RE-ENGINEERED PRECISE REGEX FILTER:
+                # Isolate exact numeric patterns matching cwe-### or cwe_### inside the tracking strings.
+                found_cwes = re.findall(r'(?:cwe[-_])(\d+)', f"{r_id} {msg_text}", re.IGNORECASE)
+                if found_cwes:
+                    for num_str in found_cwes:
+                        pr_cwes.add(f"CWE-{num_str.zfill(3)}".upper())
                 else:
-                    # Fallback to the first available tag if text strings hold no direct index keys
+                    # 🟢 100% DYNAMIC METADATA FALLBACK: No hardcoding.
+                    # Extracts the official CWE mappings natively tied to the text rule IDs
                     tags_set = local_cwe_map.get(r_id, set())
                     if tags_set:
                         for tag_item in tags_set:
                             pr_cwes.add(tag_item)
             
-            if "promptfoo" in repo_path.lower() and not is_row_human and len(res) == 0:
-                res.append({"ruleId": "js/incomplete-sanitization"})
-                m = 1
-                pr_cwes.add("CWE-754")
-                
-            # Filter empty values from displaying
+            # Filter layout text sizes
             pr_cwes = {c for c in pr_cwes if c and len(c) > 4}
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
@@ -260,9 +247,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # 🚀 FIXED THE TUPLE INDEX CRASH:
-        # We explicitly sort by unpacking the inner row dictionary 'x[1]' fields natively!
-        sorted_rows = sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"]))
+        sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
 
         for is_hum, r in sorted_rows: 
             if is_human_run:
