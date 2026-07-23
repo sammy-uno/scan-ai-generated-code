@@ -2,7 +2,7 @@ import json
 import glob
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def get_pr_changed_lines_compare(repo, pr_num):
     """
@@ -46,7 +46,7 @@ def main():
     latest_ai_epoch = 0.0
     latest_human_epoch = 0.0
 
-    # Track processed keys to avoid double mutating dynamic counters
+    # Track processed keys dynamically to avoid duplicate count mutations
     seen_prs = set()
 
     for f in all_files:
@@ -58,6 +58,8 @@ def main():
         live_loc = 100
         is_human = False
 
+        # 🚀 100% GENERIC METADATA EXTRACTION:
+        # Extracts all properties dynamically from the file or parent directory tokens
         if '--' in fname or '--' in parent_dir:
             naming_string = fname.replace('.sarif', '') if '--' in fname else parent_dir.replace('sarif-', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
@@ -72,13 +74,8 @@ def main():
                     idx += 1
                 if "human" in fname.lower() or "human" in parent_dir.lower():
                     is_human = True
-        
-        elif parent_dir == "sarif-agent" or fname == "results.sarif" or "agent" in parent_dir.lower():
-            is_human = False
-            repo_path = "promptfoo/promptfoo"
-            pr_num = "4516"
-            live_loc = 233
 
+        # If a file does not match your standardized double-dash research token layout, skip it
         if not repo_path or not pr_num:
             continue
 
@@ -195,48 +192,59 @@ def main():
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
     human_density_loc = round(human_metrics["total"] / human_metrics["total_loc"], 5) if human_metrics["total_loc"] > 0 else 0.0
 
-    # Convert filesystem epochs natively to dynamic Central Time fields
-    dt_ai = datetime.fromtimestamp(latest_ai_epoch) if latest_ai_epoch > 0 else datetime.now()
-    ai_stamp = dt_ai.strftime("%Y-%m-%d %I:%M:%S %p CT")
-
-    dt_hu = datetime.fromtimestamp(latest_human_epoch) if latest_human_epoch > 0 else datetime.now()
-    human_stamp = dt_hu.strftime("%Y-%m-%d %I:%M:%S %p CT")
-
     current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'sammy-uno/scan-ai-generated-code').strip()
     clean_repo = current_repo_context.strip('/')
     
-    # 🚀 DYNAMIC LIVE WORKFLOW REDIRECT ENGINE (Uses GitHub CLI API Queries)
+    # Initialize variables for live API lookups
     ai_run_id = ""
+    ai_stamp = "No Run Log Found"
     human_run_id = ""
+    human_stamp = "No Run Log Found"
     sub_env = os.environ.copy()
 
-    # Query the exact last successful Run ID for the AI Scanner Workflow file natively
+    # LIVE AI WORKFLOW LOG METADATA QUERY
     try:
-        cmd_ai = 'gh run list --workflow="General AI Multi-Language Scanner" --status=success --limit=1 --json databaseId'
+        cmd_ai = 'gh run list --workflow="General AI Multi-Language Scanner" --status=success --limit=1 --json databaseId,updatedAt'
         res_ai = subprocess.run(cmd_ai, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
         if res_ai.returncode == 0:
             data_ai = json.loads(res_ai.stdout)
             if data_ai and isinstance(data_ai, list) and len(data_ai) > 0:
-                ai_run_id = str(data_ai[0].get('databaseId', ''))
+                run_entry = data_ai[0]
+                ai_run_id = str(run_entry.get('databaseId', ''))
+                raw_iso = run_entry.get('updatedAt', '')
+                if raw_iso:
+                    clean_iso = raw_iso.replace('Z', '').split('.')
+                    parsed_utc = datetime.strptime(clean_iso[0], "%Y-%m-%dT%H:%M:%S")
+                    central_time = parsed_utc - timedelta(hours=5)
+                    ai_stamp = central_time.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception:
         pass
 
-    # Query the exact last successful Run ID for the Human Scanner Workflow file natively
+    # LIVE HUMAN WORKFLOW LOG METADATA QUERY
     try:
-        cmd_hu = 'gh run list --workflow="Human CodeQL Scan Auditing" --status=success --limit=1 --json databaseId'
+        cmd_hu = 'gh run list --workflow="Human CodeQL Scan Auditing" --status=success --limit=1 --json databaseId,updatedAt'
         res_hu = subprocess.run(cmd_hu, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
         if res_hu.returncode == 0:
             data_hu = json.loads(res_hu.stdout)
             if data_hu and isinstance(data_hu, list) and len(data_hu) > 0:
-                human_run_id = str(data_hu[0].get('databaseId', ''))
+                run_entry = data_hu[0]
+                human_run_id = str(run_entry.get('databaseId', ''))
+                raw_iso = run_entry.get('updatedAt', '')
+                if raw_iso:
+                    clean_iso = raw_iso.replace('Z', '').split('.')
+                    parsed_utc = datetime.strptime(clean_iso[0], "%Y-%m-%dT%H:%M:%S")
+                    central_time = parsed_utc - timedelta(hours=5)
+                    human_stamp = central_time.strftime("%Y-%m-%d %I:%M:%S %p CT")
     except Exception:
         pass
 
-    # Dynamic fallback to current runner context only if API queries return completely empty strings
+    # Dynamic fallback to current runner run context if API queries return empty strings
     if not ai_run_id:
         ai_run_id = os.environ.get('GITHUB_RUN_ID', '')
+        ai_stamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p CT")
     if not human_run_id:
         human_run_id = os.environ.get('GITHUB_RUN_ID', '')
+        human_stamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p CT")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -256,7 +264,6 @@ def main():
         out.write('### 🔗 Detailed Actions Summaries\n')
         base_domain = "https://github.com"
         
-        # 🚀 REDIRECT MATRIX HOOKS: Links will point to their separate workflow runs automatically
         if ai_run_id:
             full_ai_url = f"{base_domain}/{clean_repo}/actions/runs/{ai_run_id}"
             out.write(f'- 🤖 **View Detailed AI Scanner Workflow Summary:** Go to Actions Run [#{ai_run_id}]({full_ai_url}) 🔍\n')
@@ -271,5 +278,3 @@ def main():
 
 if __name__ == "__main__": 
     main()
-
-
