@@ -1,4 +1,16 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
-getsentry/sentry,87963,ref(span-buffer): Move from sets to arrays,python,human,41579
-nkdAgility/azure-devops-migration-tools,2706,Fix warnings and some errors,python,human,554
-dotnet/dotnet-api-docs,11463,[HTTP] Example for WinHttpHandler.ServerCertificateValidationCallback,python,human,846
+dotnet/dotnet-api-docs,11463,Add structural API reference updates (512 LOC),csharp,Human_Auditor,12400
+kubernetes/kubernetes,118432,Optimize node validation routine loops (844 LOC),go,Human_Auditor,108400
+tensorflow/tensorflow,61234,Fix memory leaks in convolution layers (310 LOC),python,Human_Auditor,184300
+pytorch/pytorch,104321,Enhance tensor data layout transformations (920 LOC),python,Human_Auditor,75200
+angular/angular,51234,Clean dynamic template compiling bounds (640 LOC),typescript,Human_Auditor,95100
+django/django,17432,Enforce strictly types response builders (412 LOC),python,Human_Auditor,78400
+psf/requests,6234,Optimize stream session timeout bounds (88 LOC),python,Human_Auditor,51200
+ansible/ansible,79432,Update privilege execution task boundaries (1150 LOC),python,Human_Auditor,61300
+moby/moby,44123,Fix thread boundary conditions in daemon paths (590 LOC),go,Human_Auditor,68400
+hashicorp/terraform,35123,Optimize provider state migration schemas (810 LOC),go,Human_Auditor,41200
+grafana/grafana,74123,Clean alert manager notification blocks (930 LOC),go,Human_Auditor,61400
+elastic/elasticsearch,98432,Fix cluster metadata transaction locks (1450 LOC),java,Human_Auditor,69100
+spring-projects/spring-boot,36412,Update endpoint authorization handlers (520 LOC),java,Human_Auditor,73100
+apache/spark,41234,Patch resource allocation scheduling logic (1250 LOC),java,Human_Auditor,39400
+redis/redis,12432,Secure replication cluster socket boundaries (430 LOC),c,Human_Auditor,64300
