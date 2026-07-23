@@ -260,7 +260,11 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        for is_hum, r in sorted(table_rows, key=lambda x: (x["repo"], x["link"])): 
+        # 🚀 FIXED THE TUPLE INDEX CRASH:
+        # We explicitly sort by unpacking the inner row dictionary 'x[1]' fields natively!
+        sorted_rows = sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"]))
+
+        for is_hum, r in sorted_rows: 
             if is_human_run:
                 out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
