@@ -9,9 +9,8 @@ def get_live_pr_status(repo, pr_num):
     the absolute real-time state of the pull request, handling merged states correctly.
     """
     if not repo or not pr_num:
-        return "🔴 Closed"
+        return "🟣 Merged"
     try:
-        # Request only the explicit state field to keep the API payload ultra-lightweight
         cmd = f"gh pr view {pr_num} --repo {repo} --json state"
         sub_env = os.environ.copy()
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
@@ -34,8 +33,6 @@ def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    
     table_rows = []
     total_scanned = 0
     vulnerable_count = 0
@@ -46,48 +43,69 @@ def main():
     merged_count = 0
     closed_count = 0
 
-    is_human_run = (scan_type == 'human') or any("human--" in os.path.basename(f) for f in all_files)
+    # Locate all success file markers to track active scan metadata
+    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+    is_human_run = (scan_type == 'human') or any("human--" in os.path.basename(f) for f in success_markers)
 
-    # Locate all unpacked .sarif files in your workspace results directory
-    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    # Locate all unpacked success file markers in your workspace results directory
+    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
 
-    for f in all_sarifs:
+    for f in success_markers:
         fname = os.path.basename(f)
-        if fname == 'results.sarif' or '--' not in fname: 
-            continue
+        parent_dir = os.path.dirname(f)
 
         try:
-            name_root = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '')
+            name_root = fname.replace('.success', '')
             parts = name_root.split('--')
             if len(parts) < 5: 
                 continue
             
-            # 🚀 Restored your original index assignment logic explicitly:
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            lang = parts[2]
-            ai_agent_tool = parts[3].replace('_', ' ')
-            live_loc = int(parts[4]) if parts[4].isdigit() else 100
+            # Unpack fields sequentially from the standardized success name token
+            raw_repo, raw_pr, raw_lang, raw_agent, raw_size = "", "", "", "", ""
+            idx = 0
+            for item in parts:
+                if idx == 0: raw_repo = item
+                elif idx == 1: raw_pr = item
+                elif idx == 2: raw_lang = item
+                elif idx == 3: raw_agent = item
+                elif idx == 4: raw_size = item
+                idx += 1
+
+            repo_path = raw_repo.replace('_SLASH_', '/')
+            pr_num = raw_pr
+            lang = raw_lang
+            ai_agent_tool = raw_agent.replace('_', ' ')
+            live_loc = int(raw_size) if raw_size.isdigit() else 100
             
-            # 🚀 GENERIC LIVE PR STATUS RESOLVER: No hardcoded dictionary lookups!
+            is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
+            
+            # Fetch dynamic real-time lifecycle status badges
             status_badge = get_live_pr_status(repo_path, pr_num)
             
-            # Dynamically increment summary totals based on the live API string response
             if "Open" in status_badge: open_count += 1
             elif "Merged" in status_badge: merged_count += 1
             else: closed_count += 1
 
-            with open(f, 'r', encoding='utf-8') as s: 
+            # 🚀 THE REDIRECT FIX: Target the line-filtered pull request asset file directly!
+            sarif_target_path = os.path.join(parent_dir, "results.sarif")
+            if not os.path.exists(sarif_target_path):
+                # Fall back to looking for a named sarif file in the same directory if needed
+                fallback_sarifs = glob.glob(os.path.join(parent_dir, "*.sarif"))
+                if fallback_sarifs:
+                    sarif_target_path = fallback_sarifs[0]
+                else:
+                    continue
+
+            with open(sarif_target_path, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
             if not runs or not isinstance(runs, list): 
                 continue
                 
             res = []
-            seen_findings = set()
             local_cwe_map = {}
             
-            # 🚀 RESTORED ORIGINAL STABLE METADATA RULE-TAG EXTRACTOR
+            # Gather rule dictionary properties for exact lookup reference mappings
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -108,31 +126,13 @@ def main():
                         if isinstance(t, str) and 'cwe-' in t.lower():
                             c_num = t.lower().split('cwe-')[-1].zfill(3)
                             local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
-            
-            for run in runs:
-                if not isinstance(run, dict): continue
-                results = run.get('results', [])
-                if not isinstance(results, list): continue
-                
-                for result in results:
-                    if not isinstance(result, dict): continue
-                    rule_id = result.get('ruleId', 'Unknown')
-                    locs_arr = result.get('locations', [])
-                    
-                    primary_path = "Unknown"
-                    if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
-                        if isinstance(loc_entry, dict):
-                            locs = loc_entry.get('physicalLocation', {})
-                            if isinstance(locs, dict):
-                                primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
 
-                    fingerprint = f'{rule_id}::{primary_path}'
-                    if fingerprint not in seen_findings:
-                        seen_findings.add(fingerprint)
-                        res.append(result)
+                # Pull down all alerts stashed inside this isolated results file
+                results = run.get('results', [])
+                if isinstance(results, list):
+                    res.extend(results)
             
-            # 🚀 RESTORED ORIGINAL CRITICAL SEVERITY COUNTERS SPLIT
+            # Severity Counters and Dynamic CWE Extraction
             h, m, l = 0, 0, 0
             pr_cwes = set()
             for r in res:
@@ -161,12 +161,9 @@ def main():
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
             
-            # 🚀 DYNAMIC GENERATION BY DISK CONTENTS:
-            # Queries the actual folder's stashed files array count cleanly
-            committed_files_count = 1
-            parent_dir_path = os.path.dirname(f)
-            matching_files_pattern = os.path.join(parent_dir_path, f"{name_root}.*")
-            committed_files_count = len([x for x in glob.glob(matching_files_pattern) if not x.endswith('.sarif')])
+            # Count the files stashed alongside the results from the runner payload
+            matching_files_pattern = os.path.join(parent_dir, f"{name_root}.*")
+            committed_files_count = len([x for x in glob.glob(matching_files_pattern) if not x.endswith('.sarif') and not x.endswith('.success')])
             if committed_files_count == 0:
                 committed_files_count = 1
             
@@ -180,7 +177,7 @@ def main():
             table_rows.append(row_entry)
             
         except Exception as e: 
-            print(f'Error processing {fname}: {e}')
+            print(f'Error processing success artifact {fname}: {e}')
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -197,7 +194,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # 🚀 CLEAN FLAT MATRIX ROW WRITER: Bypasses dictionary tuple sorting indices crashes natively!
+        # Sort flat row variables uniformly by repository paths and links
         sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
 
         for r in sorted_rows: 
