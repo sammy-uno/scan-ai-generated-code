@@ -63,19 +63,20 @@ def main():
     merged_count = 0
     closed_count = 0
     
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_files)
-    
-    # Locate all unpacked .sarif files in your workspace results directory
-    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    # Check markers to track active run styles dynamically
+    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in success_markers)
 
-    for f in all_sarifs:
+    # 🚀 ACCURATE SUMMARY EXTRACTION LAYER: 
+    # Loops directly through success markers to match your exact PR scan step summaries!
+    success_markers = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
+
+    for f in success_markers:
         fname = os.path.basename(f)
-        if fname == 'results.sarif' or '--' not in fname: 
-            continue
+        parent_dir = os.path.dirname(f)
 
         try:
-            name_root = fname.replace('.sarif', '').replace('.success', '').replace('.failed', '')
+            name_root = fname.replace('.success', '')
             parts = name_root.split('--')
             if len(parts) < 5: 
                 continue
@@ -102,7 +103,13 @@ def main():
             pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
             committed_files_count = len(pr_diff_map) if pr_diff_map else 1
 
-            with open(f, 'r', encoding='utf-8') as s: 
+            # 🚀 TARGET THE PRE-FILTERED RESULTS FILE EXCLUSIVELY:
+            # This completely avoids loading raw, cluttered background tool databases.
+            sarif_target_path = os.path.join(parent_dir, "results.sarif")
+            if not os.path.exists(sarif_target_path):
+                continue
+
+            with open(sarif_target_path, 'r', encoding='utf-8') as s: 
                 data = json.load(s)
             runs = data.get('runs', [])
             if not runs or not isinstance(runs, list): 
@@ -112,7 +119,6 @@ def main():
             res = []
             seen_findings = set()
             
-            # Build rules description index mapping for tags extraction loops
             for run in runs:
                 if not isinstance(run, dict): continue
                 tool = run.get('tool', {})
@@ -133,53 +139,17 @@ def main():
                         if isinstance(t, str) and 'cwe-' in t.lower():
                             c_num = t.lower().split('cwe-')[-1].zfill(3)
                             local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
-            
-            for run in runs:
-                if not isinstance(run, dict): continue
-                results = run.get('results', [])
-                if not isinstance(results, list): continue
-                
-                for result in results:
-                    if not isinstance(result, dict): continue
-                    rule_id = result.get('ruleId', 'Unknown')
-                    locs_arr = result.get('locations', [])
-                    
-                    primary_path = "Unknown"
-                    primary_line = "?"
-                    
-                    # Unpacks the dictionary index position correctly to prevent exception crashes
-                    if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
-                        if isinstance(loc_entry, dict):
-                            locs = loc_entry.get('physicalLocation', {})
-                            if isinstance(locs, dict):
-                                primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
-                                primary_line = locs.get('region', {}).get('startLine', '?')
-                                
-                    if pr_diff_map:
-                        alert_base = os.path.basename(primary_path).lower()
-                        changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
-                        
-                        matched = False
-                        if primary_path.lower() in [p.lower() for p in pr_diff_map.keys()]:
-                            matched = True
-                        elif alert_base in changed_bases:
-                            matched = True
-                            
-                        if not matched:
-                            continue
 
-                    fingerprint = f'{rule_id}::{primary_path}::{primary_line}'
-                    if fingerprint not in seen_findings:
-                        seen_findings.add(fingerprint)
-                        res.append(result)
+                results = run.get('results', [])
+                if isinstance(results, list):
+                    res.extend(results)
             
             # Severity Counters
             h, m, l = 0, 0, 0
             pr_cwes = set()
             
-            # If line-level filtering has returned an empty finding array, we zero-out 
-            # all output strings, blocking stale global definitions or residual leaks completely.
+            # 🚀 TRIPLE SHIELD RE-ENFORCEMENT:
+            # If your pre-filtered results file holds 0 findings, force clean states instantly!
             if len(res) == 0:
                 h, m, l = 0, 0, 0
                 cwe_display = "None"
@@ -227,7 +197,7 @@ def main():
             table_rows.append((is_row_human, row_entry))
             
         except Exception as e: 
-            print(f'Error processing {fname}: {e}')
+            print(f'Error processing success metadata {fname}: {e}')
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
@@ -244,8 +214,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # 🚀 THE TUPLE UNPACKING FIX: 
-        # x[1] safely extracts the row dictionary object before checking string keys!
+        # Clean dictionary sorting flat row configuration (Bypasses the tuple index TypeError)
         sorted_rows = sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"]))
 
         for is_hum, r in sorted_rows: 
@@ -256,5 +225,3 @@ def main():
 
 if __name__ == "__main__": 
     main()
-
-
