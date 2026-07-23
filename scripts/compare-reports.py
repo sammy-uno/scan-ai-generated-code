@@ -255,7 +255,9 @@ def main():
         out.write(f'- **Human Scan Last Run:** {human_stamp}\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total Introduced Issues | 🔴 High | 🟡 Medium | 🔵 Low | Total PRs open | Total PRs closed | Total PRs merged |\n')
+        
+        # 🚀 COLUMN HEADING UPDATE: Changed heading to "Total CWEs Introduced"
+        out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total CWEs Introduced | 🔴 High | 🟡 Medium | 🔵 Low | Total PRs open | Total PRs closed | Total PRs merged |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         
         out.write(f'| 🤖 **AI-Generated PR** | {ai_metrics["scanned_prs"]} | {ai_metrics["total_loc"]} lines | {ai_metrics["total"]} | {ai_metrics["high"]} | {ai_metrics["medium"]} | {ai_metrics["low"]} | {ai_metrics["open"]} | {ai_metrics["closed"]} | {ai_metrics["merged"]} |\n')
