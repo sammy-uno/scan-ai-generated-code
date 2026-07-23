@@ -104,6 +104,11 @@ jobs:
             
             # Executes the line-filtered delta calculation engine
             python scripts/parse-results.py || true
+            
+            # 🚀 COPY METRICS OUT: Copies your generated json metrics right to your standard filename scheme!
+            if [ -f "./summary.json" ]; then
+              cp ./summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" 2>/dev/null || true
+            fi
           else
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
           fi
@@ -119,6 +124,7 @@ jobs:
             *.sarif
             *.success
             *.failed
+            *.json
           retention-days: 1
 
   report:
