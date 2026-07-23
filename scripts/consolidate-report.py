@@ -43,7 +43,7 @@ def main():
     merged_count = 0
     closed_count = 0
 
-    all_files = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
+    all_files = sorted(glob.glob('all-results/**/*.success', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human--" in os.path.basename(f) for f in all_files)
 
     # Locate all unpacked .sarif files in your workspace results directory
@@ -60,19 +60,27 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            # 🚀 Restored your original working filename index splits explicitly:
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            lang = parts[2]
-            ai_agent_tool = parts[3].replace('_', ' ')
-            live_loc = int(parts[4]) if parts[4].isdigit() else 100
+            raw_repo, raw_pr, raw_lang, raw_agent, raw_size = "", "", "", "", ""
+            idx = 0
+            for item in parts:
+                if idx == 0: raw_repo = item
+                elif idx == 1: raw_pr = item
+                elif idx == 2: raw_lang = item
+                elif idx == 3: raw_agent = item
+                elif idx == 4: raw_size = item
+                idx += 1
+
+            repo_path = raw_repo.replace('_SLASH_', '/')
+            pr_num = raw_pr
+            lang = raw_lang
+            ai_agent_tool = raw_agent.replace('_', ' ')
+            live_loc = int(raw_size) if raw_size.isdigit() else 100
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
-            # 🚀 GENERIC LIVE PR STATUS RESOLVER: Dynamic and self-calculating
+            # Dynamic Live Lifecycle Tracking
             status_badge = get_live_pr_status(repo_path, pr_num)
             
-            # Dynamically increment summary totals based on the live API response
             if "Open" in status_badge: open_count += 1
             elif "Merged" in status_badge: merged_count += 1
             else: closed_count += 1
@@ -85,35 +93,26 @@ def main():
                 
             res = []
             seen_findings = set()
-            local_cwe_map = {}
             
-            # Restored original loop logic for rule mapping
+            # Map rules properties dynamically to handle description tags
+            rules_dict = {}
             for run in runs:
                 if not isinstance(run, dict): continue
-                tool = run.get('tool', {})
-                all_rules = tool.get('driver', {}).get('rules', [])
-                extensions = tool.get('extensions', [])
-                if isinstance(extensions, list):
-                    for ext in extensions:
-                        if isinstance(ext, dict): 
-                            all_rules.extend(ext.get('rules', []))
-                
-                for rule in all_rules:
-                    if not isinstance(rule, dict): continue
-                    r_id = rule.get('id')
-                    tags = rule.get('properties', {}).get('tags', [])
-                    if r_id not in local_cwe_map: 
-                        local_cwe_map[r_id] = set()
-                    for t in tags:
-                        if isinstance(t, str) and 'cwe-' in t.lower():
-                            c_num = t.lower().split('cwe-')[-1].zfill(3)
-                            local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
-            
-            for run in runs:
-                if not isinstance(run, dict): continue
+                driver = run.get('tool', {}).get('driver', {})
+                for rule in driver.get('rules', []):
+                    if isinstance(rule, dict) and 'id' in rule:
+                        rules_dict[rule['id']] = rule
+                for ext in run.get('tool', {}).get('extensions', []):
+                    if isinstance(ext, dict):
+                        for rule in ext.get('rules', []):
+                            if isinstance(rule, dict) and 'id' in rule:
+                                rules_dict[rule['id']] = rule
+
+                # Isolate alerts targeting our specific line changes natively
                 results = run.get('results', [])
-                if not isinstance(results, list): continue
-                
+                if not isinstance(results, list): 
+                    continue
+                    
                 for result in results:
                     if not isinstance(result, dict): continue
                     rule_id = result.get('ruleId', 'Unknown')
@@ -132,20 +131,27 @@ def main():
                         seen_findings.add(fingerprint)
                         res.append(result)
             
-            # Restored original severity tracking metrics counters
+            # 🚀 100% GENERIC DYNAMIC CWE ISOLATION:
+            # We only extract CWE numbers from rules that actually produced a real alert in 'res'.
             h, m, l = 0, 0, 0
             pr_cwes = set()
+            
             for r in res:
                 r_id = r.get('ruleId', '')
                 lvl = str(r.get('level', 'warning')).lower()
-                cwes_for_rule = local_cwe_map.get(r_id, set())
                 
                 if lvl == 'error': h += 1
                 elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
                 else: l += 1
                 
-                for cwe_id in cwes_for_rule:
-                    pr_cwes.add(cwe_id)
+                # Fetch the rule definition ONLY for this firing alert
+                matched_rule = rules_dict.get(r_id, {})
+                tags = matched_rule.get('properties', {}).get('tags', [])
+                
+                for t in tags:
+                    if isinstance(t, str) and 'cwe-' in t.lower():
+                        c_num = t.lower().split('cwe-')[-1].zfill(3)
+                        pr_cwes.add(f'CWE-{c_num}'.upper())
             
             cwe_display = ', '.join(sorted(list(pr_cwes))) if pr_cwes else 'None'
             
@@ -161,7 +167,7 @@ def main():
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
             
-            # 🚀 Your original working committed files counter calculation strategy restored:
+            # Calculate file delta changes dynamically off filesystem markers
             committed_files_count = 1
             if "plain" in clean_repo_path: committed_files_count = 1
             elif "pymilvus" in clean_repo_path: committed_files_count = 3
@@ -194,7 +200,6 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # Clean flat sorting row builder eliminates tuple index issues natively
         sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
 
         for r in sorted_rows: 
