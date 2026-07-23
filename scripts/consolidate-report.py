@@ -37,6 +37,11 @@ def main():
     vulnerable_count = 0
     total_loc_scanned = 0
     
+    # 🚀 LIVE SUMMARY METRIC COUNTERS
+    open_count = 0
+    merged_count = 0
+    closed_count = 0
+    
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
     
     # Locate all unpacked .sarif files in your workspace results directory
@@ -177,6 +182,24 @@ def main():
             
             cwe_density = round(len(res) / live_loc, 4) if live_loc > 0 else 0.0
             
+            # 🚀 INLINE LIFECYCLE QUERY: Fetches state string directly using your subprocess model
+            status_badge = "🟣 Merged"
+            try:
+                check_cmd = f"gh pr view {pr_num} --repo {repo_path} --json state"
+                res_status = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, timeout=15)
+                if res_status.returncode == 0:
+                    status_data = json.loads(res_status.stdout)
+                    raw_state = str(status_data.get('state', 'CLOSED')).upper()
+                    if raw_state == "MERGED": status_badge = "🟣 Merged"
+                    elif raw_state == "OPEN": status_badge = "🟢 Open"
+                    else: status_badge = "🔴 Closed"
+            except Exception:
+                pass
+
+            if "Open" in status_badge: open_count += 1
+            elif "Merged" in status_badge: merged_count += 1
+            else: closed_count += 1
+
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
@@ -187,9 +210,9 @@ def main():
             row_entry = {
                 "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
-                "issues_files": paren_issues_files, "density": cwe_density
+                "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge
             }
-            table_rows.append((is_row_human, row_entry))
+            table_rows.append(row_entry)
             
         except Exception as e: 
             print(f'Error processing {fname}: {e}')
@@ -199,21 +222,23 @@ def main():
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Exact LOC Scanned:** {total_loc_scanned} lines\n')
-        out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n\n')
+        out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
+        out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
         
         if is_human_run:
-            out.write('\n| Repository | PR | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        else:
-            out.write('\n| Repository | PR | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            out.write('\n| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+        else:
+            out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
+            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # Sort rows to stay grouped cleanly by repo name and pull request links
-        for is_hum, r in sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"])): 
+        sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
+
+        for r in sorted_rows: 
             if is_human_run:
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
             else:
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | {r["cwes"]} | {r["h"]} | {r["m"]} | {r["l"]} | {r["issues_files"]} | {r["density"]} |\n')
+                out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
 
 if __name__ == "__main__": 
     main()
