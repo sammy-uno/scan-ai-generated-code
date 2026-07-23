@@ -151,12 +151,11 @@ def main():
                     primary_line = "?"
                     
                     if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
+                        loc_entry = locs_arr
                         if isinstance(loc_entry, dict):
                             locs = loc_entry.get('physicalLocation', {})
                             if isinstance(locs, dict):
                                 primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
-                                primary_line = locs.get('region', {}).get('startLine', '?')
                                 
                     if pr_diff_map:
                         alert_base = os.path.basename(primary_path).lower()
@@ -167,13 +166,11 @@ def main():
                             matched = True
                         elif alert_base in changed_bases:
                             matched = True
-                        elif "promptfoo" in repo_path.lower() and "evaluation" in alert_base:
-                            matched = True
                             
                         if not matched:
                             continue
 
-                    fingerprint = f'{rule_id}::{primary_path}::{primary_line}'
+                    fingerprint = f'{rule_id}::{primary_path}'
                     if fingerprint not in seen_findings:
                         seen_findings.add(fingerprint)
                         res.append(result)
@@ -190,15 +187,13 @@ def main():
                 elif lvl in ['warning', 'recommendation', 'note', 'none']: m += 1
                 else: l += 1
                 
-                # 🚀 RE-ENGINEERED PRECISE REGEX FILTER:
-                # Isolate exact numeric patterns matching cwe-### or cwe_### inside the tracking strings.
+                # Dynamic Regex parsing isolates numeric markers cleanly from raw strings
                 found_cwes = re.findall(r'(?:cwe[-_])(\d+)', f"{r_id} {msg_text}", re.IGNORECASE)
                 if found_cwes:
                     for num_str in found_cwes:
                         pr_cwes.add(f"CWE-{num_str.zfill(3)}".upper())
                 else:
-                    # 🟢 100% DYNAMIC METADATA FALLBACK: No hardcoding.
-                    # Extracts the official CWE mappings natively tied to the text rule IDs
+                    # Native fallbacks for non-numerical query labels (e.g. incomplete-sanitization -> CWE-754)
                     tags_set = local_cwe_map.get(r_id, set())
                     if tags_set:
                         for tag_item in tags_set:
@@ -247,7 +242,10 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total CWEs (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
+        # 🚀 THE CRITICAL DEFINITIVE CORRECTION:
+        # x represents the full tuple. x[1] extracts the inner data dictionary directly.
+        # This completely stops the index string error from ever triggering again!
+        sorted_rows = sorted(table_rows, key=lambda x: (x[1]["repo"], x[1]["link"]))
 
         for is_hum, r in sorted_rows: 
             if is_human_run:
@@ -257,3 +255,4 @@ def main():
 
 if __name__ == "__main__": 
     main()
+
