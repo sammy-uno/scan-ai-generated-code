@@ -63,7 +63,7 @@ def main():
     merged_count = 0
     closed_count = 0
     
-    # Locate all unpacked .sarif files in your workspace results directory to determine run track styles
+    # Locate all unpacked success file markers in your workspace results directory to determine run track styles
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
@@ -120,18 +120,15 @@ def main():
             total_issues = 0
 
             # 🚀 RESILIENT SUMMARY JSON TRACKING LAYER:
-            # We look for the JSON file using the exact same path/name as the success marker!
+            # Looks strictly and objectively for your pre-calculated step output tokens.
             custom_json_path = f.replace('.success', '.json')
             nested_json_path = os.path.join(parent_dir, f"{name_root}.json")
             flat_json_path = os.path.join(parent_dir, "summary.json")
             
             target_json_path = ""
-            if os.path.exists(custom_json_path):
-                target_json_path = custom_json_path
-            elif os.environ.get('SCAN_TYPE') != 'human' and os.path.exists(nested_json_path):
-                target_json_path = nested_json_path
-            elif os.path.exists(flat_json_path):
-                target_json_path = flat_json_path
+            if os.path.exists(custom_json_path): target_json_path = custom_json_path
+            elif os.path.exists(nested_json_path): target_json_path = nested_json_path
+            elif os.path.exists(flat_json_path): target_json_path = flat_json_path
             
             if target_json_path and os.path.exists(target_json_path):
                 with open(target_json_path, 'r', encoding='utf-8') as sm_f:
@@ -148,7 +145,7 @@ def main():
                     else:
                         cwe_display = str(cwes_list)
             else:
-                # Force clean defaults if no file was written to prevent stale data pollution
+                # Force clean defaults if no summary metadata is written on disk
                 h, m, l = 0, 0, 0
                 cwe_display = "None"
                 total_issues = 0
