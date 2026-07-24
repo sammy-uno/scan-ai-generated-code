@@ -110,17 +110,28 @@ def main():
             
             is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
             
+            # Extract live change files count maps
+            pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
+            committed_files_count = len(pr_diff_map) if pr_diff_map else 1
+
             # Initialize metrics variables standard baselines
             h, m, l = 0, 0, 0
             cwe_display = "None"
             total_issues = 0
-            committed_files_count = 1
 
-            # 🚀 EXCLUSIVE SUMMARY JSON TRACKING LAYER
-            # Targets your custom-named JSON token exclusively to load pre-calculated results.
-            custom_json_path = os.path.join(parent_dir, f"{name_root}.json")
+            # 🚀 RESILIENT SUMMARY JSON TRACKING LAYER:
+            # We look for the JSON file using the exact same path/name as the success marker!
+            custom_json_path = f.replace('.success', '.json')
+            nested_json_path = os.path.join(parent_dir, f"{name_root}.json")
             flat_json_path = os.path.join(parent_dir, "summary.json")
-            target_json_path = custom_json_path if os.path.exists(custom_json_path) else (flat_json_path if os.path.exists(flat_json_path) else "")
+            
+            target_json_path = ""
+            if os.path.exists(custom_json_path):
+                target_json_path = custom_json_path
+            elif os.environ.get('SCAN_TYPE') != 'human' and os.path.exists(nested_json_path):
+                target_json_path = nested_json_path
+            elif os.path.exists(flat_json_path):
+                target_json_path = flat_json_path
             
             if target_json_path and os.path.exists(target_json_path):
                 with open(target_json_path, 'r', encoding='utf-8') as sm_f:
