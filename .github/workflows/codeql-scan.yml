@@ -92,7 +92,7 @@ jobs:
           LIVE_LOC=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json additions,deletions --jq '.additions + .deletions' 2>/dev/null || echo "1")
           if [ -z "$LIVE_LOC" ] || [ "$LIVE_LOC" = "0" ]; then LIVE_LOC="1"; fi
           
-          # 🚀 PASS DELTA CONFIGURATIONS TO PYTHON RUNNER CONTEXT
+          # Pass delta configurations to python runner context
           export PR_LOC=$LIVE_LOC
           export PR_REPO="${{ matrix.repo_name }}"
           export PR_NUM="${{ matrix.pr_num }}"
@@ -105,8 +105,10 @@ jobs:
             # Executes the line-filtered delta calculation engine
             python scripts/parse-results.py || true
             
-            # 🚀 COPY METRICS OUT: Copies your generated json metrics right to your standard filename scheme!
-            if [ -f "./summary.json" ]; then
+            # 🚀 THE FIX: Checks your true sarif-results folder destination for the output!
+            if [ -f "sarif-results/summary.json" ]; then
+              cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" 2>/dev/null || true
+            elif [ -f "./summary.json" ]; then
               cp ./summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" 2>/dev/null || true
             fi
           else
