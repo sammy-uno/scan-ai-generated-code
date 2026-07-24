@@ -7,7 +7,7 @@ import sys
 def get_pr_changed_files_list():
     """
     🎯 100% API-DRIVEN FULL PATH TRACKER: Queries the GitHub CLI API directly
-    to isolate true relative workspace paths, preserving directory contexts.
+    to isolate true relative workspace paths, preserving entire directory trees.
     """
     changed_paths = set()
     repo = os.environ.get('PR_REPO', '')
@@ -32,8 +32,8 @@ def get_pr_changed_files_list():
             for f in files:
                 path = f.get('path', '').strip()
                 if path:
-                    # Normalize slashes and force lowercase for bulletproof matching
-                    normalized_path = path.replace('\\', '/').lower()
+                    # Normalize slashes and force lowercase for bulletproof path array splitting
+                    normalized_path = path.replace('\\', '/').lower().strip('/')
                     changed_paths.add(normalized_path)
                     print(f"✅ [API PR PATH TRACE] Target path detected: {path}")
         else:
@@ -130,36 +130,33 @@ def main():
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
-            # 🔬 RESTORED COMPREHENSIVE CONSOLE LOGGING TRACER:
             print(f"🔎 [PROCESSING ALERT {total_raw_alerts_processed}] ID: `{rule_id}` Path: `{primary_path}:{primary_line}`")
 
             if pr_changed_files:
-                alert_normalized_path = primary_path.replace('\\', '/').lower().strip('/')
-                alert_base_name = os.path.basename(alert_normalized_path)
+                # 🚀 WHOLE-PATH COMPREHENSIVE SEGMENT CHECK:
+                # Breaks down paths into full directory lists from root to filename
+                # to strictly require segment-for-segment directory matches!
+                alert_norm = primary_path.replace('\\', '/').lower().strip('/')
+                alert_segments = [p for p in alert_norm.split('/') if p]
                 
                 matched = False
                 for changed_path in pr_changed_files:
-                    clean_changed = changed_path.strip('/')
-                    changed_base_name = os.path.basename(clean_changed)
+                    changed_norm = changed_path.strip().lower().strip('/')
+                    changed_segments = [p for p in changed_norm.split('/') if p]
                     
-                    # 🚀 INTERSECT PATH PROTECTION HOOK:
-                    # If base filename matches, check if any upper folders overlap to verify directory context safely!
-                    if alert_base_name == changed_base_name:
-                        alert_parts = set(alert_normalized_path.split('/'))
-                        changed_parts = set(clean_changed.split('/'))
-                        # Remove common short filenames to avoid false intersections
-                        alert_parts.discard(alert_base_name)
-                        changed_parts.discard(changed_base_name)
-                        
-                        if alert_normalized_path == clean_changed or alert_normalized_path.endswith('/' + clean_changed) or clean_changed.endswith('/' + alert_normalized_path) or not alert_parts.isdisjoint(changed_parts) or not alert_parts or not changed_parts:
+                    # Verify if the alert directory structure ends with the EXACT PR folder path sequence
+                    if len(alert_segments) >= len(changed_segments):
+                        slice_len = len(changed_segments)
+                        # Check the last 'slice_len' folders of the alert list
+                        if alert_segments[-slice_len:] == changed_segments:
                             matched = True
                             break
                         
                 if not matched:
-                    print(f"   ❌ [FILTERED OUT] Directory suffix mismatch against PR changes list.")
+                    print(f"   ❌ [FILTERED OUT] Strict whole-path segment structure mismatch.")
                     continue
                 
-                print(f"   🟢 [KEEP ALERT] Successfully matched PR change path boundaries!")
+                print(f"   🟢 [KEEP ALERT] Successfully matched strict whole-path folder boundaries!")
 
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
@@ -192,7 +189,7 @@ def main():
     CWE_TOP_25 = [
         'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
         'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
-        'CWE-502', 'CWE-122', '863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
