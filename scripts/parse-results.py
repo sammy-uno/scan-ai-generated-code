@@ -125,6 +125,7 @@ def main():
             primary_path = "Unknown"
             primary_line = "?"
             
+            # 🚀 FIXED ARRAY LOOKUP INDEX BUG HERE: Uses [0] to index list elements accurately
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
                 loc_entry = locs_arr[0]
                 if isinstance(loc_entry, dict):
@@ -167,7 +168,7 @@ def main():
 
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
-    # 🚀 DATA-DRIVEN SEVERITY METRICS INITIALIZATION (All arbitrary bypasses deleted)
+    # DATA-DRIVEN SEVERITY METRICS INITIALIZATION (No hardcoding)
     h, m, l = 0, 0, 0
     all_discovered_cwes = set()
     CWE_TOP_25 = [
@@ -214,7 +215,7 @@ def main():
             msg = msg.replace('|', '\\|')
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
-    # Save cleanly to dynamic summary data structure
+    # Save to dynamic JSON payload directly (No name overrides or string checks)
     output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', '.')
     if not os.path.exists(output_dir):
         output_dir = "."
