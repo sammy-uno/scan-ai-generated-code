@@ -130,24 +130,36 @@ def main():
                         primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
+            # 🔬 RESTORED COMPREHENSIVE CONSOLE LOGGING TRACER:
+            print(f"🔎 [PROCESSING ALERT {total_raw_alerts_processed}] ID: `{rule_id}` Path: `{primary_path}:{primary_line}`")
+
             if pr_changed_files:
-                # 🚀 ACCURATE DIR FULL-PATH MATCH MATRIX:
-                # Normalizes all slashes and matches against full relative PR boundaries 
-                # to prevent cross-contamination across identical filenames in different paths!
                 alert_normalized_path = primary_path.replace('\\', '/').lower().strip('/')
+                alert_base_name = os.path.basename(alert_normalized_path)
                 
                 matched = False
                 for changed_path in pr_changed_files:
                     clean_changed = changed_path.strip('/')
-                    # Exact string matching or explicit relative endpath validation matches
-                    if alert_normalized_path == clean_changed or alert_normalized_path.endswith('/' + clean_changed):
-                        matched = True
-                        break
+                    changed_base_name = os.path.basename(clean_changed)
+                    
+                    # 🚀 INTERSECT PATH PROTECTION HOOK:
+                    # If base filename matches, check if any upper folders overlap to verify directory context safely!
+                    if alert_base_name == changed_base_name:
+                        alert_parts = set(alert_normalized_path.split('/'))
+                        changed_parts = set(clean_changed.split('/'))
+                        # Remove common short filenames to avoid false intersections
+                        alert_parts.discard(alert_base_name)
+                        changed_parts.discard(changed_base_name)
+                        
+                        if alert_normalized_path == clean_changed or alert_normalized_path.endswith('/' + clean_changed) or clean_changed.endswith('/' + alert_normalized_path) or not alert_parts.isdisjoint(changed_parts) or not alert_parts or not changed_parts:
+                            matched = True
+                            break
                         
                 if not matched:
+                    print(f"   ❌ [FILTERED OUT] Directory suffix mismatch against PR changes list.")
                     continue
                 
-                print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` matches PR change path boundary context!")
+                print(f"   🟢 [KEEP ALERT] Successfully matched PR change path boundaries!")
 
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
@@ -180,11 +192,10 @@ def main():
     CWE_TOP_25 = [
         'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
         'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
-        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-502', 'CWE-122', '863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
-    # Enforce pure data execution isolation models
     if len(consolidated_results) == 0:
         h, m, l = 0, 0, 0
     else:
