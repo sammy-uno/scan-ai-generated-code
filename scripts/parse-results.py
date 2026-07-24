@@ -121,7 +121,6 @@ def main():
             primary_path = "Unknown"
             primary_line = "?"
             
-            # 🚀 FIXED ARRAY LOOKUP INDEX BUG HERE: Uses [0] to index list elements accurately
             if isinstance(locs_arr, list) and len(locs_arr) > 0:
                 loc_entry = locs_arr[0]
                 if isinstance(loc_entry, dict):
@@ -131,9 +130,11 @@ def main():
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
             if pr_changed_files:
-                alert_base_name = os.path.basename(primary_path)
-                if alert_base_name.lower() not in [b.lower() for b in pr_changed_files]:
-                    print(f"❌ [FILTERED OUT] Alert `{rule_id}` at `{primary_path}:{primary_line}` -> File name '{alert_base_name}' not in PR changes list.")
+                # 🚀 CASE INSENSITIVE FILENAME NORMALIZATION MATCHING:
+                alert_base_name = os.path.basename(primary_path).strip().lower()
+                changed_list_lower = [str(b).strip().lower() for b in pr_changed_files]
+                
+                if alert_base_name not in changed_list_lower:
                     continue
                 
                 print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` matches modified file '{alert_base_name}'!")
@@ -164,7 +165,6 @@ def main():
 
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
-    # DATA-DRIVEN SEVERITY METRICS INITIALIZATION (No hardcoding)
     h, m, l = 0, 0, 0
     all_discovered_cwes = set()
     CWE_TOP_25 = [
@@ -174,9 +174,12 @@ def main():
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
-    if consolidated_results:
-        cwe_per_loc = round(len(consolidated_results) / pr_loc, 4) if pr_loc > 0 else 0.0
-        summary_md += f"**PR Code Change CWE Density:** {cwe_per_loc} Issues per Line of Code (LOC)\n\n"
+    # 🚀 IRONCLAD DATA PROTECTION LAYER:
+    # If the file filter found zero vulnerabilities, all counts are hardlocked to 0.
+    if len(consolidated_results) == 0:
+        h, m, l = 0, 0, 0
+    else:
+        summary_md += f"**PR Code Change CWE Density:** {round(len(consolidated_results) / pr_loc, 4) if pr_loc > 0 else 0.0} Issues per Line of Code (LOC)\n\n"
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
         
         for res_item in consolidated_results:
@@ -203,15 +206,10 @@ def main():
             
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             raw_msg = res_item.get('message', {}).get('text', 'No description')
-            if isinstance(raw_msg, str):
-                msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
-            else:
-                msg = "No description details provided."
-                
+            msg = raw_msg.split('\n')[0] if isinstance(raw_msg, str) else "No details"
             msg = msg.replace('|', '\\|')
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
-    # Save to dynamic JSON payload directly (No name overrides or string checks)
     output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', '.')
     if not os.path.exists(output_dir):
         output_dir = "."
@@ -222,7 +220,7 @@ def main():
         "low": l,
         "total_issues": len(consolidated_results),
         "files_changed": len(pr_changed_files) if pr_changed_files else 1,
-        "cwes_discovered": sorted(list(all_discovered_cwes)) if all_discovered_cwes else []
+        "cwes_discovered": sorted(list(all_discovered_cwes)) if (consolidated_results and all_discovered_cwes) else []
     }
     
     with open(os.path.join(output_dir, "summary.json"), "w", encoding="utf-8") as sm_f:
@@ -235,3 +233,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
