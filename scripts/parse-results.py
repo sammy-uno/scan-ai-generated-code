@@ -1,4 +1,5 @@
 import json
+import glob
 import os
 import subprocess
 import sys
@@ -65,7 +66,6 @@ def main():
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
     
-    # 🚀 FIX: Bulletproof integer fallback assignment prevents base-10 exceptions
     raw_loc = os.environ.get('PR_LOC', '').strip()
     if not raw_loc or not raw_loc.isdigit():
         pr_loc = 1
@@ -76,7 +76,6 @@ def main():
 
     pr_changed_files = get_pr_changed_files_list()
     print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_files)}")
-        
     cwe_map = {}
     try:
         all_rules = []
@@ -117,11 +116,11 @@ def main():
         results = run.get('results', [])
         if not isinstance(results, list): continue
         
-        for res in results:
-            if not isinstance(res, dict): continue
+        for res_item in results:
+            if not isinstance(res_item, dict): continue
             total_raw_alerts_processed += 1
-            rule_id = res.get('ruleId', 'Unknown')
-            locs_arr = res.get('locations', [])
+            rule_id = res_item.get('ruleId', 'Unknown')
+            locs_arr = res_item.get('locations', [])
             
             primary_path = "Unknown"
             primary_line = "?"
@@ -145,13 +144,14 @@ def main():
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
                 seen_findings.add(fingerprint)
-                res['_primary_path'] = primary_path
-                res['_primary_line'] = primary_line
-                consolidated_results.append(res)
+                res_item['_primary_path'] = primary_path
+                res_item['_primary_line'] = primary_line
+                consolidated_results.append(res_item)
 
     print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
     print("====================================================\n")
 
+    # Save the isolated, line-filtered results back to results.sarif
     if consolidated_results:
         for run in runs:
             if isinstance(run, dict) and 'results' in run:
@@ -167,7 +167,7 @@ def main():
 
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
-    # 🚀 CALCULATE SEVERITY METRICS FOR BUCKET TRACKING
+    # 🚀 DATA-DRIVEN SEVERITY METRICS INITIALIZATION (All arbitrary bypasses deleted)
     h, m, l = 0, 0, 0
     all_discovered_cwes = set()
     CWE_TOP_25 = [
@@ -182,11 +182,11 @@ def main():
         summary_md += f"**PR Code Change CWE Density:** {cwe_per_loc} Issues per Line of Code (LOC)\n\n"
         summary_md += "| Severity | CWE | Vulnerability | File:Line | Description |\n| :--- | :--- | :--- | :--- | :--- |\n"
         
-        for res in consolidated_results:
-            path = res.get('_primary_path', 'Unknown')
-            line = res.get('_primary_line', '?')
-            level = str(res.get('level', 'warning')).lower()
-            rule_id = res.get('ruleId', 'Unknown')
+        for res_item in consolidated_results:
+            path = res_item.get('_primary_path', 'Unknown')
+            line = res_item.get('_primary_line', '?')
+            level = str(res_item.get('level', 'warning')).lower()
+            rule_id = res_item.get('ruleId', 'Unknown')
             
             cwes_set = cwe_map.get(rule_id, set())
             is_top_25 = any(c in CWE_TOP_25 for c in cwes_set)
@@ -205,7 +205,7 @@ def main():
                 all_discovered_cwes.add(cwe_id)
             
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
-            raw_msg = res.get('message', {}).get('text', 'No description')
+            raw_msg = res_item.get('message', {}).get('text', 'No description')
             if isinstance(raw_msg, str):
                 msg = raw_msg.split('\n')[0] if '\n' in raw_msg else raw_msg
             else:
@@ -214,9 +214,8 @@ def main():
             msg = msg.replace('|', '\\|')
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
-    # 🚀 THE CRITICAL AUTOMATION FIX: 
-    # Write summary metrics directly into a summary.json file inside the output context!
-    output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', 'sarif-results')
+    # Save cleanly to dynamic summary data structure
+    output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', '.')
     if not os.path.exists(output_dir):
         output_dir = "."
         
@@ -231,7 +230,7 @@ def main():
     
     with open(os.path.join(output_dir, "summary.json"), "w", encoding="utf-8") as sm_f:
         json.dump(summary_payload, sm_f, indent=2)
-    print(f"✅ [METRICS PASSED] Saved clean metrics summary metadata to {output_dir}/summary.json")
+    print(f"✅ [METRICS SERIALIZED] Saved final filtered scan results to {output_dir}/summary.json")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'a') as f: 
