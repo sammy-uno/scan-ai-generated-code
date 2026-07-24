@@ -6,20 +6,20 @@ import sys
 
 def get_pr_changed_files_list():
     """
-    🎯 100% API-DRIVEN FILE TRACKER: Queries the GitHub CLI API directly
-    to isolate true modified files, eliminating fragile git diff branch mismatches.
+    🎯 100% API-DRIVEN FULL PATH TRACKER: Queries the GitHub CLI API directly
+    to isolate true relative workspace paths, preserving directory contexts.
     """
-    changed_filenames = set()
+    changed_paths = set()
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
     
     if not repo or not pr_num:
         print("⚠️ Environment notice: PR_REPO or PR_NUM missing. Skipping API file filters.")
-        return changed_filenames
+        return changed_paths
 
     try:
         print("\n====================================================")
-        print("📥 API LOG TRACE: CAPTURING TRUSTED PR MODIFIED FILES")
+        print("📥 API LOG TRACE: CAPTURING TRUSTED PR MODIFIED PATHS")
         print("====================================================")
         
         cmd = f"gh pr view {pr_num} --repo {repo} --json files"
@@ -32,17 +32,18 @@ def get_pr_changed_files_list():
             for f in files:
                 path = f.get('path', '').strip()
                 if path:
-                    base_name = os.path.basename(path).lower()
-                    changed_filenames.add(base_name)
-                    print(f"✅ [API PR FILE TRACE] Target file detected: {path} (Base Match Key: {base_name})")
+                    # Normalize slashes and force lowercase for bulletproof matching
+                    normalized_path = path.replace('\\', '/').lower()
+                    changed_paths.add(normalized_path)
+                    print(f"✅ [API PR PATH TRACE] Target path detected: {path}")
         else:
             print(f"⚠️ GitHub CLI API Error code: {res.returncode}. Defaulting to empty baseline.")
             
         print("====================================================\n")
                     
     except Exception as e:
-        print(f"❌ [CRITICAL] Error parsing API pull request filename map: {e}")
-    return changed_filenames
+        print(f"❌ [CRITICAL] Error parsing API pull request path map: {e}")
+    return changed_paths
 
 def main():
     sarif_path = "results.sarif"
@@ -130,14 +131,23 @@ def main():
                         primary_line = locs.get('region', {}).get('startLine', '?')
 
             if pr_changed_files:
-                # 🚀 CASE INSENSITIVE FILENAME NORMALIZATION MATCHING:
-                alert_base_name = os.path.basename(primary_path).strip().lower()
-                changed_list_lower = [str(b).strip().lower() for b in pr_changed_files]
+                # 🚀 ACCURATE DIR FULL-PATH MATCH MATRIX:
+                # Normalizes all slashes and matches against full relative PR boundaries 
+                # to prevent cross-contamination across identical filenames in different paths!
+                alert_normalized_path = primary_path.replace('\\', '/').lower().strip('/')
                 
-                if alert_base_name not in changed_list_lower:
+                matched = False
+                for changed_path in pr_changed_files:
+                    clean_changed = changed_path.strip('/')
+                    # Exact string matching or explicit relative endpath validation matches
+                    if alert_normalized_path == clean_changed or alert_normalized_path.endswith('/' + clean_changed):
+                        matched = True
+                        break
+                        
+                if not matched:
                     continue
                 
-                print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` matches modified file '{alert_base_name}'!")
+                print(f"🟢 [KEEP ALERT] Alert `{rule_id}` at `{primary_path}:{primary_line}` matches PR change path boundary context!")
 
             fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
             if fingerprint not in seen_findings:
@@ -174,8 +184,7 @@ def main():
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
-    # 🚀 IRONCLAD DATA PROTECTION LAYER:
-    # If the file filter found zero vulnerabilities, all counts are hardlocked to 0.
+    # Enforce pure data execution isolation models
     if len(consolidated_results) == 0:
         h, m, l = 0, 0, 0
     else:
@@ -233,4 +242,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
