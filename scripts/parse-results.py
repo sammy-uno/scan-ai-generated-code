@@ -6,46 +6,42 @@ import sys
 
 def get_pr_changed_files_list():
     """
-    🎯 PRECISE BRANCH FORK PARSER: Uses the native Git triple-dot syntax 
-    to isolate 100% of the files modified across all commits in this PR.
+    🎯 100% API-DRIVEN FILE TRACKER: Queries the GitHub CLI API directly
+    to isolate true modified files, eliminating fragile git diff branch mismatches.
     """
     changed_filenames = set()
+    repo = os.environ.get('PR_REPO', '')
+    pr_num = os.environ.get('PR_NUM', '')
+    
+    if not repo or not pr_num:
+        print("⚠️ Environment notice: PR_REPO or PR_NUM missing. Skipping API file filters.")
+        return changed_filenames
+
     try:
         print("\n====================================================")
-        print("📥 LOCAL WORKSPACE TRACE: CAPTURING COMPLETE PR FILENAMES")
+        print("📥 API LOG TRACE: CAPTURING TRUSTED PR MODIFIED FILES")
         print("====================================================")
         
-        cmd = "git diff --name-only origin/main...HEAD"
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        sub_env = os.environ.copy()
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=20, env=sub_env)
         
-        if res.returncode != 0 or not res.stdout.strip():
-            cmd = "git diff --name-only origin/master...HEAD"
-            res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            files = data.get('files', [])
+            for f in files:
+                path = f.get('path', '').strip()
+                if path:
+                    base_name = os.path.basename(path).lower()
+                    changed_filenames.add(base_name)
+                    print(f"✅ [API PR FILE TRACE] Target file detected: {path} (Base Match Key: {base_name})")
+        else:
+            print(f"⚠️ GitHub CLI API Error code: {res.returncode}. Defaulting to empty baseline.")
             
-        if res.returncode != 0 or not res.stdout.strip():
-            base_ref = os.environ.get('GITHUB_BASE_REF', 'main')
-            cmd = f"git diff --name-only origin/{base_ref}...HEAD"
-            res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
-            
-        if res.returncode != 0 or not res.stdout.strip():
-            cmd = "git diff --name-only HEAD~1 HEAD"
-            res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=30)
-            
-        if res.returncode != 0:
-            print(f"⚠️ Local Workspace Git Query Warning code: {res.returncode}")
-            return changed_filenames
-            
-        for line in res.stdout.split('\n'):
-            clean_line = line.strip()
-            if clean_line:
-                base_name = os.path.basename(clean_line)
-                changed_filenames.add(base_name)
-                print(f"✅ [GIT FILE TRACE] Target file detected: {clean_line} (Base: {base_name})")
-                
         print("====================================================\n")
                     
     except Exception as e:
-        print(f"❌ [CRITICAL] Error parsing workspace filename map context: {e}")
+        print(f"❌ [CRITICAL] Error parsing API pull request filename map: {e}")
     return changed_filenames
 
 def main():
