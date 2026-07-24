@@ -119,8 +119,7 @@ def main():
             cwe_display = "None"
             total_issues = 0
 
-            # 🚀 RESILIENT SUMMARY JSON TRACKING LAYER:
-            # Looks strictly and objectively for your pre-calculated step output tokens.
+            # 100% DATA-DRIVEN EXCLUSIVE SUMMARY JSON TRACKING LAYER (No hardcoding)
             custom_json_path = f.replace('.success', '.json')
             nested_json_path = os.path.join(parent_dir, f"{name_root}.json")
             flat_json_path = os.path.join(parent_dir, "summary.json")
@@ -133,6 +132,12 @@ def main():
             if target_json_path and os.path.exists(target_json_path):
                 with open(target_json_path, 'r', encoding='utf-8') as sm_f:
                     summary_data = json.load(sm_f)
+                    
+                    # 🚀 DIAGNOSTIC JSON PAYLOAD LOGGER:
+                    # Dumps the explicit string keys read straight into your action container logs!
+                    print(f"\n🔍 [JSON PAYLOAD TRACE] Reading file: {target_json_path}")
+                    print(f"   └── Content: {json.dumps(summary_data)}")
+                    
                     h = int(summary_data.get('high', summary_data.get('H', 0)))
                     m = int(summary_data.get('medium', summary_data.get('M', 0)))
                     l = int(summary_data.get('low', summary_data.get('L', 0)))
@@ -144,8 +149,10 @@ def main():
                         cwe_display = ', '.join(sorted(cwes_list)) if cwes_list else "None"
                     else:
                         cwe_display = str(cwes_list)
+                    
+                    print(f"   └── Extracted Taxonomy: {cwe_display} | Issues Counted: {total_issues}")
             else:
-                # Force clean defaults if no summary metadata is written on disk
+                print(f"⚠️ [JSON PAYLOAD WARNING] Summary file missing or skipped for: {name_root}")
                 h, m, l = 0, 0, 0
                 cwe_display = "None"
                 total_issues = 0
