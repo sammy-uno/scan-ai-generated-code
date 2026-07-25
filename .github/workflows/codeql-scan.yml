@@ -66,6 +66,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          upload-database: false
           build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
