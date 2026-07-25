@@ -73,6 +73,7 @@ def main():
 
     pr_changed_files = get_pr_changed_files_list()
     print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_files)}")
+
     cwe_map = {}
     try:
         all_rules = []
@@ -102,40 +103,43 @@ def main():
 
     consolidated_results = []
     seen_findings = set()
+    total_raw_alerts_processed = 0
 
     print("\n====================================================")
     print("🎯 DEBUG LOG STEP 2: EVALUATING INDIVIDUAL SARIF ALERTS")
     print("====================================================")
 
-    total_raw_alerts_processed = 0
-    for run in runs:
-        if not isinstance(run, dict): continue
-        results = run.get('results', [])
-        if not isinstance(results, list): continue
-        
-        for res_item in results:
-            if not isinstance(res_item, dict): continue
-            total_raw_alerts_processed += 1
-            rule_id = res_item.get('ruleId', 'Unknown')
-            locs_arr = res_item.get('locations', [])
+    # 🚀 EMPTY DATASET GUARD LAYER:
+    # If the PR contains 0 changed files, completely skip scanning rules 
+    # to block background baseline alerts from leaking out into the summary metrics!
+    if len(pr_changed_files) == 0:
+        print("⚠️ [EMPTY DATASET GUARD ACTIVATED] This PR has 0 changed files. Skipping alert mapping loops.")
+    else:
+        for run in runs:
+            if not isinstance(run, dict): continue
+            results = run.get('results', [])
+            if not isinstance(results, list): continue
             
-            primary_path = "Unknown"
-            primary_line = "?"
-            
-            if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                loc_entry = locs_arr[0]
-                if isinstance(loc_entry, dict):
-                    locs = loc_entry.get('physicalLocation', {})
-                    if isinstance(locs, dict):
-                        primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
-                        primary_line = locs.get('region', {}).get('startLine', '?')
+            for res_item in results:
+                if not isinstance(res_item, dict): continue
+                total_raw_alerts_processed += 1
+                rule_id = res_item.get('ruleId', 'Unknown')
+                locs_arr = res_item.get('locations', [])
+                
+                primary_path = "Unknown"
+                primary_line = "?"
+                
+                if isinstance(locs_arr, list) and len(locs_arr) > 0:
+                    loc_entry = locs_arr[0]
+                    if isinstance(loc_entry, dict):
+                        locs = loc_entry.get('physicalLocation', {})
+                        if isinstance(locs, dict):
+                            primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
+                            primary_line = locs.get('region', {}).get('startLine', '?')
 
-            print(f"🔎 [PROCESSING ALERT {total_raw_alerts_processed}] ID: `{rule_id}` Path: `{primary_path}:{primary_line}`")
+                print(f"🔎 [PROCESSING ALERT {total_raw_alerts_processed}] ID: `{rule_id}` Path: `{primary_path}:{primary_line}`")
 
-            if pr_changed_files:
-                # 🚀 WHOLE-PATH COMPREHENSIVE SEGMENT CHECK:
-                # Breaks down paths into full directory lists from root to filename
-                # to strictly require segment-for-segment directory matches!
+                # Strict whole-path segment structure check execution layer
                 alert_norm = primary_path.replace('\\', '/').lower().strip('/')
                 alert_segments = [p for p in alert_norm.split('/') if p]
                 
@@ -144,26 +148,24 @@ def main():
                     changed_norm = changed_path.strip().lower().strip('/')
                     changed_segments = [p for p in changed_norm.split('/') if p]
                     
-                    # Verify if the alert directory structure ends with the EXACT PR folder path sequence
                     if len(alert_segments) >= len(changed_segments):
                         slice_len = len(changed_segments)
-                        # Check the last 'slice_len' folders of the alert list
                         if alert_segments[-slice_len:] == changed_segments:
                             matched = True
                             break
-                        
+                            
                 if not matched:
                     print(f"   ❌ [FILTERED OUT] Strict whole-path segment structure mismatch.")
                     continue
                 
                 print(f"   🟢 [KEEP ALERT] Successfully matched strict whole-path folder boundaries!")
 
-            fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
-            if fingerprint not in seen_findings:
-                seen_findings.add(fingerprint)
-                res_item['_primary_path'] = primary_path
-                res_item['_primary_line'] = primary_line
-                consolidated_results.append(res_item)
+                fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
+                if fingerprint not in seen_findings:
+                    seen_findings.add(fingerprint)
+                    res_item['_primary_path'] = primary_path
+                    res_item['_primary_line'] = primary_line
+                    consolidated_results.append(res_item)
 
     print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
     print("====================================================\n")
@@ -223,7 +225,7 @@ def main():
             
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             raw_msg = res_item.get('message', {}).get('text', 'No description')
-            msg = raw_msg.split('\n')[0] if isinstance(raw_msg, str) else "No details"
+            msg = raw_msg.split('\n') if isinstance(raw_msg, str) else "No details"
             msg = msg.replace('|', '\\|')
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
@@ -236,7 +238,7 @@ def main():
         "medium": m,
         "low": l,
         "total_issues": len(consolidated_results),
-        "files_changed": len(pr_changed_files) if pr_changed_files else 1,
+        "files_changed": len(pr_changed_files) if pr_changed_files else 0, # Explicitly binds 0 files changed parameter bounds
         "cwes_discovered": sorted(list(all_discovered_cwes)) if (consolidated_results and all_discovered_cwes) else []
     }
     
