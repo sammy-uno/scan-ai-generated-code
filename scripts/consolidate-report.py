@@ -134,7 +134,6 @@ def main():
                     summary_data = json.load(sm_f)
                     
                     # 🚀 DIAGNOSTIC JSON PAYLOAD LOGGER:
-                    # Dumps the explicit string keys read straight into your action container logs!
                     print(f"\n🔍 [JSON PAYLOAD TRACE] Reading file: {target_json_path}")
                     print(f"   └── Content: {json.dumps(summary_data)}")
                     
@@ -162,7 +161,12 @@ def main():
             if total_issues > 0: 
                 vulnerable_count += 1
             
-            cwe_density = round(total_issues / live_loc, 4) if live_loc > 0 else 0.0
+            # 🚀 ENFORCE THE PURE MATH DENSITY LOCK:
+            # If files changed is 0, density is mathematically 0.0.
+            if committed_files_count == 0:
+                cwe_density = 0.0
+            else:
+                cwe_density = round(total_issues / live_loc, 4) if live_loc > 0 else 0.0
             
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
@@ -178,9 +182,13 @@ def main():
             elif "Merged" in status_badge: merged_count += 1
             else: closed_count += 1
             
+            # 🚀 DATA-DRIVEN DISPLAY OVERRIDE:
+            # If changed files count is 0, render 0 LOC on the table scorecard summary.
+            display_loc = 0 if committed_files_count == 0 else live_loc
+            
             row_entry = {
                 "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
-                "loc": live_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
+                "loc": display_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge
             }
             table_rows.append(row_entry)
