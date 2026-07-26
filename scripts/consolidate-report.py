@@ -145,9 +145,11 @@ def main():
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
                     if isinstance(cwes_list, list):
-                        cwe_display = ', '.join(sorted(cwes_list)) if cwes_list else "None"
+                        # 🚀 THE CRITICAL FIX: Strip empty strings, map spaces, and enforce clean uppercase names
+                        clean_cwes = sorted(list(set(str(c).strip().upper() for c in cwes_list if c and str(c).strip())))
+                        cwe_display = ', '.join(clean_cwes) if clean_cwes else "None"
                     else:
-                        cwe_display = str(cwes_list)
+                        cwe_display = str(cwes_list).strip().upper() if cwes_list else "None"
                     
                     print(f"   └── Extracted Taxonomy: {cwe_display} | Issues Counted: {total_issues}")
             else:
