@@ -1,5 +1,4 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
-dotnet/dotnet-api-docs,11463,Add structural API reference updates (512 LOC),csharp,Human_Auditor,12400
 kubernetes/kubernetes,118432,Optimize node validation routine loops (844 LOC),go,Human_Auditor,108400
 tensorflow/tensorflow,61234,Fix memory leaks in convolution layers (310 LOC),python,Human_Auditor,184300
 pytorch/pytorch,104321,Enhance tensor data layout transformations (920 LOC),python,Human_Auditor,75200
