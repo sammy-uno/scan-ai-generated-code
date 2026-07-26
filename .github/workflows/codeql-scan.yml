@@ -39,7 +39,7 @@ jobs:
     # Safe validation to prevent matrix syntax crashes on empty or null discovery results
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && fromJson(needs.discover.outputs.matrix).include[0] != null }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       CODEQL_RAM: 12000
     strategy:
