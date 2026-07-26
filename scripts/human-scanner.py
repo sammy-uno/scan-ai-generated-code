@@ -31,7 +31,8 @@ def main():
     ]
     
     # --- TRACKING ---
-    stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0}
+    # Added "empty" counter to track Human PRs with 0 files/lines change
+    stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -48,6 +49,9 @@ def main():
         
         repo = row['repo_name']
         num = str(row['number'])
+        lang = str(row['primary_language'])
+        title = str(row.get('title', 'Untitled'))
+        stars = str(row.get('repo_stars', '0'))
         
         if repo in EXCLUDE_REPOS:
             print(f"SKIP: {repo} (Manual Exclude)")
@@ -61,11 +65,18 @@ def main():
             
         # Immediately track to block duplicate API hammering
         seen_repos.add(repo)
-
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
-        if lines_res: # Simplified since run_command handles exit status safety
+        if lines_res: 
             data = json.loads(lines_res.stdout)
             total = data.get("additions", 0) + data.get("deletions", 0)
+            
+            # 🚀 THE ZERO-CHANGE EXCLUSION GUARD:
+            # Drops any Human PR that introduces 0 modifications
+            if total == 0:
+                print(f"SKIP: {repo} #{num} (Empty PR: 0 files/lines change)")
+                stats["empty"] += 1
+                continue
+                
             if total > MAX_PR_LINES:
                 print(f"SKIP: {repo} #{num} (Size: {total} lines)")
                 stats["too_big"] += 1
@@ -79,10 +90,10 @@ def main():
         matrix_include.append({
             "pr_num": num, 
             "repo_name": repo, 
-            "language": row['primary_language'], 
-            "pr_title": row.get('title', 'Untitled'),
+            "language": lang, 
+            "pr_title": title,
             "agent_name": "Human_Auditor", 
-            "category_name": f"human--{repo.replace('/', '_SLASH_')}--{num}--{row['primary_language']}"
+            "category_name": f"human--{repo.replace('/', '_SLASH_')}--{num}--{lang}"
         })
         
         print(f"ADDED: {repo} #{num} ({total} lines)")
@@ -91,6 +102,7 @@ def main():
     print("\n--- Human Discovery Summary ---")
     print(f"✅ Total Added: {stats['added']}")
     print(f"❌ Too Large:  {stats['too_big']}")
+    print(f"💨 Skipped (Empty 0 LOC): {stats['empty']}")
     print(f"🚫 Excluded:   {stats['excluded']}")
     print(f"👯 Duplicates: {stats['duplicates']}")
     print(f"⚠️  API Errors: {stats['api_error']}")
