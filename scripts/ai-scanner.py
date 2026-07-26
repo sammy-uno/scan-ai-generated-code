@@ -19,7 +19,8 @@ def main():
     EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
     # --- TRACKING ---
-    stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0}
+    # Added "empty" counter to track PRs with 0 files/lines cleanly
+    stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -49,11 +50,18 @@ def main():
             
         # Immediately track to prevent duplicate API hammering
         seen_repos.add(repo)
-
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: # Simplified since run_command only returns clean 0 exits
             data = json.loads(lines_res.stdout)
             total = data.get("additions", 0) + data.get("deletions", 0)
+            
+            # 🚀 THE ZERO-CHANGE EXCLUSION GUARD:
+            # Factually skips any PR that introduces 0 modifications
+            if total == 0:
+                print(f"SKIP: {repo} #{num} (Empty PR: 0 files/lines change)")
+                stats["empty"] += 1
+                continue
+                
             if total > MAX_PR_LINES:
                 print(f"SKIP: {repo} #{num} (Size: {total} lines)")
                 stats["too_big"] += 1
@@ -78,6 +86,7 @@ def main():
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
     print(f"❌ Skipped (Too Large):   {stats['too_big']}")
+    print(f"💨 Skipped (Empty 0 LOC):  {stats['empty']}")
     print(f"🚫 Skipped (Excluded):    {stats['excluded']}")
     print(f"👯 Skipped (Duplicates):  {stats['duplicates']}")
     print(f"⚠️  Skipped (API Errors): {stats['api_error']}")
