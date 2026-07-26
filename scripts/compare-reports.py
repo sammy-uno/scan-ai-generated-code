@@ -5,11 +5,11 @@ import subprocess
 from datetime import datetime, timedelta
 
 def main():
-    # 🚀 THE FIX: Target the clean json summary tokens exclusively!
+    # Target json summaries exclusively
     search_path = os.path.join('all-results', '**', '*.json')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
-    # Standard thesis metrics dictionary tracking buffers
+    # Clean research data matrices tracking buffers
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     
@@ -18,15 +18,17 @@ def main():
     seen_prs = set()
 
     print("\n====================================================")
-    print("🎯 COMPARATIVE TRACE STEP 1: PARSING SCORED JSON SUMMARIES")
+    print("🎯 COMPARATIVE TRACE STEP 1: PARSING SCORED DATA TOKENS")
     print("====================================================")
 
     for f in all_files:
         fname = os.path.basename(f)
         parent_dir = os.path.basename(os.path.dirname(f))
         
-        # Skip standard system files if they drop into the folder root
-        if fname == "summary.json":
+        # 🚀 THE CRITICAL FILENAME SHIELD:
+        # Completely skip the generic summary.json files. This guarantees 
+        # the loop processes exactly ONE file per PR slot, preventing metadata mismatch inflation!
+        if fname.lower() == "summary.json":
             continue
 
         repo_path = ""
@@ -34,9 +36,9 @@ def main():
         live_loc = 100
         is_human = False
 
-        # Extract metadata from token handles natively
-        if '--' in fname or '--' in parent_dir:
-            naming_string = fname.replace('.json', '') if '--' in fname else parent_dir.replace('sarif-', '')
+        # Extract research variables from custom-named token layout
+        if '--' in fname:
+            naming_string = fname.replace('.json', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
             if len(parts) >= 5:
                 idx = 0
@@ -47,9 +49,10 @@ def main():
                         if "human" in item.lower(): is_human = True
                     elif idx == 4: live_loc = int(item) if item.isdigit() else 100
                     idx += 1
-                if "human" in fname.lower() or "human" in parent_dir.lower():
+                if "human" in fname.lower():
                     is_human = True
 
+        # Drop files that do not conform to our long-token research syntax
         if not repo_path or not pr_num:
             continue
 
@@ -60,7 +63,7 @@ def main():
             else:
                 if f_mtime > latest_ai_epoch: latest_ai_epoch = f_mtime
 
-            # 🚀 THE CRITICAL FIX: Extract metrics directly from our pre-filtered JSON summary files!
+            # Extract metrics directly from our pre-filtered JSON summary files
             with open(f, 'r', encoding='utf-8') as s:
                 summary_data = json.load(s)
 
@@ -69,21 +72,27 @@ def main():
             l = int(summary_data.get('low', summary_data.get('L', 0)))
             total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
 
-            # 🔬 ADDED VERBOSE PERFORMANCE LOG TRACER
-            print(f"📈 [COMPILING SUMMARY] Track: {'HUMAN' if is_human else 'AI'} | Target: {repo_path} #{pr_num}")
-            print(f"   └── Read Metrics: {total_issues} (🔴 H: {h} | 🟡 M: {m} | 🔵 L: {l})")
-
             target = human_metrics if is_human else ai_metrics
-            target["total"] += total_issues
-            target["high"] += h
-            target["medium"] += m
-            target["low"] += l
 
+            # 🚀 THE BULLETPROOF INTEGRITY FILTER:
+            # We ONLY count metrics and PR metadata if we haven't processed this unique PR token yet.
+            # This completely blocks generic duplicate summaries from bleeding into total metrics!
             pr_track_key = f"{'human' if is_human else 'ai'}--{repo_path}#{pr_num}"
             if pr_track_key not in seen_prs:
                 seen_prs.add(pr_track_key)
+                
+                # Accumulate issue tracking vectors
+                target["total"] += total_issues
+                target["high"] += h
+                target["medium"] += m
+                target["low"] += l
+                
+                # Accumulate high-level metadata dimensions safely
                 target["scanned_prs"] += 1
                 target["total_loc"] += live_loc
+
+                print(f"📈 [COMPILING SUMMARY] Track: {'HUMAN' if is_human else 'AI'} | Target: {repo_path} #{pr_num}")
+                print(f"   └── Registered Metrics: {total_issues} (🔴 H: {h} | 🟡 M: {m} | 🔵 L: {l})")
 
                 # Generic live lifecycle query check inside evaluation tracker
                 try:
@@ -110,7 +119,6 @@ def main():
     current_repo_context = os.environ.get('GITHUB_REPOSITORY', 'sammy-uno/scan-ai-generated-code').strip()
     clean_repo = current_repo_context.strip('/')
     
-    # Initialize variables for live API lookups
     ai_run_id = ""
     ai_stamp = "No Run Log Found"
     human_run_id = ""
@@ -153,7 +161,6 @@ def main():
     except Exception:
         pass
 
-    # Dynamic fallback to current runner run context if API queries return empty strings
     if not ai_run_id:
         ai_run_id = os.environ.get('GITHUB_RUN_ID', '')
         ai_stamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p CT")
@@ -161,7 +168,6 @@ def main():
         human_run_id = os.environ.get('GITHUB_RUN_ID', '')
         human_stamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p CT")
 
-    # 🔬 ACTIVE CONSOLE DIAGNOSTIC TRACE BLOCK:
     print("\n====================================================")
     print("📊 COMPARATIVE TRACE STEP 2: COMPILED EVALUATION GRID")
     print("====================================================")
@@ -178,8 +184,6 @@ def main():
         out.write(f'- **Human Scan Last Run:** {human_stamp}\n\n')
         
         out.write('### ⚔️ High-Level Group Comparison\n')
-        
-        # 🚀 COLUMN HEADING UPDATE: Enforces your exact title standard cleanly
         out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total CWEs Introduced | 🔴 High | 🟡 Medium | 🔵 Low | Total PRs open | Total PRs closed | Total PRs merged |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         
