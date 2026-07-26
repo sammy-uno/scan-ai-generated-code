@@ -60,23 +60,13 @@ jobs:
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
-          # Cache python tracking handlers out of line safely
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
+          rm -rf ./*
           
-          echo "📥 Extracting direct PR head branch source dynamically..."
-          # 🚀 THE NATIVE RECOVERY ERASER:
-          # Queries the GitHub API dynamically to get the exact source branch name
-          # for ANY pull request, completely removing hardcoded repository paths!
-          HEAD_BRANCH=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json headRefName --jq '.headRefName')
-          echo "🌿 PR Source Head Branch Isolated: $HEAD_BRANCH"
-          
-          # Use standard GitHub CLI checkout mechanics to fetch the fork or internal branch cleanly
+          # 🚀 100% IDENTICAL TO AI WORKFLOW:
+          # Uses the standard native GitHub CLI tool to check out the public PR cleanly
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # Explicitly force checkout to the exact raw source branch string returned by the API
-          git checkout $HEAD_BRANCH
-          
-          # Restore script processing context mirrors
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
           
       - name: Initialize CodeQL
