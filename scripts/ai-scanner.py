@@ -19,7 +19,6 @@ def main():
     EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana"]
     
     # --- TRACKING ---
-    # Added "empty" counter to track PRs with 0 files/lines cleanly
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
     
     if not os.path.exists(INPUT_CSV):
@@ -35,8 +34,13 @@ def main():
         if stats["added"] >= SCAN_LIMIT: 
             break
         
+        # 🚀 RESTORED ORIGINAL CSV HEADERS
         repo = row['repo_name']
         num = str(row['number'])
+        title = str(row['title'])
+        lang = str(row['primary_language'])
+        agent = str(row['agent_name'])
+        stars = str(row['repo_stars'])
         
         if repo in EXCLUDE_REPOS:
             print(f"SKIP: {repo} (Manual Exclude)")
@@ -51,12 +55,12 @@ def main():
         # Immediately track to prevent duplicate API hammering
         seen_repos.add(repo)
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
-        if lines_res: # Simplified since run_command only returns clean 0 exits
+        if lines_res: 
             data = json.loads(lines_res.stdout)
             total = data.get("additions", 0) + data.get("deletions", 0)
             
-            # 🚀 THE ZERO-CHANGE EXCLUSION GUARD:
-            # Factually skips any PR that introduces 0 modifications
+            # 🚀 ZERO-CHANGE EXCLUSION GUARD:
+            # Drops any PR that has 0 modifications
             if total == 0:
                 print(f"SKIP: {repo} #{num} (Empty PR: 0 files/lines change)")
                 stats["empty"] += 1
@@ -71,13 +75,14 @@ def main():
             stats["api_error"] += 1
             continue
 
+        # 🚀 RESTORED ORIGINAL WORKFLOW MATRIX SCHEME
         matrix_include.append({
             "pr_num": num, 
             "repo_name": repo, 
-            "language": row['primary_language'], 
-            "pr_title": row.get('title', 'Untitled'), 
-            "agent_name": row['agent_name'],
-            "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{row['primary_language']}--{row['agent_name'].replace(' ', '_')}"
+            "language": lang, 
+            "pr_title": title, 
+            "agent_name": agent,
+            "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{lang}--{agent.replace(' ', '_')}"
         })
         
         print(f"ADDED: {repo} #{num} ({total} lines)")
