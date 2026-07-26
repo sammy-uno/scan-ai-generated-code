@@ -2,4 +2,500 @@ repo_name,number,title,primary_language,repo_stars,agent_name
 analogdotnow/Analog,155,Fix event date time update bug,javascript,1079,human
 Skyvern-AI/skyvern,2837,Bump requests from 2.32.3 to 2.32.4 in /integrations/langchain,python,13976,human
 liam-hq/liam,2267,chore(deps): update dependency postcss to v8.5.5,javascript,4194,human
-
+liam-hq/liam,2266,chore(deps): update dependency @vitejs/plugin-react to v4.5.2,javascript,4194,human
+onlook-dev/onlook,2295,fix: handle chat failure better,javascript,21192,human
+Skyvern-AI/skyvern,2824,Bump python-jose from 3.3.0 to 3.4.0,python,13976,human
+onlook-dev/onlook,2294,refactor: remove redundant code,javascript,21192,human
+oraios/serena,247,ci: publish ARM-based Docker image too,python,6198,human
+PrefectHQ/prefect,18386,Add section of examples on schedule CLI,python,19894,human
+Blaizzy/mlx-vlm,397,[gemma3n] Correctly scale text embeddings for quantized gemma3n conversions,python,1551,human
+PriorLabs/TabPFN,359,Add evaluation helper for batched fine-tuning,python,4181,human
+onyx-dot-app/onyx,4956,kg source fix,python,13231,human
+promptfoo/promptfoo,4674,fix(providers): handle content filter errors in azure assistant api,javascript,7809,human
+microsoft/vscode,252669,Adopt mcp token flag (take 2),javascript,175171,human
+crewAIInc/crewAI,3080,feat: add Klavis MCP Server Tools doc,python,35096,human
+antiwork/flexile,419,Implements buyback workflows,ruby,665,human
+antiwork/gumroad,482,Skip payout pause for sellers with accounts older than 2 years,ruby,6643,human
+mendableai/firecrawl,1728,(feat/ledger) Ledger events,javascript,43970,human
+marimo-team/marimo,5476,fix: wasm kernels don't have argv,python,14933,human
+antiwork/gumroad,480,[Refactor] Move tax calculation logic into a service object,ruby,6643,human
+thirdweb-dev/js,7459,"[TOOL-4898] Dashboard: Replace PayEmbed with BuyWidget in asset page, add tracking",javascript,538,human
+recallnet/js-recall,764,fix(comps): remaining UI issues from https://github.com/recallnet/js-recall/pull/762,javascript,965,human
+antiwork/gumroad,479,chore(tech debt): refactor price handling in models and services,ruby,6643,human
+MervinPraison/PraisonAI,703,Add PraisonAI QA Automation Copilot Notebook,python,5243,human
+GitbookIO/gitbook,3402,Fix markdown page generation for groups,javascript,28156,human
+microsoft/vscode,252628,log as debug,javascript,175171,human
+mlflow/mlflow,16477,Docs external link check,python,21402,human
+Significant-Gravitas/AutoGPT,10253,fix(frontend): design system feedback,python,177379,human
+crewAIInc/crewAI,3078,Fix: Add cache_function of a CrewStructuredTool,python,35096,human
+apache/pinot,16217,Bump com.dynatrace.hash4j:hash4j from 0.22.0 to 0.23.0,java,5851,human
+antiwork/gumroad,475,Deduplicated calls to recalculate plaintext description,ruby,6643,human
+novuhq/novu,8602,feat(api-service): set default or provided layoutid as control value when creating or updating email step,javascript,37349,human
+liam-hq/liam,2264,feat: add lint scripts to schema-bench package,javascript,4194,human
+antiwork/gumroad,471,Preloaded thumbnail variants to avoid n+1 SQL queries,ruby,6643,human
+langfuse/langfuse,7541,chore: skip s3 LIST for projects configured in env,javascript,14483,human
+liam-hq/liam,2263,♻️ [schema-bench] Refactor evaluation workflow to use neverthrow for error handling,javascript,4194,human
+pixijs/pixijs,11502,feat: break words for bitmap text,javascript,45473,human
+onlook-dev/onlook,2288,feat: use tool calling for code editing,javascript,21192,human
+promptfoo/promptfoo,4661,feat: add support for OpenAI deep research models,javascript,7809,human
+promptfoo/promptfoo,4660,docs: garak comparison,javascript,7809,human
+Azure/azure-sdk-for-js,35006,[mgmt] purestorageblock release,javascript,2222,human
+openai/openai-agents-python,950,Fix #944 by updating the models document page to cover extra_args,python,13119,human
+liam-hq/liam,2258,feat: add support for table-level primary key constraints,javascript,4194,human
+antiwork/flexile,418,Make hourly rate optional for contractors,ruby,665,human
+DataDog/dd-trace-java,9042,Configure Spotless to automatically remove unused imports.,java,654,human
+sam-goodwin/alchemy,502,fix(cloudflare): resolve paths relative to wrangler.json file location,javascript,750,human
+antiwork/flexile,417,fix(user settings): sync email change between db and clerk,ruby,665,human
+antiwork/gumroad,465,Removed unused code,ruby,6643,human
+onlook-dev/onlook,2286,Add Google Vertex mapping for Claude models,javascript,21192,human
+antiwork/flexile,416,Fix failing spec caused by automated company creation,ruby,665,human
+assistant-ui/assistant-ui,2152,docs: migration guide for v0.11,javascript,5475,human
+microsoft/typespec,7766,"[http-client-csharp] support attributes for fields, props, & ctors",java,5285,human
+wandb/weave,4905,"deps(deps): update cohere requirement from <5.9.3,>=5.9.1 to >=5.9.1,<5.15.1 in the cohere group",python,950,human
+featureform/enrichmcp,98,Fix pip cache warning,python,583,human
+getsentry/sentry,94465,fix(dev): mktemp: too few X's in template,python,41579,human
+mendableai/firecrawl,1719,Fix unreachable allowSubdomains code in crawler filterURL method,javascript,43970,human
+elizaOS/eliza,5297,fix: rollback-pr-5270,javascript,16507,human
+airbytehq/airbyte,62092,🐛 Source facebook-page: fix stream and update version to v23.0,python,19011,human
+promptfoo/promptfoo,4651,chore(telemetry): better de-duplicate page views,javascript,7809,human
+antiwork/flexile,415,feat: self serve invite link,ruby,665,human
+crewAIInc/crewAI,3075,Fix pydantic_schema_parser to handle Python 3.10+ union syntax (types.UnionType),python,35096,human
+calcom/cal.com,22067,feat: optimize slot calculation performance for team event types,javascript,37399,human
+antiwork/gumroad,463,fix(discover): allow multi-tag selection in tag filters,ruby,6643,human
+lingodotdev/lingo.dev,972,fix(compiler): support components with dot in name,javascript,2784,human
+crewAIInc/crewAI-tools,350,build: fix command to generate tools specs on CI,python,1177,human
+OpenHFT/Chronicle-Wire,1204,Adv/01 vers2,java,557,human
+crewAIInc/crewAI,3073,Fix tool remembering to avoid spamming it,python,35096,human
+crewAIInc/crewAI,3072,fix: ensure env-vars are written in upper case,python,35096,human
+mendableai/firecrawl,1717,Allow international URLs to pass validation,javascript,43970,human
+onlook-dev/onlook,2282,Fix/update overlay in resizing,javascript,21192,human
+microsoft/playwright,36455,chore: migrate some dispatchers from CallMetadata to Progress (part 4),javascript,75427,human
+crewAIInc/crewAI,3071,docs: update CLI LLM's documentation,python,35096,human
+box/box-ui-elements,4162,feat(router): optional router in withRouterAndRef hoc,javascript,546,human
+github/docs,39057,Repo sync,javascript,17647,human
+antiwork/flexile,414,Remove redundant validation check in invoice service,ruby,665,human
+crewAIInc/crewAI,3070,Adding Nebius to docs,python,35096,human
+antiwork/gumroad,457,[BE] Remove unused code,ruby,6643,human
+pdfme/pdfme,1093,Bump acorn from 8.14.1 to 8.15.0,javascript,3389,human
+pdfme/pdfme,1091,Bump zod from 3.25.46 to 3.25.67,javascript,3389,human
+pdfme/pdfme,1090,Bump prettier from 3.5.3 to 3.6.1,javascript,3389,human
+pdfme/pdfme,1086,Bump lucide-react from 0.511.0 to 0.523.0,javascript,3389,human
+pdfme/pdfme,1083,Bump node-html-better-parser from 1.4.11 to 1.5.1,javascript,3389,human
+pdfme/pdfme,1081,Bump lucide from 0.511.0 to 0.523.0,javascript,3389,human
+pdfme/pdfme,1077,Bump jest-environment-jsdom from 29.7.0 to 30.0.2,javascript,3389,human
+pdfme/pdfme,1076,Bump @types/react-dom from 17.0.26 to 19.1.6 in /packages/ui,javascript,3389,human
+pdfme/pdfme,1072,Bump @docusaurus/plugin-google-gtag from 3.8.0 to 3.8.1 in /website,javascript,3389,human
+pdfme/pdfme,1064,Bump @docusaurus/plugin-client-redirects from 3.8.0 to 3.8.1 in /website,javascript,3389,human
+antiwork/gumroad,456,feat: About webpage redesign,ruby,6643,human
+PriorLabs/TabPFN,347,Fix config download cleanup,python,4181,human
+OneKeyHQ/app-monorepo,7641,"OK-39433, add text ""Max"" to AmountInput & remove ""Account manage"" action from watch-only, private key and…",javascript,1995,human
+liam-hq/liam,2241,🔧(scripts): Simplify test script naming for AI agents,javascript,4194,human
+Codehagen/Badget,292,Add financial accounts dashboard page,javascript,2579,human
+liam-hq/liam,2231,✨ Visualize Multi-Agent Process Progress in Chat ,javascript,4194,human
+liam-hq/liam,2230,🧪 feat: add daily lint check workflow with automated issue creation,javascript,4194,human
+promptfoo/promptfoo,4646,test: add comprehensive test coverage for SageMaker provider,javascript,7809,human
+liam-hq/liam,2225,feat: implement complete PostgreSQL schema deparser with indexes and constraints,javascript,4194,human
+trycompai/comp,1061,[comp] Production Deploy,javascript,950,human
+Significant-Gravitas/AutoGPT,10247,Patch 2,python,177379,human
+liam-hq/liam,2220,fix: resolve release workflow failure due to GitHub App permissions (v2),javascript,4194,human
+codemod-com/codemod,1558,chore(bump): Bump codemod crates version to v1.0.0-rc.4,javascript,767,human
+liam-hq/liam,2216,Fixed incorrect workflow file,javascript,4194,human
+liam-hq/liam,2212,feat: add Master Coverage Workflow for weekly coverage analysis,javascript,4194,human
+mlflow/mlflow,16458,Fix non-existent `mlflow.active_experiment()` calls in GenAI docs,python,21402,human
+antiwork/gumroad,449,[BE] Remove unused constants and methods,ruby,6643,human
+crewAIInc/crewAI,3067,chore: update version to 0.134.0 across project files,python,35096,human
+OpenPipe/ART,163,feat: Multi-device training,python,4108,human
+saturday06/VRM-Addon-for-Blender,933,chore(deps): update deno dependencies [BOT],python,1473,human
+ComposioHQ/composio,1700,fix: preview generation,javascript,25592,human
+antiwork/gumroad,446,feat: Perform Gumroad About webpage redesign,ruby,6643,human
+FlowiseAI/Flowise,4734,Bugfix/Allow OverrideConfig For Multiple Nodes In AgentflowV2,javascript,42134,human
+NangoHQ/nango,4257,fix: more json schema cases,javascript,5463,human
+microsoft/vscode-mssql,19651,Fix accessibility issues in Connection Dialog - add proper ARIA labels and semantic structure,javascript,1718,human
+Codehagen/Badget,291,Add investment asset dialog and command palette,javascript,2579,human
+calcom/cal.com,22040,feat: add stale flag to CalendarCache to prevent race conditions,javascript,37399,human
+Codehagen/Badget,290,Transactions,javascript,2579,human
+analogdotnow/Analog,150,docs: add Microsoft OAuth setup instructions to contributing guide and README,javascript,1079,human
+antiwork/flexile,413,Optimize invoices page to load only invoices needing approval by default,ruby,665,human
+box/box-ui-elements,4161,feat(router): optional router in NavRouter and withNavRouter,javascript,546,human
+tokens-studio/figma-plugin,3438,Version Packages,javascript,1469,human
+novuhq/novu,8588,chore(root): Release 2025-06-25 14:15,javascript,37349,human
+crewAIInc/crewAI-tools,345,Support to filter available MCP Tools,python,1177,human
+crewAIInc/crewAI,3063,Fix: Add CREWAI_DISABLE_EMOJIS environment variable to disable emojis in logs,python,35096,human
+CapSoftware/Cap,692,"feat: Import video to Cap desktop, open in editor",javascript,10645,human
+antiwork/flexile,410,Onboarding checklist in nav,ruby,665,human
+antiwork/gumroad,437,Remove dead code from Purchase::PingNotification module,ruby,6643,human
+antiwork/gumroad,436,Refactor/product duplicator service,ruby,6643,human
+ComposioHQ/composio,1697,feat: updated mcp docs; added developer section,javascript,25592,human
+tokens-studio/figma-plugin,3437,Add changeset for 3425,javascript,1469,human
+reown-com/appkit,4568,ci(devin): update Devin docs workflow to tag relevant teams in PRs,javascript,5202,human
+openops-cloud/openops,865,Fix AWS cost MCP availability check for mcp-aws-cost-unavailable.txt prompt loading,javascript,908,human
+antiwork/flexile,409,Add checklist functionality for company onboarding,ruby,665,human
+crewAIInc/crewAI-tools,344,feat: add desearch ai tool,python,1177,human
+lingodotdev/lingo.dev,962,"chore: format with prettier, add prettier check for PRs",javascript,2784,human
+TobikoData/sqlmesh,4807,ci: publish to open vsx,python,2499,human
+dlt-hub/dlt,2809,master merge for 1.12.2 release,python,3951,human
+lingodotdev/lingo.dev,960,fix(compiler): dictionary,javascript,2784,human
+prebid/Prebid.js,13433,"Start.io Bid Adapter: Implement support for coppa, usp, floors and ortb_blocking features",javascript,1467,human
+promptfoo/promptfoo,4628,chore: bump @anthropic-ai/sdk from 0.54.0 to 0.55.0,javascript,7809,human
+antiwork/gumroad,430,Reduce technical debt 3,ruby,6643,human
+antiwork/gumroad,427,Reduce technical debt,ruby,6643,human
+appsmithorg/appsmith,41033,chore: ce changes related to decoupling webworker,javascript,37596,human
+liam-hq/liam,2200,feat(schema-bench): implement Phase 1 workspace initialization and benchmark execution,javascript,4194,human
+onlook-dev/onlook,2276,fix: better subscription polling,javascript,21192,human
+antiwork/flexile,407,Remove unused files and legacy code,ruby,665,human
+leonardsellem/n8n-mcp-server,48,Dockerfile,javascript,1041,human
+prebid/Prebid.js,13430,mediaConsortium: update,javascript,1467,human
+Skyvern-AI/skyvern,2789,docs: Add HTTP request workflow node documentation and examples,python,13976,human
+liam-hq/liam,2191,✨(app): add idempotency to chat API endpoint,javascript,4194,human
+liam-hq/liam,2190,♻️ refactor: Rename timelineItems to realtimeTimelineItems for clarity,javascript,4194,human
+liam-hq/liam,2189,Fix pnpm setup in Claude Code workflow,javascript,4194,human
+liam-hq/liam,2188,🔧 Fix duplicate chat message sending caused by component remounting,javascript,4194,human
+catatsuy/private-isu,681,fix(deps): update dependency hono to v4.8.3,javascript,528,human
+antiwork/flexile,406,Allow company admins to change their bank account,ruby,665,human
+featureform/enrichmcp,96,Fix SQLAlchemy README example,python,583,human
+prebid/Prebid.js,13429,Bidmatic Bid Adapter: update API ,javascript,1467,human
+roboflow/inference,1385,⚡️ Speed up method `WithFixedSizeCache.add_model` by 50% in PR #1373 (`feat/pass-countinference-to-serverless-getweights`),python,1824,human
+antiwork/gumroad,423,Improvements to invoice generation page.,ruby,6643,human
+featureform/enrichmcp,95,Improve coverage reporting,python,583,human
+microsoft/vscode,252336,Refactor contentHoverWidgetWrapper.ts for improved readability and maintainability,javascript,175171,human
+marimo-team/marimo,5436,dev: Use islands as local asset server,python,14933,human
+box/box-ui-elements,4159,feat(header-flyout): add opening animation,javascript,546,human
+box/box-ui-elements,4158,feat(header-flyout): add animation,javascript,546,human
+Significant-Gravitas/AutoGPT,10227,feat(frontend): show timestamp in output modal,python,177379,human
+thirdweb-dev/js,7433,Version Packages,javascript,538,human
+logancyang/obsidian-copilot,1570,chore: Update dependencies and enhance project context modal,javascript,5044,human
+stack-auth/stack-auth,726,"Adds oauth providers, fixes bottom page navigation with mobile suppor…",javascript,6033,human
+python/devguide,1590,gh-1589: Document the `type-refactor` label,python,1968,human
+openai/openai-agents-js,151,fix: merge completed input_audio transcripts into realtime history,javascript,925,human
+promptfoo/promptfoo,4622,chore(cli): Removes context schema validation from extension hooks,javascript,7809,human
+featureform/enrichmcp,93,Add basic memory utilities as example,python,583,human
+featureform/enrichmcp,92,Fix path in HTTP example,python,583,human
+bruin-data/ingestr,264,patch/propagate extract parallelism,python,3047,human
+featureform/enrichmcp,90,Add pagination to SQLAlchemy relationship resolvers,python,583,human
+novuhq/novu,8582,feat(api): translations slug ids; make API more robust,javascript,37349,human
+crewAIInc/crewAI,3058,feat: add official way to use MCP Tools within a CrewBase,python,35096,human
+NangoHQ/nango,4244,fix(api): add endpoints for stripe,javascript,5463,human
+objectionary/eo,4325,bug(#4319): no aliases in `to-phi.xsl`,java,1239,human
+CapSoftware/Cap,684,Prevent Login iFrame,javascript,10645,human
+crewAIInc/crewAI-tools,341,feat: support api_key fallback to EXA_API_KEY env-var,python,1177,human
+antiwork/shortest,456,chore: remove unused sheet component,javascript,5179,human
+antiwork/shortest,455,chore: remove unused dropdown,javascript,5179,human
+sanity-io/sanity,9791,chore(deps): lock file maintenance,javascript,5742,human
+antiwork/shortest,454,chore: remove unused drawer,javascript,5179,human
+antiwork/shortest,453,chore: remove unused dialog,javascript,5179,human
+antiwork/shortest,452,chore: remove unused command component,javascript,5179,human
+antiwork/shortest,451,chore: remove unused code,javascript,5179,human
+reown-com/appkit,4561,feat: change enableWalletGuide default value from true to false,javascript,5202,human
+crewAIInc/crewAI,3057,feat: improve Crew search while resetting their memories,python,35096,human
+katspaugh/wavesurfer.js,4115,test(WaveSurfer): add unit tests for public API,javascript,9541,human
+antiwork/gumroad,419,Fix hyperlink for 'Discount code' in customer dashboard help article,ruby,6643,human
+antiwork/gumroad,418,fix: updating env vars for local development,ruby,6643,human
+mendableai/firecrawl,1707,feat(api/ci): idmux,javascript,43970,human
+sam-goodwin/alchemy,473,feat(cloudflare): custom migration table in D1Database,javascript,750,human
+lingodotdev/lingo.dev,956,feat: add EJS (Embedded JavaScript) templating engine support,javascript,2784,human
+antiwork/gumroad,416,chore: remove unused files identified by knip.dev,ruby,6643,human
+Stirling-Tools/Stirling-PDF,3802,chore: add workflow for PR auto-approval by repo developers,java,63892,human
+openai/openai-agents-python,926,feat(tools): add conversation history support to ToolContext #904 ,python,13119,human
+crewAIInc/crewAI,3053,"Implement LLM generations, logprobs, and XML parsing features",python,35096,human
+Azure/azure-sdk-for-python,41732,[Azure AI Agents] Sample changes to use dataset with file search,python,5011,human
+microsoft/TypeScript,61928,Use jsx language variant for jsx file scanning in getChildren,javascript,105450,human
+567-labs/instructor,1629,chore(deps): bump the poetry group across 1 directory with 13 updates,python,11095,human
+stanfordnlp/dspy,8447,Consistently use double quotes in DSPy docsite landing page,python,26818,human
+FarmBot/Farmbot-Web-App,2494,Styling and nav improvements,javascript,938,human
+crewAIInc/crewAI,3051,docs: Add arcade tools to docs,python,35096,human
+whitphx/stlite,1507,Bump @lerna-lite/cli from 4.3.0 to 4.4.1,javascript,1446,human
+adaline/gateway,95,Akshay/fix bedrock region,javascript,528,human
+NangoHQ/nango,4240,feat(webapp): show year in connection dates,javascript,5463,human
+antiwork/flexile,404,Fix tax info alert not showing up for some company admins,ruby,665,human
+antiwork/flexile,403,Remove company details step from administrator onboarding,ruby,665,human
+getsentry/sentry-react-native,4944,DRAFT: e2e rn0.80.0 perf test fix,javascript,1690,human
+saturday06/VRM-Addon-for-Blender,926,chore(deps): update dependency pyrefly to v0.21.0,python,1473,human
+cartography-cncf/cartography,1648,chore: Remove manual ECS indexes,python,3491,human
+dropseed/plain,47,Single DATABASE instead of DATABASES and DATABASE_ROUTERS,python,619,human
+analogdotnow/Analog,147,feat(api): attach attendees when retrieving events,javascript,1079,human
+novuhq/novu,8573,chore(root): Release 2025-06-23 13:49,javascript,37349,human
+onlook-dev/onlook,2266,feat: add gradient color picker with full controller functionality,javascript,21192,human
+elie222/inbox-zero,519,feat: Delayed actions,javascript,8426,human
+openops-cloud/openops,848,Handle both files and directories when cleaning up unused files during package creation,javascript,908,human
+antiwork/flexile,402,Fix desktop layout in CardContent on invoices page,ruby,665,human
+appsmithorg/appsmith,41018,23/06 Daily Promotion,javascript,37596,human
+liam-hq/liam,2159,✨️ feat: enhance GitHub session form UI with projects & branches dropdowns,javascript,4194,human
+novuhq/novu,8569,fix(dashboard): update LEGACY_DASHBOARD_URL handling and add documentation in .env.example,javascript,37349,human
+liam-hq/liam,2156,feat(db-structure): deprecate schema.relationships in favor of constraintsToRelationships,javascript,4194,human
+julep-ai/julep,1500,dev->main (23 Jun 2025),python,5629,human
+Intelligent-Internet/ii-agent,117,Enhance Reviewer for Website Creation - Console Logs,python,2779,human
+liam-hq/liam,2153,"♻️(schema): remove relationships from schema, use constraints-to-relationships conversion",javascript,4194,human
+bentoml/BentoML,5388,docs: Update adaptive batching example,python,7934,human
+liam-hq/liam,2148,✨ Implement `generateUsecaseNode`,javascript,4194,human
+microsoft/vscode,252128,add file to chat in file tabs,javascript,175171,human
+liam-hq/liam,2139,feat: implement RENAME COLUMN operation support,javascript,4194,human
+calcom/cal.com,21971,fix: prevent embed query param from being forwarded to external redirect URLs,javascript,37399,human
+crewAIInc/crewAI,3048,feat: Add Flow-level RPM control for global rate limiting,python,35096,human
+promptfoo/promptfoo,4594,fix: EvalsDataGrid sort by creation,javascript,7809,human
+marimo-team/marimo,5418,chore(deps): update build tools,python,14933,human
+sam-goodwin/alchemy,454,docs: add comprehensive provider writing guide to CONTRIBUTING.md,javascript,750,human
+liam-hq/liam,2128,[2025/06/23] License Report Update,javascript,4194,human
+crewAIInc/crewAI,3047,Updated LiteLLM dependency.,python,35096,human
+unibeck/solstatus,91,chore(v2): release solstatus 2.0.0-beta.0,javascript,756,human
+antiwork/flexile,400,Add invoice deletion + context-menu + multi-select,ruby,665,human
+yamadashy/repomix,683,feat(config): Reorganize agent rules and instructions,javascript,18206,human
+PriorLabs/TabPFN,332,Fix colab to GitHub Link,python,4181,human
+antiwork/gumroad,405,  feat(membership): add tier-specific fixed durations,ruby,6643,human
+TracecatHQ/tracecat,1213,perf(engine): Disable worker eager execution to try distribute load,python,2921,human
+johnlindquist/kit,1592,Command Injection Vulnerability Fix,javascript,4075,human
+Kiln-AI/Kiln,384,refactor!: remove support for CSV in RAG,python,4015,human
+antiwork/gumroad,404,Remove unused constants and configuration,ruby,6643,human
+promptfoo/promptfoo,4593,docs(site): document new features in modelaudit,javascript,7809,human
+textlint/textlint,1573,chore(deps): update eslint to ^8.34.0 (patch),javascript,2988,human
+liam-hq/liam,2127,✨ feat(command palette): support preview fix by clicking option,javascript,4194,human
+airbytehq/airbyte,61991,🐙 source-finage: run up-to-date pipeline [2025-06-22],python,19011,human
+airbytehq/airbyte,61982,🐙 source-emailoctopus: run up-to-date pipeline [2025-06-21],python,19011,human
+airbytehq/airbyte,61956,🐙 source-clockodo: run up-to-date pipeline [2025-06-21],python,19011,human
+airbytehq/airbyte,61939,🐙 source-firehydrant: run up-to-date pipeline [2025-06-21],python,19011,human
+antiwork/flexile,399,Add release to receiving dividend flow,ruby,665,human
+marimo-team/marimo,5403,fix: marimo development preview,python,14933,human
+julep-ai/julep,1497,refactor(agents-api): Migrate to pytest from ward,python,5629,human
+calcom/cal.com,21956,fix: Downgrades typescript to 5.7.2,javascript,37399,human
+marimo-team/marimo,5399,[Windows] Fix `Copy Path` and `Copy Relative Path` returning identical results.,python,14933,human
+marimo-team/marimo,5398,fix: Serialization fix,python,14933,human
+promptfoo/promptfoo,4589,docs(examples): move gpt-4o comparison to openai-responses and update model IDs,javascript,7809,human
+airbytehq/airbyte,61819,🐙 source-kissmetrics: run up-to-date pipeline [2025-06-21],python,19011,human
+johnlindquist/kit,1591,Security Fix: Remove rejectUnauthorized: false,javascript,4075,human
+onlook-dev/onlook,2257,fix: canvas not panning when dropdown is open,javascript,21192,human
+liam-hq/liam,2122,fix(deps): update dependency @langchain/openai to v0.5.12,javascript,4194,human
+airbytehq/airbyte,61781,🐙 source-wrike: run up-to-date pipeline [2025-06-21],python,19011,human
+willccbb/verifiers,97,Vllm server with HF parser,python,1663,human
+Shopify/roast,294,Improve workflow system with bug fixes and optimizations,ruby,754,human
+Maciek-roboblog/Claude-Code-Usage-Monitor,34,Add: PyPI package setup with setup.py and console entry points,python,3636,human
+crewAIInc/crewAI,3042,Add Agent Collaboration Optimizer and Learning Scheduler Tools,python,35096,human
+antiwork/gumroad,397,Cached repetitive data lookups for creator analytics,ruby,6643,human
+yamadashy/repomix,679,chore: Add .private/ to .gitignore and improve CI comments,javascript,18206,human
+microsoft/magentic-ui,212,Fix playwright fill id,python,6674,human
+sam-goodwin/alchemy,440,feat(cloudflare): add `run_worker_first: string[]` option,javascript,750,human
+RooCodeInc/Roo-Code,4965,chore(deps): update dependency lint-staged to v16.1.2,javascript,17756,human
+featureform/enrichmcp,89,Run examples with all Python versions,python,583,human
+Kiln-AI/Kiln,379,CR feedback on doc UI,python,4015,human
+box/box-ui-elements,4154,chore(mergify): clean up mergify rules,javascript,546,human
+dust-tt/dust,13654,[connectors] fix(webcrawler): Handle throw from Firecrawl,javascript,1171,human
+promptfoo/promptfoo,4584,test: add unit test for src/redteam/providers/simulatedUser.ts,javascript,7809,human
+sebastianwessel/quickjs,81,chore: bump to version 2.3.0,javascript,760,human
+567-labs/instructor,1625,fix(deps): relax tenacity requirement to support google-genai 1.21.1,python,11095,human
+mendableai/firecrawl,1690,fix(search): respect parsePDF in pricing,javascript,43970,human
+dotenvx/dotenvx,613,add additional spec,javascript,4114,human
+elizaOS/eliza,5224,chore: clean core,javascript,16507,human
+antiwork/gumroad,389,chore(models): remove unused ZenginAccount model,ruby,6643,human
+yamadashy/repomix,676,refactor(cli) remove unused dep,javascript,18206,human
+antiwork/gumroad,386,"Fix checkout “Future installments” amount (show per-installment, not total)",ruby,6643,human
+antiwork/flexile,388,docs: simplify support guide,ruby,665,human
+box/box-ui-elements,4151,chore(codeowners): Update CODEOWNERS,javascript,546,human
+crewAIInc/crewAI,3040,Fix typo in test prompts,python,35096,human
+antiwork/gumroad,384,refactor: Consolidate bank account validation logic into shared concern,ruby,6643,human
+zenml-io/zenml,3757,Adjusted settings to include submodules,python,4768,human
+sebastianwessel/quickjs,74,Fix fs.promises and fetch adapter,javascript,760,human
+NangoHQ/nango,4224,fix: commit hash added to success path tag,javascript,5463,human
+box/box-ui-elements,4150,feat(router): Merging NavButton functionality into SidebarNavButton,javascript,546,human
+onlook-dev/onlook,2249,refactor: update publish function,javascript,21192,human
+amantus-ai/vibetunnel,33,feat: POSIX-first cross-platform process checking,javascript,1691,human
+opal/opal,2756,Improve AGENTS instructions,ruby,4877,human
+liam-hq/liam,2113,🔧 Fix turbo cache for @liam-hq/db-structure#gen task,javascript,4194,human
+heyverse/hey,5815,chore: prune unused deps,javascript,29352,human
+remotion-dev/remotion,5438,`@remotion/media-parser`: Support WAV subtype 3 and parse `fact` box,javascript,23319,human
+onlook-dev/onlook,2247,revert: read all files,javascript,21192,human
+onlook-dev/onlook,2246,revert: indexing change,javascript,21192,human
+OneKeyHQ/app-monorepo,7601,fix: disable mas prime ,javascript,1995,human
+stack-auth/stack-auth,721,added emails digest edge cases,javascript,6033,human
+stack-auth/stack-auth,720,Email normalization,javascript,6033,human
+microsoft/magentic-ui,209,Make Docker optional,python,6674,human
+Azure/azure-sdk-for-js,34884,Post release automated changes for template releases,javascript,2222,human
+antiwork/gumroad,377,Fix conflicts in membership help docs,ruby,6643,human
+recallnet/js-recall,671,test(api): test for user comps status sort,javascript,965,human
+gitroomhq/postiz-app,827,Use string compairson for the env var DISABLE_REGISTRATION so that it works properly,javascript,22784,human
+primer/view_components,3561,Release Tracking,ruby,537,human
+microsoft/Olive,1922,Phi3_5: Remove add metadata pass,python,2035,human
+mlflow/mlflow,16340,Mistral Token Count + Doc Update,python,21402,human
+crewAIInc/crewAI,3037,Fix critical format string injection in agent date handling,python,35096,human
+ryoppippi/ccusage,120,Add real-time monitoring for active session block,javascript,5609,human
+crewAIInc/crewAI,3036,Remove mkdocs from project dependencies,python,35096,human
+Significant-Gravitas/AutoGPT,10196,feat(frontend): Add cool Input component,python,177379,human
+secretlint/secretlint,1084,v10.1.1,javascript,1182,human
+electricitymaps/electricitymaps-contrib,8232,"Revert ""fix(config): change GEO path reference""",python,3870,human
+tokens-studio/figma-plugin,3432,disable upload of multi file upload for non-pro users,javascript,1469,human
+lingodotdev/lingo.dev,949,chore: bump package versions,javascript,2784,human
+tinygrad/tinygrad,10879,fix-typos-in-comments,python,29760,human
+analogdotnow/Analog,130,feat(auth): add Zoom OAuth,javascript,1079,human
+microsoft/autogen,6701,Fix: Use AUTOGENSTUDIO_UI_PATH for custom UI location,python,48110,human
+reown-com/appkit,4537,chore: upgrade viem and wagmi deps,javascript,5202,human
+antiwork/gumroad,361,Improved Sidekiq scheduling efficiency for `LargeSellersUpdateUserBal…,ruby,6643,human
+calcom/cal.com,21923,fix: Improve performance of settings/admin/organizations page,javascript,37399,human
+tokens-studio/figma-plugin,3429,Fix gitlab sync themes,javascript,1469,human
+wei/socialify,620,⬆️ Bump jest from 30.0.0 to 30.0.1,javascript,2091,human
+oraios/serena,181,Option to specify a Serena config directory,python,6198,human
+open-webui/open-webui,15138,fix: Resolve exa search not being processed correctly,javascript,104697,human
+liam-hq/liam,2084,✨(db-structure): Add PostgreSQL schema deparser for DDL generation,javascript,4194,human
+BeehiveInnovations/zen-mcp-server,81,Enable MCP server in Claude settings and fix Docker volume mount,python,5465,human
+Skyvern-AI/skyvern,2750,added proper svg,python,13976,human
+liam-hq/liam,2083,"🔧 add ""root"": false to biome configuration files",javascript,4194,human
+bytebot-ai/bytebot,33,feat: add Better Auth authentication system,javascript,931,human
+sam-goodwin/alchemy,418,feat(aws): S3StateStore,javascript,750,human
+featureform/enrichmcp,76,Adds pagination to relationship results,python,583,human
+AgentOps-AI/agentops,1093,Update 0.4.16,python,4722,human
+promptfoo/promptfoo,4560,test: add unit test for src/assertions/synthesis.ts,javascript,7809,human
+elizaOS/eliza,5186,feat: Enhanced secrets panel with raw view and validation warnings,javascript,16507,human
+remotion-dev/remotion,5420,Whisper Web Example,javascript,23319,human
+Flagsmith/flagsmith,5621,fix: fix cookie validation in authentication ,python,5817,human
+box/box-ui-elements,4148,fix(metadata-sidebar-redesign): fix visual story test,javascript,546,human
+567-labs/instructor,1615,feat(bedrock): async client support via asyncio.to_thread,python,11095,human
+commaai/opendbc,2406,Ford: Make models obvious,python,2457,human
+featureform/enrichmcp,75,Adds support for BigInteger column type,python,583,human
+ray-project/ray,53928,[train][template] Pip install with python block instead,python,38259,human
+promptfoo/promptfoo,4547,test: add unit test for src/redteam/strategies/index.ts,javascript,7809,human
+amantus-ai/vibetunnel,18,Add comprehensive VibeTunnel protocol benchmark tool,javascript,1691,human
+reown-com/appkit,4527,feat: connect all namespaces for auth connector,javascript,5202,human
+promptfoo/promptfoo,4541,chore(app): Remove discovered purpose from report view,javascript,7809,human
+assistant-ui/assistant-ui,2128,fix(example): add alias for `assistant-ui/react-markdown`,javascript,5475,human
+xtermjs/xterm.js,5358,Revert conpty-specific reflow handling,javascript,18898,human
+crewAIInc/crewAI,3030,fix: upgrade langfuse code examples to langfuse python sdk v3,python,35096,human
+dynamoose/dynamoose,1752,Implement readStrict option for Table configuration,javascript,2223,human
+hotovo/aider-desk,227,Feature/user friendly aider options config,javascript,658,human
+tokens-studio/figma-plugin,3427,FIx crashing of plugin when importing styles with lots of variable references,javascript,1469,human
+elizaOS/eliza,5167,feat(after-5169): implement Zod-based character validation with safe JSON parsing,javascript,16507,human
+liam-hq/liam,2070,🔧: Upgrade Biome to v2 with configuration updates,javascript,4194,human
+OneKeyHQ/app-monorepo,7578,Fix/account selector bugs,javascript,1995,human
+calcom/cal.com,21898,fix: height of buttons in overrides list,javascript,37399,human
+anyproto/anytype-ts,1494,Chat fixes,javascript,5854,human
+microsoft/mcp-for-beginners,151,Update `04-PracticalImplementation/samples/csharp`,python,5961,human
+spcl/dace,2054,Avoid losing symbols in `traverse_sdfg_with_defined_symbols`,python,544,human
+crewAIInc/crewAI,3024,feat: add Recursive Criticism and Iteration (RCI) functionality to Ta…,python,35096,human
+onlook-dev/onlook,2234,fix: test user signin,javascript,21192,human
+antiwork/gumroad,356,Removed unnecessary API requests to fetch balances,ruby,6643,human
+liam-hq/liam,2062,✨ feat(Output): Update Output component to include ERD and Schema Updates tabs,javascript,4194,human
+onlook-dev/onlook,2233,fix: improve radius style and toolbar color picker ,javascript,21192,human
+microsoft/vscode,251768,Determine how often EOL changes for nb cells,javascript,175171,human
+onlook-dev/onlook,2231,feat: add modal settings,javascript,21192,human
+sam-goodwin/alchemy,410,Feat/stripe price meter support,javascript,750,human
+microsoft/vscode,251755,Restarting task should read the updated content,javascript,175171,human
+PowerShell/vscode-powershell,5217,Find shell integration module,javascript,1798,human
+microsoft/generative-ai-with-javascript,145,Missing comma preventing the app from starting,javascript,839,human
+angular-eslint/angular-eslint,2528,chore: update dependency @mdn/browser-compat-data to v6.0.24,javascript,1737,human
+ryoppippi/ccusage,98,style: standardize schema naming conventions,javascript,5609,human
+onlook-dev/onlook,2227,feat: plans modal and settings modal,javascript,21192,human
+elizaOS/eliza,5158,docs: add CLAUDE.md for AI assistant guidance,javascript,16507,human
+yamadashy/repomix,668,chore(ci): Update GitHub Actions dependencies,javascript,18206,human
+traccar/traccar,5587,remove unused return in method,java,6182,human
+box/box-ui-elements,4144,feat(router): optional router in VersionsList,javascript,546,human
+leonardsellem/n8n-mcp-server,45,Add MseeP.ai badge,javascript,1041,human
+liam-hq/liam,2050,🐛 fix: resolve duplicate user messages and remove dbId field,javascript,4194,human
+microsoft/typespec,7669,"http-client-java, bug fix on schema clean up",java,5285,human
+liam-hq/liam,2045,📝(docs): Update database migration documentation,javascript,4194,human
+possibilities/claude-composer,2,Add MseeP.ai badge,javascript,654,human
+stack-auth/stack-auth,715,swithcer,javascript,6033,human
+antiwork/gumroad,353,Removed scheduling gap between user balance stats workers,ruby,6643,human
+BeehiveInnovations/zen-mcp-server,66,Fix Gemini token usage calculation bug causing request failures,python,5465,human
+julep-ai/julep,1488,Claude PR Assistant workflow,python,5629,human
+onlook-dev/onlook,2223,compress image before upload,javascript,21192,human
+Shopify/roast,266,Add configurable agent step options: continue and include_context_summary,ruby,754,human
+afadil/wealthfolio,297,Fix manual quotes edit,javascript,5304,human
+tszhong0411/nelsonlai.me,1059,Improve comment container layout with overflow handling,javascript,736,human
+featureform/enrichmcp,74,Fix chat agent example,python,583,human
+calcom/cal.com,21855,perf: use repository for me query & caching in /settings/my-account/general/ RSC,javascript,37399,human
+featureform/enrichmcp,72,Improve coverage excludes for type checking imports,python,583,human
+promptfoo/promptfoo,4510,test: add unit test for src/providers/azure/completion.ts,javascript,7809,human
+crewAIInc/crewAI,3016,fix: ensure compatibility with Pydantic 2.7.x,python,35096,human
+prebid/Prebid.js,13395,Underdog Media Adapter Update: Switch to userIdAsEids for 10.0 Compliance,javascript,1467,human
+Significant-Gravitas/AutoGPT,10171,chore(frontend/deps): Bump tailwind-merge from 2.6.0 to 3.3.1 in /autogpt_platform/frontend,python,177379,human
+analogdotnow/Analog,119,fix(web): upgrade simple analytics to resolve issues,javascript,1079,human
+unclecode/crawl4ai,1225,Fixed docker deployment guide URL,python,50091,human
+microsoft/azure-pipelines-tasks,21086,Validate tool versions before running them,javascript,3569,human
+crewAIInc/crewAI,3014,fix: SSL error while getting LLM data from GH,python,35096,human
+dust-tt/dust,13474,Coding rules follow up,javascript,1171,human
+prebid/Prebid.js,13394,realTimeData: fix bug where different RTD submodules can interfere with each other's targeting,javascript,1467,human
+crewAIInc/crewAI,3013,docs: add missing docs about LLMGuardrail events,python,35096,human
+prebid/Prebid.js,13393,Prebid 10: fix build-bundle tasks,javascript,1467,human
+plantuml/plantuml,2243,✅ Added some UT for EvalBoolean,java,11894,human
+mendableai/fire-enrich,8,Feat/OpenAI search integration,javascript,686,human
+keephq/keep,5037,fix: flacky e2e test `test_run_workflow_from_alert_and_incident`,python,10563,human
+KittyCAD/modeling-app,7487,Bump the minor group across 1 directory with 33 updates,javascript,913,human
+openai/openai-realtime-agents,69,Update model slug,javascript,6099,human
+mrwadams/stride-gpt,74,[Snyk] Security upgrade h11 from 0.14.0 to 0.16.0,python,794,human
+prebid/Prebid.js,13391,Adot Bid Adapter - Prebid.js v10 support,javascript,1467,human
+MervinPraison/PraisonAI,661,Add pixtral 12 b vision agent,python,5243,human
+liam-hq/liam,2025,♻️(chat): Replace isUser with role-based logic for consistent message handling,javascript,4194,human
+Azure/azure-sdk-for-js,34839,Merge main,javascript,2222,human
+MervinPraison/PraisonAI,654,"Update Claude Code action to use GitHub token for authentication, enh…",python,5243,human
+Significant-Gravitas/AutoGPT,10163,Refs/heads/master,python,177379,human
+promptfoo/promptfoo,4500,docs: modelaudit binary formats,javascript,7809,human
+mlflow/mlflow,16271,Enable configuring chunk size of PresignedUrlArtifactRepository,python,21402,human
+trycompai/comp,924,PROD,javascript,950,human
+langchain-ai/langsmith-sdk,1796,feat(js): Add replica support for JS,python,606,human
+liam-hq/liam,2018,Upgrade/usestate hook for perv state,javascript,4194,human
+virattt/ai-hedge-fund,360,feat: configurable API rate limiting and fix complex number bugs,python,38904,human
+skypilot-org/skypilot,6007,[Docs][SSH] Update SSH Infra Prereqs,python,8435,human
+calcom/cal.com,21827,feat: cal.ai self serve,javascript,37399,human
+promptfoo/promptfoo,4495,chore: update title,javascript,7809,human
+prebid/Prebid.js,13386,Prebid 10: sayonara bid.userId,javascript,1467,human
+janbjorge/pgqueuer,414,Bump UV packages,python,1324,human
+onlook-dev/onlook,2209,Fix/2196 ask mode,javascript,21192,human
+reown-com/appkit,4506,chore(deps): bump next from 14.2.28 to 14.2.30,javascript,5202,human
+leonardsellem/n8n-mcp-server,42,Full Fix and Update,javascript,1041,human
+PasteBar/PasteBarApp,238,Hide show panels,javascript,1583,human
+airbytehq/airbyte,61610,🐙 source-tinyemail: run up-to-date pipeline [2025-06-14],python,19011,human
+liam-hq/liam,2012,chore(deps): update dependency @vitejs/plugin-react to v4.5.1,javascript,4194,human
+airbytehq/airbyte,61606,ci: make live and regression tests as slash commands,python,19011,human
+onlook-dev/onlook,2202,fix: website changes don't reflect,javascript,21192,human
+marimo-team/marimo,5305,nit: connecting copy in the editor,python,14933,human
+morphik-org/morphik-core,199,fix(ui) : chat section,python,3016,human
+heyverse/hey,5770,Add AttachmentData interface and update helpers,javascript,29352,human
+onlook-dev/onlook,2199,feat: replace upload button with dropdown menu for image and screenshot,javascript,21192,human
+strawberry-graphql/strawberry,3907,Fix inconsistent naming of aiohttp adapters,python,4345,human
+liam-hq/liam,2008,fix(deps): update nextjs monorepo to v15.3.3,javascript,4194,human
+liam-hq/liam,2007,fix(deps): update fumadocs to v15.5.0,javascript,4194,human
+airbytehq/airbyte,61602,🐙 source-notion: run up-to-date pipeline [2025-06-14],python,19011,human
+SimonHalvdansson/Harmonic-HN,222,Remove ligatures from Product Sans fonts,java,746,human
+PrefectHQ/prefect,18304,Use tomli when reading TOML file except in test codes,python,19894,human
+jlowin/fastmcp,830,Add WAHA MCP Server configuration and premium features,python,15491,human
+Azure/azure-sdk-for-python,41585,[AutoRelease] t2-cognitiveservices-2025-06-14-25395(can only be merged by SDK owner),python,5011,human
+theturtle32/WebSocket-Node,470,Phase 2: Complete Migration of Existing Tape Tests to Vitest,javascript,3779,human
+medplum/medplum,6771,Updated case study links,javascript,1714,human
+antiwork/flexile,373,Allow billing multiple project- and hourly-rates per invoice,ruby,665,human
+onlook-dev/onlook,2190,feat: add top bar right click menu,javascript,21192,human
+alexanderjeurissen/ranger_devicons,145,feat: Set up comprehensive Python testing infrastructure with Poetry,python,1000,human
+onlook-dev/onlook,2189,fix: frame not moving,javascript,21192,human
+microsoft/ApplicationInsights-JS,2588,Fix break in click tracking after introduction of trackElementTypes,javascript,671,human
+antiwork/gumroad,343,copy_to_clipboard helper in Admin,ruby,6643,human
+whoiskatrin/chart-gpt,85,maybe v2 at some point ,javascript,3587,human
+dagster-io/dagster,30693,[freshness] Update instance method to batch queries,python,13669,human
+567-labs/instructor,1606,docs: improve clarity and consistency across documentation,python,11095,human
+antiwork/flexile,369,Remove upcoming dividend feature and misc code,ruby,665,human
+antiwork/flexile,366,irs updates,ruby,665,human
+onlook-dev/onlook,2179,bug: fixed Click-and-drag frames from their top-bar is extremely slow,javascript,21192,human
+kohya-ss/sd-scripts,2121,Update IPEX libs,python,6459,human
+microsoft/vscode,251382,Optimized concat with reduce,javascript,175171,human
+microsoft/vscode,251374,Git - fix race condition with computing teh branch base,javascript,175171,human
+julep-ai/julep,1482,API keys storage,python,5629,human
+mlflow/mlflow,16239,Add support arbitrary plain text file,python,21402,human
+liam-hq/liam,1997,🔧 Fix Langfuse output logging in job environments by setting flushAt: 1,javascript,4194,human
+antiwork/gumroad,334,feat: show tax type on purchase report,ruby,6643,human
+antiwork/gumroad,332,Migrate remaining help articles,ruby,6643,human
+onlook-dev/onlook,2173,Feat/import project from GitHub,javascript,21192,human
+liam-hq/liam,1994,🔧(turbo): Configure outputLogs errors-only to reduce AI agent token usage,javascript,4194,human
+theturtle32/WebSocket-Node,468,Phase 3: ES6 Class Syntax Conversion,javascript,3779,human
+saturday06/VRM-Addon-for-Blender,904,chore(deps): update dependency pyrefly to v0.19.1,python,1473,human
+secretlint/secretlint,1063,chore(deps): update dependency @types/node to ^20.17.58,javascript,1182,human
+catatsuy/private-isu,651,chore(deps): update dependency python to v3.13.5,javascript,528,human
+lingodotdev/lingo.dev,921,chore: bump package versions,javascript,2784,human
+microsoft/magentic-ui,189,"Handle downloads in playwright browser, solved the issue #127",python,6674,human
+promptfoo/promptfoo,4463,chore(deps): update zod to 3.25.63 and zod-validation-error to 3.5.0,javascript,7809,human
+box/box-ui-elements,4140,chore(content-uploader): Remove flow from ContentUploader,javascript,546,human
+theturtle32/WebSocket-Node,464,Phase 2: ES6 Code Quality Enhancements + Modern Tooling,javascript,3779,human
+sam-goodwin/alchemy,372,feat: add features section to landing page,javascript,750,human
+crewAIInc/crewAI-tools,328,feat: support to collect and store Tool init parameter,python,1177,human
+onnx/onnx,7046,use newest python 3.13 version in release_win_aarch64.yml,python,19360,human
+ComposioHQ/composio,1630,feat: increase window size of open file to 500,javascript,25592,human
+featureform/enrichmcp,60,Update README,python,583,human
+promptfoo/promptfoo,4459,fix: View results as the eval is running,javascript,7809,human
+antiwork/gumroad,328,Dev,ruby,6643,human
+BeehiveInnovations/zen-mcp-server,20,Fix/o3 pro api endpoint,python,5465,human
+crewAIInc/crewAI,3004,Lorenze/console printer nice,python,35096,human
+prebid/Prebid.js,13372,Prebid 10: Introducing enforceStorageType,javascript,1467,human
+lostintangent/gistpad,399,Bump debug from 3.2.6 to 4.4.1,javascript,1009,human
+featureform/enrichmcp,47,Add SQLAlchemy support,python,583,human
