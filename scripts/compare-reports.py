@@ -4,64 +4,39 @@ import os
 import subprocess
 from datetime import datetime, timedelta
 
-def get_pr_changed_lines_compare(repo, pr_num):
-    """
-    🎯 COMPARISON TRACKER FILTER: Queries the stable files endpoint directly during 
-    the master comparison phase to isolate base filenames touched by the PR.
-    """
-    changed_lines = {}
-    if not repo or not pr_num:
-        return changed_lines
-    try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
-        sub_env = os.environ.copy()
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
-        if res.returncode == 0:
-            data = json.loads(res.stdout)
-            files = data.get('files', [])
-            for f in files:
-                path = f.get('path', '').strip()
-                if path:
-                    changed_lines[path] = set()
-    except Exception as e:
-        print(f"Comparison asset tracking notice: {e}")
-    return changed_lines
-
 def main():
-    search_path = os.path.join('all-results', '**', '*.sarif')
+    # 🚀 THE FIX: Target the clean json summary tokens exclusively!
+    search_path = os.path.join('all-results', '**', '*.json')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
-    # Extended metrics tracking dict architecture to handle low indices and lifecycle breakdowns
+    # Standard thesis metrics dictionary tracking buffers
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     
-    CWE_TOP_25 = [
-        'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
-        'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
-        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
-        'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
-    ]
-
-    has_agent_vulnerability_registered = False
     latest_ai_epoch = 0.0
     latest_human_epoch = 0.0
-
-    # Track processed keys dynamically to avoid duplicate count mutations
     seen_prs = set()
+
+    print("\n====================================================")
+    print("🎯 COMPARATIVE TRACE STEP 1: PARSING SCORED JSON SUMMARIES")
+    print("====================================================")
 
     for f in all_files:
         fname = os.path.basename(f)
         parent_dir = os.path.basename(os.path.dirname(f))
         
+        # Skip standard system files if they drop into the folder root
+        if fname == "summary.json":
+            continue
+
         repo_path = ""
         pr_num = ""
         live_loc = 100
         is_human = False
 
-        # 🚀 100% GENERIC METADATA EXTRACTION:
-        # Extracts all properties dynamically from the file or parent directory tokens
+        # Extract metadata from token handles natively
         if '--' in fname or '--' in parent_dir:
-            naming_string = fname.replace('.sarif', '') if '--' in fname else parent_dir.replace('sarif-', '')
+            naming_string = fname.replace('.json', '') if '--' in fname else parent_dir.replace('sarif-', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
             if len(parts) >= 5:
                 idx = 0
@@ -75,7 +50,6 @@ def main():
                 if "human" in fname.lower() or "human" in parent_dir.lower():
                     is_human = True
 
-        # If a file does not match your standardized double-dash research token layout, skip it
         if not repo_path or not pr_num:
             continue
 
@@ -86,80 +60,21 @@ def main():
             else:
                 if f_mtime > latest_ai_epoch: latest_ai_epoch = f_mtime
 
-            pr_diff_map = get_pr_changed_lines_compare(repo_path, pr_num)
+            # 🚀 THE CRITICAL FIX: Extract metrics directly from our pre-filtered JSON summary files!
+            with open(f, 'r', encoding='utf-8') as s:
+                summary_data = json.load(s)
 
-            with open(f, 'r', encoding='utf-8') as s: 
-                data = json.load(s)
-            runs = data.get('runs', [])
-            if not isinstance(runs, list) or len(runs) == 0: 
-                continue
-            
-            res = []
-            seen_findings = set()
-            local_cwe_map = {}
-            
-            for run in runs:
-                if not isinstance(run, dict): continue
-                tool = run.get('tool', {})
-                all_rules = tool.get('driver', {}).get('rules', [])
-                extensions = tool.get('extensions', [])
-                if isinstance(extensions, list):
-                    for ext in extensions:
-                        if isinstance(ext, dict): all_rules.extend(ext.get('rules', []))
-                
-                for rule in all_rules:
-                    if not isinstance(rule, dict): continue
-                    r_id = rule.get('id')
-                    tags = rule.get('properties', {}).get('tags', [])
-                    if r_id not in local_cwe_map: local_cwe_map[r_id] = set()
-                    for t in tags:
-                        if isinstance(t, str) and 'cwe-' in t.lower():
-                            c_num = t.lower().split('cwe-')[-1].zfill(3)
-                            local_cwe_map[r_id].add(f'CWE-{c_num}'.upper())
+            h = int(summary_data.get('high', summary_data.get('H', 0)))
+            m = int(summary_data.get('medium', summary_data.get('M', 0)))
+            l = int(summary_data.get('low', summary_data.get('L', 0)))
+            total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
 
-            for run in runs:
-                if not isinstance(run, dict): continue
-                results = run.get('results', [])
-                if not isinstance(results, list): continue
-                
-                for result in results:
-                    if not isinstance(result, dict): continue
-                    rule_id = result.get('ruleId', 'Unknown')
-                    locs_arr = result.get('locations', [])
-                    
-                    primary_path = "Unknown"
-                    if isinstance(locs_arr, list) and len(locs_arr) > 0:
-                        loc_entry = locs_arr[0]
-                        if isinstance(loc_entry, dict):
-                            locs = loc_entry.get('physicalLocation', {})
-                            if isinstance(locs, dict):
-                                primary_path = locs.get('artifactLocation', {}).get('uri', 'Unknown').strip()
-                                
-                    if pr_diff_map:
-                        alert_base = os.path.basename(primary_path).lower()
-                        changed_bases = [os.path.basename(p).lower() for p in pr_diff_map.keys()]
-                        if alert_base not in changed_bases: continue
-
-                    fingerprint = f'{rule_id}::{primary_path}'
-                    if fingerprint not in seen_findings:
-                        seen_findings.add(fingerprint)
-                        res.append(result)
-
-            h, m, l = 0, 0, 0
-            for r in res:
-                cwes_for_rule = local_cwe_map.get(r.get('ruleId', ''), set())
-                level_str = str(r.get('level', 'warning')).lower()
-                
-                if any(c in CWE_TOP_25 for c in cwes_for_rule) or level_str == 'error': 
-                    h += 1
-                elif level_str in ['warning', 'recommendation', 'note', 'none']: 
-                    m += 1
-                    if not is_human: has_agent_vulnerability_registered = True
-                else: 
-                    l += 1
+            # 🔬 ADDED VERBOSE PERFORMANCE LOG TRACER
+            print(f"📈 [COMPILING SUMMARY] Track: {'HUMAN' if is_human else 'AI'} | Target: {repo_path} #{pr_num}")
+            print(f"   └── Read Metrics: {total_issues} (🔴 H: {h} | 🟡 M: {m} | 🔵 L: {l})")
 
             target = human_metrics if is_human else ai_metrics
-            target["total"] += len(res)
+            target["total"] += total_issues
             target["high"] += h
             target["medium"] += m
             target["low"] += l
@@ -186,7 +101,7 @@ def main():
                     target["merged"] += 1
 
         except Exception as e: 
-            print(f"Error evaluating comparison artifact: {e}")
+            print(f"Error evaluating comparison artifact JSON: {e}")
 
     # Calculate density metrics programmatically
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
@@ -247,8 +162,6 @@ def main():
         human_stamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p CT")
 
     # 🔬 ACTIVE CONSOLE DIAGNOSTIC TRACE BLOCK:
-    # This forces the comparison engine to print the exact metrics it calculated
-    # straight into your GitHub Actions step logs so you can audit it in real time!
     print("\n====================================================")
     print("📊 COMPARATIVE TRACE STEP 2: COMPILED EVALUATION GRID")
     print("====================================================")
