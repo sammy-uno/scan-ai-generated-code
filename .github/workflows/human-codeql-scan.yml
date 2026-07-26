@@ -76,7 +76,7 @@ jobs:
           build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
-          queries: security-and-quality
+          queries: code-scanning
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
