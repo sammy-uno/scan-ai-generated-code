@@ -1,0 +1,48 @@
+name: "AIDev Dataset CWE Pre-Screening Discovery"
+
+on:
+  workflow_dispatch: # Allows you to manually click "Run workflow" from the GitHub UI
+
+permissions:
+  contents: write # Crucial: Allows the runner to commit the resulting csv back to your repository
+
+jobs:
+  screen:
+    name: Locate Vulnerable AIDev PRs
+    runs-on: ubuntu-latest
+    timeout-minutes: 120 # Gives the runner plenty of time to query the API rows cleanly
+
+    steps:
+      - name: Checkout Master Repository Code
+        uses: actions/checkout@v5
+
+      - name: Initialize Python Runtime Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Pandas Dependency Library
+        run: |
+          pip install pandas
+
+      - name: Execute Live Dataset Pre-Screening Loop
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} # Uses your existing stable API access token
+        run: |
+          python scripts/screen-dataset.py
+
+      - name: Commit and Push Verified Target List Back to Repository
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.name "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if the screening script successfully populated the file
+          if [ -f "cwe_dense_list.csv" ]; then
+            echo "📊 New target database found! Preparing branch commit..."
+            git add cwe_dense_list.csv
+            git commit -m "data: populate verified cwe-dense public pr rows from aidev dataset screening"
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "⚠️ [NOTICE] cwe_dense_list.csv was not generated or evaluated as completely empty."
+          fi
