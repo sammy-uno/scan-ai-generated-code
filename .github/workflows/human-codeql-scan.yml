@@ -34,6 +34,7 @@ jobs:
         run: |
           pip install pandas
           python scripts/human-scanner.py
+          
   analyze:
     name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
     needs: discover
@@ -62,6 +63,7 @@ jobs:
           rm -rf ./*
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
+          
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -103,6 +105,11 @@ jobs:
             
             # Executes the line-filtered delta calculation engine
             python scripts/parse-results.py || true
+            
+            # 🚀 THE CRITICAL FIX: Rename the generic summary.json to your unique token handle!
+            if [ -f "summary.json" ]; then
+              cp summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+            fi
           else
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
           fi
@@ -118,6 +125,7 @@ jobs:
             *.sarif
             *.success
             *.failed
+            *.json
           retention-days: 1
 
   report:
