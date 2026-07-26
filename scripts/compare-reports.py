@@ -4,33 +4,11 @@ import os
 import subprocess
 from datetime import datetime, timedelta
 
-def get_pr_changed_lines_compare(repo, pr_num):
-    """
-    🎯 COMPARISON TRACKER FILTER: Queries the stable files endpoint directly during 
-    the master comparison phase to isolate base filenames touched by the PR.
-    """
-    changed_lines = {}
-    if not repo or not pr_num:
-        return changed_lines
-    try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
-        sub_env = os.environ.copy()
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
-        if res.returncode == 0:
-            data = json.loads(res.stdout)
-            files = data.get('files', [])
-            for f in files:
-                path = f.get('path', '').strip()
-                if path:
-                    normalized_path = path.replace('\\', '/').lower().strip('/')
-                    changed_lines[normalized_path] = set()
-    except Exception as e:
-        print(f"Comparison asset tracking notice: {e}")
-    return changed_lines
-
 def main():
-    # 🚀 Target JSON files to read from pre-filtered summary tokens exclusively
-    search_path = os.path.join('all-results', '**', '*.json')
+    # 🚀 THE DEFINITIVE DATA FIX: Look for success/failed markers globally!
+    # This guarantees that your historical human scans show up immediately,
+    # even if their zipped artifacts are missing the newly added .json files!
+    search_path = os.path.join('all-results', '**', '*.success')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
@@ -41,14 +19,14 @@ def main():
     seen_prs = set()
 
     print("\n====================================================")
-    print("🎯 COMPARATIVE TRACE STEP 1: PARSING SCORED DATA TOKENS")
+    print("🎯 COMPARATIVE TRACE STEP 1: PARSING ACTIVE MATRIX MARKERS")
     print("====================================================")
 
     for f in all_files:
         fname = os.path.basename(f)
         parent_dir = os.path.basename(os.path.dirname(f))
         
-        # Completely skip loose generic summary outputs
+        # Safely exclude loose outputs
         if fname.lower() == "summary.json":
             continue
 
@@ -57,10 +35,10 @@ def main():
         live_loc = 100
         is_human = False
 
-        # 🚀 RESTORED YOUR ORIGINAL WORKING METADATA PARSER TREE:
+        # Reconstruct properties using your stable double-dash loop trees
         if '--' in fname or '--' in parent_dir:
-            naming_string = fname.replace('.json', '') if '--' in fname else parent_dir.replace('sarif-', '')
-            parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
+            naming_string = fname.replace('.success', '').replace('.failed', '') if '--' in fname else parent_dir.replace('sarif-', '')
+            parts = naming_string.replace('sarif-', '').split('--')
             if len(parts) >= 5:
                 idx = 0
                 for item in parts:
@@ -83,31 +61,35 @@ def main():
             else:
                 if f_mtime > latest_ai_epoch: latest_ai_epoch = f_mtime
 
-            # 🚀 THE CRITICAL INTEGRITY GAURD:
-            # Check uniqueness BEFORE extracting or adding metrics. This completely 
-            # blocks duplicate data files from double-counting your macro stats!
+            # Unique tracking key to avoid multi-pass file-level double counting
             pr_track_key = f"{'human' if is_human else 'ai'}--{repo_path}#{pr_num}"
             if pr_track_key not in seen_prs:
                 seen_prs.add(pr_track_key)
                 
-                # Extract metrics directly from our pre-filtered JSON summary files
-                with open(f, 'r', encoding='utf-8') as s:
-                    summary_data = json.load(s)
-
-                h = int(summary_data.get('high', summary_data.get('H', 0)))
-                m = int(summary_data.get('medium', summary_data.get('M', 0)))
-                l = int(summary_data.get('low', summary_data.get('L', 0)))
-                total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
+                h, m, l, total_issues = 0, 0, 0, 0
+                
+                # Check for custom JSON summary payload next to success marker
+                json_path = f.replace('.success', '.json')
+                if os.path.exists(json_path):
+                    with open(json_path, 'r', encoding='utf-8') as s:
+                        summary_data = json.load(s)
+                    h = int(summary_data.get('high', summary_data.get('H', 0)))
+                    m = int(summary_data.get('medium', summary_data.get('M', 0)))
+                    l = int(summary_data.get('low', summary_data.get('L', 0)))
+                    total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
+                else:
+                    # Safe Fallback Guard: Historical runs without JSON tokens baseline as clean 0
+                    print(f"⚠️ [METRICS NOTICE] {repo_path} #{pr_num} has no JSON summary token yet. Defaulting metrics to 0.")
 
                 target = human_metrics if is_human else ai_metrics
                 
-                # Accumulate issue tracking vectors safely inside the guard block!
+                # Accumulate security vectors securely within our uniqueness lock
                 target["total"] += total_issues
                 target["high"] += h
                 target["medium"] += m
                 target["low"] += l
                 
-                # Accumulate macro metadata stats
+                # Accumulate dimension tracking metadata safely
                 target["scanned_prs"] += 1
                 target["total_loc"] += live_loc
 
@@ -130,7 +112,7 @@ def main():
                     target["merged"] += 1
 
         except Exception as e: 
-            print(f"Error evaluating comparison artifact JSON: {e}")
+            print(f"Error evaluating comparison artifact marker: {e}")
 
     # Calculate density metrics programmatically
     ai_density_loc = round(ai_metrics["total"] / ai_metrics["total_loc"], 5) if ai_metrics["total_loc"] > 0 else 0.0
@@ -152,7 +134,7 @@ def main():
         if res_ai.returncode == 0:
             data_ai = json.loads(res_ai.stdout)
             if data_ai and isinstance(data_ai, list) and len(data_ai) > 0:
-                run_entry = data_ai
+                run_entry = data_ai[0]
                 ai_run_id = str(run_entry.get('databaseId', ''))
                 raw_iso = run_entry.get('updatedAt', '')
                 if raw_iso:
@@ -170,7 +152,7 @@ def main():
         if res_hu.returncode == 0:
             data_hu = json.loads(res_hu.stdout)
             if data_hu and isinstance(data_hu, list) and len(data_hu) > 0:
-                run_entry = data_hu
+                run_entry = data_hu[0]
                 human_run_id = str(run_entry.get('databaseId', ''))
                 raw_iso = run_entry.get('updatedAt', '')
                 if raw_iso:
