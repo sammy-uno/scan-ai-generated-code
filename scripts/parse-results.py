@@ -225,8 +225,15 @@ def main():
             
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             raw_msg = res_item.get('message', {}).get('text', 'No description')
-            msg = raw_msg.split('\n') if isinstance(raw_msg, str) else "No details"
-            msg = msg.replace('|', '\\|')
+            
+            # 🚀 THE CRITICAL FIX: Sanitize table pipes on the raw string text FIRST!
+            if isinstance(raw_msg, str):
+                cleaned_msg = raw_msg.replace('|', '\\|')
+                msg_parts = cleaned_msg.split('\n')
+                msg = msg_parts[0] if msg_parts else "No details"
+            else:
+                msg = "No details"
+
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
     output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', '.')
