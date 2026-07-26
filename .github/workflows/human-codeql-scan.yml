@@ -66,9 +66,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # 🚀 THE FIX: Dynamically set build-mode. 
-          # If the matrix language is 'go', use 'autobuild'. Otherwise, use 'none'.
-          build-mode: ${{ matrix.language == 'go' && 'autobuild' || 'none' }}
+          build-mode: none
           db-location: ${{ runner.temp }}/codeql_db
           trap-caching: false
           queries: code-scanning
