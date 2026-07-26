@@ -59,18 +59,22 @@ jobs:
         run: |
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
+          
+          # Cache our data management python filters safely out of line
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
-          rm -rf ./*
           
-          # 🚀 THE ALIGNMENT FIX: Query the exact head branch source name dynamically 
-          # instead of the standard merge commit reference track.
+          # 🚀 THE NATIVE TRACKING CEILING FIX:
+          # Query the exact head repo name and branch handle directly from the PR metadata layers
+          HEAD_REPO=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json headRepositoryOwner,headRefName --jq '.headRepositoryOwner.login + "/" + .headRefName')
           HEAD_BRANCH=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json headRefName --jq '.headRefName')
-          echo "🌿 Direct PR Head Branch Isolated: $HEAD_BRANCH"
           
-          # Force checkout straight to the source branch line
-          gh repo clone ${{ matrix.repo_name }} .
+          echo "🌿 Targeting Remote Head Source reference: $HEAD_REPO"
+          
+          # Natively fetch the remote tracking stream and force-switch the environment state
+          git fetch origin pull/${{ matrix.pr_num }}/head:$HEAD_BRANCH
           git checkout $HEAD_BRANCH
           
+          # Restore script processing context mirrors
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
           
       - name: Initialize CodeQL
