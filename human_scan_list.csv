@@ -4,3 +4,4 @@ Skyvern-AI/skyvern,2837,Bump requests from 2.32.3 to 2.32.4 in /integrations/lan
 liam-hq/liam,2267,chore(deps): update dependency postcss to v8.5.5,javascript,4194,human
 liam-hq/liam,2266,chore(deps): update dependency @vitejs/plugin-react to v4.5.2,javascript,4194,human
 onlook-dev/onlook,2295,fix: handle chat failure better,javascript,21192,human
+sammy-uno/my-repo,1,Create Flask app with command execution route #1,python,200,human
