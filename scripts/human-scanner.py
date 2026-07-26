@@ -27,7 +27,8 @@ def main():
         "Azure/azure-sdk-for-python",
         "microsoft/TypeScript",
         "microsoft/vscode",
-        "apache/pinot"
+        "apache/pinot",
+        "tinygrad/tinygrad"
     ]
     
     # --- TRACKING ---
