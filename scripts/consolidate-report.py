@@ -144,12 +144,18 @@ def main():
                     committed_files_count = int(summary_data.get('files_changed', summary_data.get('files', 1)))
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
+                    
+                    # 🚀 CRITICAL DEBUG LOGS: Prints raw payload arrays directly into the terminal!
+                    print(f"   🧪 [CWE CONSOLE DEBUG] Target PR: {repo_path} #{pr_num}")
+                    print(f"   🧪 [CWE CONSOLE DEBUG] Raw JSON Key value: {cwes_list} (Type: {type(cwes_list).__name__})")
+                    
                     if isinstance(cwes_list, list):
-                        # 🚀 THE CRITICAL FIX: Strip empty strings, map spaces, and enforce clean uppercase names
                         clean_cwes = sorted(list(set(str(c).strip().upper() for c in cwes_list if c and str(c).strip())))
                         cwe_display = ', '.join(clean_cwes) if clean_cwes else "None"
                     else:
                         cwe_display = str(cwes_list).strip().upper() if cwes_list else "None"
+                        
+                    print(f"   🧪 [CWE CONSOLE DEBUG] Final string formatted for Markdown column: '{cwe_display}'")
                     
                     print(f"   └── Extracted Taxonomy: {cwe_display} | Issues Counted: {total_issues}")
             else:
