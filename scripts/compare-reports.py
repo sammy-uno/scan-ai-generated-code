@@ -5,11 +5,11 @@ import subprocess
 from datetime import datetime, timedelta
 
 def main():
-    # Target json summaries exclusively
+    # 🚀 TARGET ALL DYNAMIC JSON DATA TOKENS EXCLUSIVELY
     search_path = os.path.join('all-results', '**', '*.json')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
-    # Clean research data matrices tracking buffers
+    # Precise thesis matrix dimension buffers
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     
@@ -25,9 +25,8 @@ def main():
         fname = os.path.basename(f)
         parent_dir = os.path.basename(os.path.dirname(f))
         
-        # 🚀 THE CRITICAL FILENAME SHIELD:
-        # Completely skip the generic summary.json files. This guarantees 
-        # the loop processes exactly ONE file per PR slot, preventing metadata mismatch inflation!
+        # 🚀 THE DISK DUPLICATE FILTER SHIELD:
+        # Completely skip generic summary.json files to guarantee 1 single pass per PR!
         if fname.lower() == "summary.json":
             continue
 
@@ -36,23 +35,30 @@ def main():
         live_loc = 100
         is_human = False
 
-        # Extract research variables from custom-named token layout
-        if '--' in fname:
-            naming_string = fname.replace('.json', '')
+        # Extract research properties from filenames or parent folders cleanly
+        naming_string = fname.replace('.json', '')
+        if '--' in naming_string:
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
-            if len(parts) >= 5:
-                idx = 0
-                for item in parts:
-                    if idx == 0: repo_path = item.replace('_SLASH_', '/')
-                    elif idx == 1: pr_num = item
-                    elif idx == 3:
-                        if "human" in item.lower(): is_human = True
-                    elif idx == 4: live_loc = int(item) if item.isdigit() else 100
-                    idx += 1
-                if "human" in fname.lower():
-                    is_human = True
+            
+            # 🚀 TRANS-ARRAY STRUCTURAL POSITION ENGINE:
+            # Safely recalculates string slots regardless of human prefix variations!
+            if parts[0].lower() == "human":
+                is_human = True
+                if len(parts) >= 4:
+                    repo_path = parts[1].replace('_SLASH_', '/')
+                    pr_num = parts[2]
+                    # Look for sizing constraints on the trailing index
+                    last_part = parts[-1]
+                    live_loc = int(last_part) if last_part.isdigit() else 100
+            else:
+                is_human = False
+                if len(parts) >= 4:
+                    repo_path = parts[0].replace('_SLASH_', '/')
+                    pr_num = parts[1]
+                    last_part = parts[-1]
+                    live_loc = int(last_part) if last_part.isdigit() else 100
 
-        # Drop files that do not conform to our long-token research syntax
+        # Drop any files that fail to resolve properties properly
         if not repo_path or not pr_num:
             continue
 
@@ -63,38 +69,37 @@ def main():
             else:
                 if f_mtime > latest_ai_epoch: latest_ai_epoch = f_mtime
 
-            # Extract metrics directly from our pre-filtered JSON summary files
-            with open(f, 'r', encoding='utf-8') as s:
-                summary_data = json.load(s)
-
-            h = int(summary_data.get('high', summary_data.get('H', 0)))
-            m = int(summary_data.get('medium', summary_data.get('M', 0)))
-            l = int(summary_data.get('low', summary_data.get('L', 0)))
-            total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
-
-            target = human_metrics if is_human else ai_metrics
-
-            # 🚀 THE BULLETPROOF INTEGRITY FILTER:
-            # We ONLY count metrics and PR metadata if we haven't processed this unique PR token yet.
-            # This completely blocks generic duplicate summaries from bleeding into total metrics!
+            # 🚀 THE CRITICAL DUP EXCLUSION LAYER:
+            # We ONLY process data if we haven't registered this unique PR track combo yet.
+            # This stops duplicate token profiles from inflating high-level metadata values!
             pr_track_key = f"{'human' if is_human else 'ai'}--{repo_path}#{pr_num}"
             if pr_track_key not in seen_prs:
                 seen_prs.add(pr_track_key)
                 
-                # Accumulate issue tracking vectors
+                # Extract metrics directly from our pre-filtered JSON summary files
+                with open(f, 'r', encoding='utf-8') as s:
+                    summary_data = json.load(s)
+
+                h = int(summary_data.get('high', summary_data.get('H', 0)))
+                m = int(summary_data.get('medium', summary_data.get('M', 0)))
+                l = int(summary_data.get('low', summary_data.get('L', 0)))
+                total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
+
+                target = human_metrics if is_human else ai_metrics
+                
+                # Accumulate security check arrays safely inside the guard profile!
                 target["total"] += total_issues
                 target["high"] += h
                 target["medium"] += m
                 target["low"] += l
                 
-                # Accumulate high-level metadata dimensions safely
                 target["scanned_prs"] += 1
                 target["total_loc"] += live_loc
 
                 print(f"📈 [COMPILING SUMMARY] Track: {'HUMAN' if is_human else 'AI'} | Target: {repo_path} #{pr_num}")
                 print(f"   └── Registered Metrics: {total_issues} (🔴 H: {h} | 🟡 M: {m} | 🔵 L: {l})")
 
-                # Generic live lifecycle query check inside evaluation tracker
+                # Fetch real-time pull request lifecycle tracking metrics safely via GitHub CLI
                 try:
                     cmd_state = f"gh pr view {pr_num} --repo {repo_path} --json state"
                     res_state = subprocess.run(cmd_state, capture_output=True, text=True, shell=True, timeout=15)
