@@ -112,8 +112,8 @@ jobs:
             # Runs the shared python parser in its native root environment
             python scripts/parse-results.py || true
             
-            if [ -f "summary.json" ]; then
-              cp summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+            if [ -f "sarif-results/summary.json" ]; then
+              cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
             else
               echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 1, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
             fi
