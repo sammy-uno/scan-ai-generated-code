@@ -4,12 +4,35 @@ import os
 import subprocess
 from datetime import datetime, timedelta
 
+def get_pr_changed_lines_compare(repo, pr_num):
+    """
+    🎯 COMPARISON TRACKER FILTER: Queries the stable files endpoint directly during 
+    the master comparison phase to isolate base filenames touched by the PR.
+    """
+    changed_lines = {}
+    if not repo or not pr_num:
+        return changed_lines
+    try:
+        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        sub_env = os.environ.copy()
+        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            files = data.get('files', [])
+            for f in files:
+                path = f.get('path', '').strip()
+                if path:
+                    normalized_path = path.replace('\\', '/').lower().strip('/')
+                    changed_lines[normalized_path] = set()
+    except Exception as e:
+        print(f"Comparison asset tracking notice: {e}")
+    return changed_lines
+
 def main():
-    # 🚀 TARGET ALL DYNAMIC JSON DATA TOKENS EXCLUSIVELY
+    # 🚀 Target JSON files to read from pre-filtered summary tokens exclusively
     search_path = os.path.join('all-results', '**', '*.json')
     all_files = sorted(glob.glob(search_path, recursive=True)) if os.path.exists('all-results') else []
     
-    # Precise thesis matrix dimension buffers
     ai_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     human_metrics = {"total": 0, "high": 0, "medium": 0, "low": 0, "scanned_prs": 0, "open": 0, "closed": 0, "merged": 0, "total_loc": 0}
     
@@ -25,8 +48,7 @@ def main():
         fname = os.path.basename(f)
         parent_dir = os.path.basename(os.path.dirname(f))
         
-        # 🚀 THE DISK DUPLICATE FILTER SHIELD:
-        # Completely skip generic summary.json files to guarantee 1 single pass per PR!
+        # Completely skip loose generic summary outputs
         if fname.lower() == "summary.json":
             continue
 
@@ -35,30 +57,22 @@ def main():
         live_loc = 100
         is_human = False
 
-        # Extract research properties from filenames or parent folders cleanly
-        naming_string = fname.replace('.json', '')
-        if '--' in naming_string:
+        # 🚀 RESTORED YOUR ORIGINAL WORKING METADATA PARSER TREE:
+        if '--' in fname or '--' in parent_dir:
+            naming_string = fname.replace('.json', '') if '--' in fname else parent_dir.replace('sarif-', '')
             parts = naming_string.replace('.success', '').replace('.failed', '').split('--')
-            
-            # 🚀 TRANS-ARRAY STRUCTURAL POSITION ENGINE:
-            # Safely recalculates string slots regardless of human prefix variations!
-            if parts[0].lower() == "human":
-                is_human = True
-                if len(parts) >= 4:
-                    repo_path = parts[1].replace('_SLASH_', '/')
-                    pr_num = parts[2]
-                    # Look for sizing constraints on the trailing index
-                    last_part = parts[-1]
-                    live_loc = int(last_part) if last_part.isdigit() else 100
-            else:
-                is_human = False
-                if len(parts) >= 4:
-                    repo_path = parts[0].replace('_SLASH_', '/')
-                    pr_num = parts[1]
-                    last_part = parts[-1]
-                    live_loc = int(last_part) if last_part.isdigit() else 100
+            if len(parts) >= 5:
+                idx = 0
+                for item in parts:
+                    if idx == 0: repo_path = item.replace('_SLASH_', '/')
+                    elif idx == 1: pr_num = item
+                    elif idx == 3:
+                        if "human" in item.lower(): is_human = True
+                    elif idx == 4: live_loc = int(item) if item.isdigit() else 100
+                    idx += 1
+                if "human" in fname.lower() or "human" in parent_dir.lower():
+                    is_human = True
 
-        # Drop any files that fail to resolve properties properly
         if not repo_path or not pr_num:
             continue
 
@@ -69,9 +83,9 @@ def main():
             else:
                 if f_mtime > latest_ai_epoch: latest_ai_epoch = f_mtime
 
-            # 🚀 THE CRITICAL DUP EXCLUSION LAYER:
-            # We ONLY process data if we haven't registered this unique PR track combo yet.
-            # This stops duplicate token profiles from inflating high-level metadata values!
+            # 🚀 THE CRITICAL INTEGRITY GAURD:
+            # Check uniqueness BEFORE extracting or adding metrics. This completely 
+            # blocks duplicate data files from double-counting your macro stats!
             pr_track_key = f"{'human' if is_human else 'ai'}--{repo_path}#{pr_num}"
             if pr_track_key not in seen_prs:
                 seen_prs.add(pr_track_key)
@@ -87,12 +101,13 @@ def main():
 
                 target = human_metrics if is_human else ai_metrics
                 
-                # Accumulate security check arrays safely inside the guard profile!
+                # Accumulate issue tracking vectors safely inside the guard block!
                 target["total"] += total_issues
                 target["high"] += h
                 target["medium"] += m
                 target["low"] += l
                 
+                # Accumulate macro metadata stats
                 target["scanned_prs"] += 1
                 target["total_loc"] += live_loc
 
@@ -137,7 +152,7 @@ def main():
         if res_ai.returncode == 0:
             data_ai = json.loads(res_ai.stdout)
             if data_ai and isinstance(data_ai, list) and len(data_ai) > 0:
-                run_entry = data_ai[0]
+                run_entry = data_ai
                 ai_run_id = str(run_entry.get('databaseId', ''))
                 raw_iso = run_entry.get('updatedAt', '')
                 if raw_iso:
@@ -155,7 +170,7 @@ def main():
         if res_hu.returncode == 0:
             data_hu = json.loads(res_hu.stdout)
             if data_hu and isinstance(data_hu, list) and len(data_hu) > 0:
-                run_entry = data_hu[0]
+                run_entry = data_hu
                 human_run_id = str(run_entry.get('databaseId', ''))
                 raw_iso = run_entry.get('updatedAt', '')
                 if raw_iso:
