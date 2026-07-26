@@ -246,6 +246,16 @@ def main():
         human_run_id = os.environ.get('GITHUB_RUN_ID', '')
         human_stamp = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p CT")
 
+    # 🔬 ACTIVE CONSOLE DIAGNOSTIC TRACE BLOCK:
+    # This forces the comparison engine to print the exact metrics it calculated
+    # straight into your GitHub Actions step logs so you can audit it in real time!
+    print("\n====================================================")
+    print("📊 COMPARATIVE TRACE STEP 2: COMPILED EVALUATION GRID")
+    print("====================================================")
+    print(f" 🤖 AI Group Metrics -> Scanned PRs: {ai_metrics['scanned_prs']} | Introduced: {ai_metrics['total']} (🔴 H: {ai_metrics['high']} 🟡 M: {ai_metrics['medium']} 🔵 L: {ai_metrics['low']})")
+    print(f" 👨‍💻 Human Group Metrics -> Scanned PRs: {human_metrics['scanned_prs']} | Introduced: {human_metrics['total']} (🔴 H: {human_metrics['high']} 🟡 M: {human_metrics['medium']} 🔵 L: {human_metrics['low']})")
+    print("====================================================\n")
+
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# ⚖️ AI vs. Human Vulnerability Comparison\n\n')
@@ -256,7 +266,7 @@ def main():
         
         out.write('### ⚔️ High-Level Group Comparison\n')
         
-        # 🚀 COLUMN HEADING UPDATE: Changed heading to "Total CWEs Introduced"
+        # 🚀 COLUMN HEADING UPDATE: Enforces your exact title standard cleanly
         out.write('| Evaluation Group | Total PRs Scanned | Total PRs LOC | Total CWEs Introduced | 🔴 High | 🟡 Medium | 🔵 Low | Total PRs open | Total PRs closed | Total PRs merged |\n')
         out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
         
