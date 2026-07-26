@@ -61,7 +61,16 @@ jobs:
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           rm -rf ./*
-          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          
+          # 🚀 THE ALIGNMENT FIX: Query the exact head branch source name dynamically 
+          # instead of the standard merge commit reference track.
+          HEAD_BRANCH=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json headRefName --jq '.headRefName')
+          echo "🌿 Direct PR Head Branch Isolated: $HEAD_BRANCH"
+          
+          # Force checkout straight to the source branch line
+          gh repo clone ${{ matrix.repo_name }} .
+          git checkout $HEAD_BRANCH
+          
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
           
       - name: Initialize CodeQL
