@@ -60,17 +60,20 @@ jobs:
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
-          # 🚀 STEP 1: Cache your python tools completely outside of the workspace path
+          # Cache your python helper scripts safely out of the working directory
           mkdir -p /tmp/scripts && cp -r scripts/* /tmp/scripts/ 2>/dev/null || true
           
-          # Synchronize and check out the PR via the native CLI tool
+          # 🚀 THE GENERIC CORRECTION: 
+          # Completely purge the local tracking repository's historical configurations!
+          # This strips your main repository's metadata out of the workspace, forcing 
+          # gh pr checkout to initialize a 100% sterile environment for ANY target PR.
+          rm -rf .git .github
+          
+          echo "📥 Running native GitHub CLI Pull Request synchronization..."
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # 🚀 STEP 2: Aggressively clean out the workspace root!
-          # This force-wipes any uncommitted helper scripts or leftover files from the disk
-          # so CodeQL sees a perfectly sterile repository root, exactly like the AI scan.
-          git reset --hard HEAD
-          git clean -ffdx
+          # Restore the processing context mirrors
+          mkdir -p scripts && cp -r /tmp/scripts/* scripts/ 2>/dev/null || true
           
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
