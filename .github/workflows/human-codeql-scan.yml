@@ -60,20 +60,13 @@ jobs:
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           
-          # Cache your python helper scripts safely out of the working directory
-          mkdir -p /tmp/scripts && cp -r scripts/* /tmp/scripts/ 2>/dev/null || true
+          mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
+          rm -rf ./*
           
-          # 🚀 THE GENERIC CORRECTION: 
-          # Completely purge the local tracking repository's historical configurations!
-          # This strips your main repository's metadata out of the workspace, forcing 
-          # gh pr checkout to initialize a 100% sterile environment for ANY target PR.
-          rm -rf .git .github
-          
-          echo "📥 Running native GitHub CLI Pull Request synchronization..."
+          # 🚀 100% IDENTICAL SYNTAX: Native GitHub CLI checkout engine
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           
-          # Restore the processing context mirrors
-          mkdir -p scripts && cp -r /tmp/scripts/* scripts/ 2>/dev/null || true
+          mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
           
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
