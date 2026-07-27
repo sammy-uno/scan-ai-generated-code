@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION (TARGET FIXED TO 20 RUNS) ---
     INPUT_CSV = "human_scan_list.csv" 
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 100     # Corrected to match the 20-runner parallel matrix limits
+    SCAN_LIMIT = 256     # Corrected to match the 20-runner parallel matrix limits
     
     # Exclude list with problematic/large repositories
     EXCLUDE_REPOS = [
