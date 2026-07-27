@@ -32,7 +32,7 @@ def extract_data():
     filtered_df['created_at'] = pd.to_datetime(filtered_df['created_at'])
     filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
     
-    scan_limit = 500
+    scan_limit = 2000
     final_list = filtered_df.head(scan_limit)
 
     # 🚀 LOC COLUMN REMOVED: Exporting only verified, meaningful properties
