@@ -28,7 +28,10 @@ def main():
         "microsoft/TypeScript",
         "microsoft/vscode",
         "apache/pinot",
-        "tinygrad/tinygrad"
+        "tinygrad/tinygrad",
+        "LeagueAkari/LeagueAkari",
+        "labring/laf",
+        "microsoft/azuredatastudio"
     ]
     
     # --- TRACKING ---
