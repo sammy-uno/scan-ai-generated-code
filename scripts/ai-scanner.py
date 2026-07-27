@@ -16,7 +16,7 @@ def main():
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
     SCAN_LIMIT = 256     # Corrected to match architecture requirement
-    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki"]
+    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python"]
     
     # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
