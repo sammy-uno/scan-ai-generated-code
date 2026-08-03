@@ -120,9 +120,9 @@ The script calculated the normalized metrics for PR #4922 and generated a locali
 $$\text{CWE Density} = \frac{\text{Total Security Issues}}{\text{PR LOC Changed}} = \frac{3 \text{ Issues}}{383 \text{ LOC}} \approx 0.0078 \text{ Issues/LOC}$$
 
 #### 5. Consolidated Output Entry
-The data was compiled into the final master table for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
+The data was compiled into the final master table for the AI experimental cohort. Table 4 illustrates exactly how this single execution run appears inside the consolidated reporting table.
 
-**Table 2: Sample Extraction Row for Running Pipeline Verification**
+**Table 4: Sample Extraction Row for Running Pipeline Verification**
 
 | Repository | PR | Status | Lang | PR LOC | CWE Discovered | High | Med | Low | Total Security Issues (Files) | CWE Density (Issues/LOC) |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -136,9 +136,9 @@ This section presents the empirical findings obtained from the CodeQL static ana
 
 ### Macro-Level Security Profile Comparison
 
-The high-level compilation of static analysis results indicates a clear divergence in the security performance between autonomous coding agents and human developers. Table 3 aggregates the absolute defect counts, severe flaw distributions, pipeline lifecycle states, and overall vulnerability densities calculated across both experimental cohorts.
+The high-level compilation of static analysis results indicates a clear divergence in the security performance between autonomous coding agents and human developers. Table 5 aggregates the absolute defect counts, severe flaw distributions, pipeline lifecycle states, and overall vulnerability densities calculated across both experimental cohorts.
 
-**Table 3: Comparative Security Metrics Aggregate**
+**Table 5: Comparative Security Metrics Aggregate**
 
 | Evaluation / Evaluation Group | AI-Generated PR | Human-Written PR |
 | :--- | :---: | :---: |
