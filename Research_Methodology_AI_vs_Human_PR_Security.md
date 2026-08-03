@@ -129,6 +129,7 @@ The data was compiled into the final master table for the AI experimental cohort
 | `FlowiseAI/Flowise` | 4922 | Closed | javascript | 383 | CWE-307, CWE-352, CWE-400, CWE-770 | 3 | 0 | 0 | 3 (13) | 0.0078 |
 
 
+
 ## Comparative Security Scanning Results Analysis between AI versus Human PRs
 
 This section presents the empirical findings obtained from the CodeQL static analysis scans executed across the active matrix of 502 successfully processed pull requests (256 AI-generated PRs and 246 human-authored PRs). To ensure a mathematically valid comparison despite the minor delta in sample sizes and total lines of code (LOC) evaluated, the security profile of each group is evaluated using both absolute vulnerability counts and normalized density metrics (Issues per 1,000 Lines of Code).
