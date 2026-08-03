@@ -1,4 +1,5 @@
 # Methodology: Comparative Security Analysis of AI and Human PRs
+<br/>
 The following is the methodology used for assessing the security vulnerabilities in AI-Agent and Human pull requests within the AIDev Dataset:
 
 ## Dataset Selection & Filtering
