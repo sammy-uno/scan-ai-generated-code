@@ -1,5 +1,5 @@
 # Methodology: Comparative Security Analysis of AI and Human PRs
-<br/>
+
 The following is the methodology used for assessing the security vulnerabilities in AI-Agent and Human pull requests within the AIDev Dataset:
 
 ### Dataset Selection & Filtering
@@ -107,6 +107,22 @@ The high-level compilation of static analysis results indicates a clear divergen
 | Total Low/Informational Alerts | 28 | 30 |
 | **Mean Vulnerability Density (Issues / 1,000 LOC)** | **1.684** | **1.115** |
 | **High-Severity Density (High Issues / 1,000 LOC)** | **0.451** | **0.175** |
+
+Initial observation of the macro metrics shows that the AI experimental group exhibited a higher total volume of security weaknesses (142 vs. 89) and a significantly steeper density of high-severity flaws. Specifically, autonomous agents introduced 0.451 critical flaws per 1,000 lines of code changed, representing an increase of over 150% compared to the human baseline density of 0.175. This indicates that while autonomous agents are highly capable of rapid code generation, their outputs require strict automated guardrails to prevent severe security degradation.
+
+### Core Common Weakness Enumeration (CWE) Distribution Analysis
+
+To understand the qualitative nature of the vulnerabilities introduced by both cohorts, individual defects were mapped to their corresponding MITRE CWE identifiers. The distribution reveals unique behavioral patterns in how human errors differ from agentic generation failures.
+
+#### 1. Injection and Input Validation Defects (CWE-78, CWE-89, CWE-79)
+Vulnerabilities involving improper input handling were predominantly concentrated within the AI-generated pull request corpus. Coding agents frequently prioritized operational functionality—such as successful string concatenation for database queries or shell command formatting—while omitting mandatory sanitation layers or parameterized input structures. In contrast, the human baseline demonstrated a more consistent, habitual utilization of parameterized libraries, resulting in significantly fewer injection vectors.
+
+#### 2. Resource Management and Concurrency (CWE-400, CWE-772)
+Conversely, errors related to unreleased resources, memory leaks, and missing close/cleanup logic were slightly more prevalent in the human control group. Autonomous agents, benefiting from strict structural patterns and semantic awareness of API lifecycles across diverse training sets, proved highly effective at systematically embedding resource cleanup sequences (e.g., closing file streams or network sockets). Human developers more frequently overlooked these non-functional requirements during complex patch implementations.
+
+#### 3. Cryptographic and Hardcoded Secrets (CWE-798, CWE-327)
+Both cohorts demonstrated vulnerabilities regarding cryptographic failures, but the underlying mechanisms differed. AI coding agents occasionally generated boilerplate code containing hardcoded placeholder cryptographic keys or fallback passwords that remained unremoved prior to PR submission. Human-authored pull requests less frequently contained explicit hardcoded credentials but were occasionally susceptible to selecting deprecated or weak cryptographic algorithms (such as MD5 or SHA-1) out of legacy coding habits.
+
 
 
 
