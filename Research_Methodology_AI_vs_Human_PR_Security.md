@@ -82,11 +82,11 @@ As illustrated in Figure 1, the pipeline ingested 74 raw repository-wide alerts 
 
 To facilitate the final comparative statistical analysis, the consolidated dataset tracks a uniform schema across every audited pull request, detailed in the metrics below:
 
-* Repository Identification: The target project name and pull request index.
-* Development Context: The lifecycle status (merged, closed, open), primary programming language, and total lines of code changed within the PR scope.
-* Vulnerability Profile: A descriptive inventory of discovered CWE types.
-* Severity Distribution: Quantitative counts of flagged security defects stratified by impact tier: High (including MITRE Top 25 CWE vulnerabilities), Medium, and Low/Informational.
-* Vulnerability Density: The calculated CWE Density, representing the total number of identified security issues normalized per line of code changed (Issues/LOC) to enable a balanced statistical comparison between AI-Generated versus Human-Authored PRs.
+* **Repository Identification:** The target project name and pull request index.
+* **Development Context:** The lifecycle status (merged, closed, open), primary programming language, and total lines of code changed within the PR scope.
+* **Vulnerability Profile:** A descriptive inventory of discovered CWE types.
+* **Severity Distribution:** Quantitative counts of flagged security defects stratified by impact tier: High (including MITRE Top 25 CWE vulnerabilities), Medium, and Low/Informational.
+* **Vulnerability Density:** The calculated CWE Density, representing the total number of identified security issues normalized per line of code changed (Issues/LOC) to enable a balanced statistical comparison between AI-Generated versus Human-Authored PRs.
 
 ### Workflow Execution Example (Case Study)
 
