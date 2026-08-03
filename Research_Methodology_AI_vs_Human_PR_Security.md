@@ -128,6 +128,7 @@ The data was compiled into the final master table for the AI experimental cohort
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
 | `FlowiseAI/Flowise` | 4922 | Closed | javascript | 383 | CWE-307, CWE-352, CWE-400, CWE-770 | 3 | 0 | 0 | 3 (13) | 0.0078 |
 
+<br/>
 
 
 ## Comparative Security Scanning Results Analysis between AI versus Human PRs
