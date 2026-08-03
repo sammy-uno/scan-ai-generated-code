@@ -130,43 +130,11 @@ The data was compiled into the final master table for the AI experimental cohort
 
 <br/>
 
-## 4. Comparative Security Scanning Results Analysis between AI versus Human PRs
+## Comparative Security Scanning Results Analysis between AI versus Human PRs
 
 This section presents the empirical findings obtained from the CodeQL static analysis scans executed across the active matrix of 501 successfully processed pull requests (256 AI-generated PRs and 245 human-written PRs). To ensure a mathematically valid comparison despite the divergence in sample sizes and total lines of code (LOC) evaluated, the security profile of each group is evaluated using both absolute vulnerability counts and normalized density metrics (Issues per 1,000 Lines of Code).
 
-### 4.1 Macro-Level Security Profile Comparison
-
-The high-level compilation of static analysis results indicates a clear divergence in the security performance between autonomous coding agents and human developers. Table 3 aggregates the absolute defect counts, severe flaw distributions, pipeline lifecycle states, and overall vulnerability densities calculated across both experimental cohorts.
-
-**Table 3: Comparative Security Metrics Aggregate**
-
-| Evaluation / Evaluation Group | AI-Generated PR | Human-Written PR |
-| :--- | :---: | :---: |
-| **Total Pull Requests Scanned ($N$)** | **256** | **245** |
-| Total Pull Request Lines of Code (LOC) | 47,089 | 28,140 |
-| Total Security Issues Introduced | 46 | 21 |
-| 🔴 High-Severity Issues | 4 | 0 |
-| 🟡 Medium-Severity Issues | 42 | 21 |
-| 🔵 Low-Severity Issues | 0 | 0 |
-| **Mean Vulnerability Density (Issues / 1,000 LOC)** | **0.977** | **0.746** |
-| **High-Severity Density (High Issues / 1,000 LOC)** | **0.085** | **0.000** |
-| Total PRs Open | 27 | 8 |
-| Total PRs Closed | 86 | 58 |
-| Total PRs Merged | 143 | 179 |
-
-Initial observation of the macro metrics shows that the AI experimental group exhibited a higher absolute volume of security weaknesses (46 vs. 21) and a higher overall vulnerability density. Specifically, autonomous agents introduced 0.977 security flaws per 1,000 lines of code changed, representing an increase of 31% compared to the human baseline density of 0.746. 
-
-Crucially, the introduction of high-severity defects was completely isolated to the AI experimental cohort. While human developers introduced zero high-severity flaws across 28,140 lines of code, autonomous agents generated 4 high-severity vulnerabilities, yielding a critical risk density of 0.085 flaws per 1,000 LOC. Conversely, medium-severity errors comprised the vast majority of findings for both groups, with AI agents introducing twice as many total anomalies as human authors (42 vs. 21).
-
-The lifecycle distribution further contextualizes these findings. Despite the higher frequency of security defects found in the AI group, both cohorts achieved high merge counts, with 143 AI-generated PRs and 179 human-written PRs successfully integrated into the main open-source codebases. This highlights the vital importance of deploying automated path-filtering and security scanning pipelines to catch agentic flaws before they bypass manual human review loops.
-
-=====================================  New ================================
-
-## 4. Comparative Security Scanning Results Analysis between AI versus Human PRs
-
-This section presents the empirical findings obtained from the CodeQL static analysis scans executed across the active matrix of 501 successfully processed pull requests (256 AI-generated PRs and 245 human-written PRs). To ensure a mathematically valid comparison despite the divergence in sample sizes and total lines of code (LOC) evaluated, the security profile of each group is evaluated using both absolute vulnerability counts and normalized density metrics (Issues per 1,000 Lines of Code).
-
-### 4.1 Macro-Level Security Profile Comparison
+### Macro-Level Security Profile Comparison
 
 The high-level compilation of static analysis results indicates a clear divergence in the security performance between autonomous coding agents and human developers. Table 3 aggregates the absolute defect counts, severe flaw distributions, pipeline lifecycle states, and overall vulnerability densities calculated across both experimental cohorts.
 
@@ -201,24 +169,6 @@ Crucially, the introduction of high-severity defects was completely isolated to 
 
 The lifecycle distribution further contextualizes these findings. Despite the higher frequency of security defects found in the AI group, both cohorts achieved high merge counts, with 143 AI-generated PRs and 179 human-written PRs successfully integrated into the main open-source codebases. This highlights the vital importance of deploying automated path-filtering and security scanning pipelines to catch agentic flaws before they bypass manual human review loops.
 
-
-
-
-
-===============  old =============================
-
-### Core Common Weakness Enumeration (CWE) Distribution Analysis
-
-To understand the qualitative nature of the vulnerabilities introduced by both cohorts, individual defects were mapped to their corresponding MITRE CWE identifiers. The distribution reveals unique behavioral patterns in how human errors differ from agentic generation failures.
-
-#### 1. Injection and Input Validation Defects (CWE-78, CWE-89, CWE-79)
-Vulnerabilities involving improper input handling were predominantly concentrated within the AI-generated pull request corpus. Coding agents frequently prioritized operational functionality—such as successful string concatenation for database queries or shell command formatting—while omitting mandatory sanitation layers or parameterized input structures. In contrast, the human baseline demonstrated a more consistent, habitual utilization of parameterized libraries, resulting in significantly fewer injection vectors.
-
-#### 2. Resource Management and Concurrency (CWE-400, CWE-772)
-Conversely, errors related to unreleased resources, memory leaks, and missing close/cleanup logic were slightly more prevalent in the human control group. Autonomous agents, benefiting from strict structural patterns and semantic awareness of API lifecycles across diverse training sets, proved highly effective at systematically embedding resource cleanup sequences (e.g., closing file streams or network sockets). Human developers more frequently overlooked these non-functional requirements during complex patch implementations.
-
-#### 3. Cryptographic and Hardcoded Secrets (CWE-798, CWE-327)
-Both cohorts demonstrated vulnerabilities regarding cryptographic failures, but the underlying mechanisms differed. AI coding agents occasionally generated boilerplate code containing hardcoded placeholder cryptographic keys or fallback passwords that remained unremoved prior to PR submission. Human-authored pull requests less frequently contained explicit hardcoded credentials but were occasionally susceptible to selecting deprecated or weak cryptographic algorithms (such as MD5 or SHA-1) out of legacy coding habits.
 
 
 
