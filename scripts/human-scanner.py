@@ -31,7 +31,8 @@ def main():
         "tinygrad/tinygrad",
         "LeagueAkari/LeagueAkari",
         "labring/laf",
-        "microsoft/azuredatastudio"
+        "microsoft/azuredatastudio",
+        "commaai/opendbc"
     ]
     
     # --- TRACKING ---
