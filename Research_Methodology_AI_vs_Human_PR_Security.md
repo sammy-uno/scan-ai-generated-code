@@ -123,6 +123,60 @@ The data was compiled into the final master CSV for the AI experimental cohort. 
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
 | `secure-router` | 142 | Merged | Python | 120 | CWE-78 | 1 | 0 | 0 | 1 | 0.0083 |
 
+
+### 3.4 Workflow Execution Example (Case Study)
+
+To demonstrate the empirical pipeline in practice, this section details a representative execution run tracking an individual agentic pull request through the security scanning and data synthesis framework.
+
+#### 1. Context and Retrieval
+The pipeline ingested an AI-generated pull request from the execution matrix with the following empirical metadata:
+* **Repository:** `FlowiseAI/Flowise`
+* **PR Number:** `#4922`
+* **Agent Identity:** `OpenAI Codex`
+* **Primary Language:** `javascript`
+* **Files Changed:** 13
+* **PR Size:** 383 Lines of Code (LOC) changed (318 additions, 65 deletions).
+* **PR Status:** Closed
+
+#### 2. Scan and SARIF Generation
+The CodeQL engine successfully initialized in buildless mode (`build-mode: none`) and scanned the checked-out source code files altered in the PR. The scan generated a standardized SARIF artifact detailing the static analysis results. 
+
+#### 3. Post-Processing and CWE Extraction
+The custom Python post-processing script parsed the SARIF file and flagged multiple weaknesses within the modified scripts across the 13 changed files.
+* **Discovered Flaws:** The AI agent introduced systematic vulnerabilities related to security mechanisms, resource allocation, and request rate handling.
+* **CWE Mapping:** These flaws were mapped to multiple Common Weakness Enumerations, specifically:
+  * **CWE-307:** Improper Restriction of Excessive Authentication Attempts
+  * **CWE-352:** Cross-Site Request Forgery (CSRF)
+  * **CWE-400:** Uncontrolled Resource Consumption
+  * **CWE-770:** Allocation of Resources Without Limits or Throttling
+* **Severity Stratification:** Because these critical defects represent severe structural vulnerabilities, they were classified as **High-Severity** defects. The post-processing engine logged 3 unique high-severity security findings across these definitions, with no additional medium or low/informational alerts flagged.
+
+#### 4. Data Synthesis and Schema Mapping
+The script calculated the normalized metrics for PR #4922 and generated a localized row entry. The absolute issue count was 3, and the normalized vulnerability density was calculated as:
+
+$$\text{CWE Density} = \frac{\text{Total Security Issues}}{\text{PR LOC Changed}} = \frac{3 \text{ Issues}}{383 \text{ LOC}} \approx 0.0078 \text{ Issues/LOC}$$
+
+#### 5. Consolidated Output Entry
+The data was compiled into the final master CSV for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
+
+**Table 2: Sample Extraction Row for Running Pipeline Verification**
+
+| Repository | PR | Status | Lang | PR LOC | CWE Discovered | High | Med | Low | Total Security Issues (Files) | CWE Density (Issues/LOC) |
+| :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
+| `FlowiseAI/Flowise` | 4922 | Closed | javascript | 383 | CWE-307, CWE-352, CWE-400, CWE-770 | 3 | 0 | 0 | 3 (13) | 0.0078 |
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Comparative Security Scanning Results Analysis between AI versus Human PRs
 
 This section presents the empirical findings obtained from the CodeQL static analysis scans executed across the active matrix of 502 successfully processed pull requests (256 AI-generated PRs and 246 human-authored PRs). To ensure a mathematically valid comparison despite the minor delta in sample sizes and total lines of code (LOC) evaluated, the security profile of each group is evaluated using both absolute vulnerability counts and normalized density metrics (Issues per 1,000 Lines of Code).
