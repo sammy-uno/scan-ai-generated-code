@@ -1,20 +1,43 @@
 # Methodology: Comparative Security Analysis of AI and Human PRs
-
 The following is the methodology used for assessing the security vulnerabilities in AI-Agent and Human pull requests within the AIDev Dataset:
 
-### Dataset Selection & Filtering
+## Dataset Selection & Filtering
 
-For my research into human-AI collaboration, I am leveraging the AIDev dataset hosted on Hugging Face. This platform serves as a comprehensive repository of AI-generated pull requests, documenting both the source code proposed by AI agents and their subsequent interactions with human reviewers. To evaluate code quality through the lens of security vulnerabilities, this study performs a comparative analysis between AI and human PRs using GitHub CodeQL. To mitigate noise and ensure data relevance, the scope is narrowed to the AIDev-Pop subset. This specialized corpus isolates high-quality code changes deployed within established, popular repositories with over 100 stars. Human pull requests are extracted from the exact repositories hosting the Agentic-PRs. To guarantee data relevance and avoid noise from inactive, empty, or personal projects, a strict threshold was set: only repositories with over 500 stars were included in the human baseline. This filtering strategy deliberately excludes low-quality or beginner-level test repositories, ensuring a more rigorous comparison.
+For my research into human-AI collaboration, I am leveraging the AIDev dataset hosted on Hugging Face. This platform serves as a comprehensive repository of AI-generated pull requests, documenting both the source code proposed by AI agents and their subsequent interactions with human reviewers. To evaluate code quality through the lens of security vulnerabilities, this study performs a comparative security analysis between AI and human PRs using GitHub CodeQL. To mitigate noise and ensure data relevance, the scope is narrowed to the AIDev-Pop subset. This specialized corpus isolates high-quality code changes deployed within established, popular repositories with over 100 stars. Human pull requests are extracted from the exact repositories hosting the Agentic-PRs. To guarantee data relevance and avoid noise from inactive, empty, or personal projects, a strict threshold was set: only repositories with over 500 stars were included in the human baseline. This filtering strategy deliberately excludes low-quality or beginner-level test repositories, ensuring a more rigorous comparison.
 
 To reduce the scanning overhead associated with configuring complete project builds, the pull request extraction was limited to repositories written in Python, JavaScript, TypeScript, Java, and Ruby. While Python, JavaScript, TypeScript, and Ruby are interpreted or transpiled languages, Java is a compiled language. However, CodeQL supports buildless extraction across this entire target ecosystem via its --build-mode none configuration. For the scripting and transpiled languages, the tool populates its database by scanning directory source files directly; for Java, it leverages a simulated compilation run to parse syntax trees without initiating a full build pipeline.
 
 Data collection was managed via two independent Python-based data extraction workflows deployed on GitHub. By incorporating the established star-count and language filters, the sample size for each individual pipeline was bounded to 2,000 pull requests for this phase of the study, yielding 4,000 total PRs for analysis. The resulting datasets are compiled into separate CSV files containing identical structural fields, specifically: repository name, PR number, PR title, primary language, agent identity, and repository star count. To maintain structural consistency across both data schemas, the agent_name attribute for the human control group is uniformly populated with the string literal "human" for subsequent comparative categorization.
 
-### Security Vulnerability Detection Logic
+### Extracted Metadata Schema and Data Samples
+
+The custom data extraction engine compiles the filtered dataset into two independent, standardized CSV files for subsequent processing. Both outputs share an identical structural schema containing six metadata fields designed to track project metrics and contextual attributes: repository name (`repo_name`), unique pull request index (`number`), pull request heading text (`title`), primary codebase language (`primary_language`), the AI agent name or "human" designation (`agent_name`), and total repository stargazers (`repo_stars`).
+
+To illustrate the structural uniformity of the underlying data corpus, Table 1 and Table 2 provide truncated sample records extracted from the AI agent and human baseline CSV files respectively.
+
+#### Table 1: AI-Generated Dataset Schema Sample
+
+| repo_name | number | title | primary_language | agent_name | repo_stars |
+| :--- | :---: | :--- | :---: | :---: | :---: |
+| `Skyvern-AI/skyvern` | 3063 | Add skyvern_project table | python | OpenAI_Codex | 13976 |
+| `prebid/Prebid.js` | 13698 | Core: use uuid for bid ids | javascript | OpenAI_Codex | 1467 |
+| `Mail-0/Zero` | 1871 | Fix workflow result passing between steps | javascript | Devin | 9132 |
+| `mendableai/firecrawl` | 1896 | feat(python-sdk): implement missing crawl_entire_domain parameter | javascript | Devin | 43970 |
+
+#### Table 2: Human Baseline Dataset Schema Sample
+
+| repo_name | number | title | primary_language | agent_name | repo_stars |
+| :--- | :---: | :--- | :---: | :---: | :---: |
+| 'analogdotnow/Analog' | 155 | Fix event date time update bug | javascript | human | 1079 |
+| 'Skyvern-AI/skyvern' | 2837 | Bump requests from 2.32.3 to 2.32.4 in /integrations/langchain | python | human | 13976 |
+| 'onlook-dev/onlook' | 2295 | fix: handle chat failure better | javascript | human | 21192 |
+| 'antiwork/gumroad' | 480 | [Refactor] Move tax calculation logic into a service object | ruby | human | 6643 | 
+
+## Security Vulnerability Detection Logic
 
 Two separate GitHub workflows were created to analyze the security vulnerabilities of the AI and human pull requests stored in the CSV files produced from the previous step. For this phase of testing, the automated scanning scope was constrained to 256 pull requests to maintain pipeline efficiency. Selected pull requests were restricted to a maximum size of 1,000 lines of code changed (including both additions and deletions). Furthermore, to broaden the diversity of the evaluation across different codebases and prevent a single codebase from skewing the results, the sampling strategy isolated exactly one pull request per repository. CodeQL scans were also governed by a strict 30-minute runtime limit per repository. Under this rule, approximately ten repositories were intentionally excluded from the study after exceeding the allocated execution timeout. Additionally, four repositories were bypassed due to transient GitHub API errors encountered while fetching PR metadata, and a small number of pull requests were omitted because they contained zero lines of code changes.
 
-### Pull Request Discovery and Filtering Metrics
+## Pull Request Discovery and Filtering Metrics
 
 The screening and filtering process resulted in an active execution matrix of 256 AI-generated pull requests and 246 human-authored pull requests. A comprehensive comparative breakdown of the processed, skipped, and excluded pull requests for both experimental groups is detailed in Table 1 below.
 
@@ -31,7 +54,7 @@ The screening and filtering process resulted in an active execution matrix of 25
 
 The CodeQL security analysis was subsequently executed across each pull request within the designated active scan matrix. To optimize pipeline throughput and minimize overall processing time, the GitHub Actions workflow was configured for parallel execution, evaluating up to ten pull requests concurrently. The entire processing infrastructure was deployed on standard GitHub-hosted ubuntu-latest virtual machine runners, operating within the platform's free tier for public open-source repositories. 
 
-### Pipeline Execution and Data Synthesis Workflow
+## Pipeline Execution and Data Synthesis Workflow
 
 The automated analysis phase for both the AI agent and human baseline groups was structured into a five-stage processing pipeline within GitHub Actions. The sequential execution steps are defined as follows:
 
