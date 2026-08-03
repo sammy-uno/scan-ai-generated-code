@@ -39,7 +39,7 @@ Two separate GitHub workflows were created to analyze the security vulnerabiliti
 
 ## Pull Request Discovery and Filtering Metrics
 
-The screening and filtering process resulted in an active execution matrix of 256 AI-generated pull requests and 246 human-authored pull requests. A comprehensive comparative breakdown of the processed, skipped, and excluded pull requests for both experimental groups is detailed in Table 3 below.
+The screening and filtering process resulted in an active execution matrix of 256 AI-generated pull requests and 245 human-authored pull requests. A comprehensive comparative breakdown of the processed, skipped, and excluded pull requests for both experimental groups is detailed in Table 3 below.
 
 **Table 3: Pull Request Discovery and Filtering Metrics**
 
