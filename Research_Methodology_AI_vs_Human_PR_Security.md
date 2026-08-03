@@ -189,7 +189,7 @@ The high-level compilation of static analysis results indicates a clear divergen
 This comprehensive group comparison and the underlying automated workflow execution contexts are compiled directly from the live evaluation system telemetry visualized in Figure&nbsp;2.
 
 <div style="page-break-inside: avoid; break-inside: avoid; margin: 20px 0; text-align: center;">
-    <img src="image_HS-9Ae.png" alt="Figure 2: Live System Telemetry Dashboard for AI vs. Human Vulnerability Comparison" style="max-width: 100%; height: auto;" />
+    <img src="AI_vs_Human_Vulnerability_Comparison.PNG" alt="Figure 2: Live System Telemetry Dashboard for AI vs. Human Vulnerability Comparison" style="max-width: 100%; height: auto;" />
     <p style="margin-top: 10px; font-style: italic; text-align: left;">
         <strong>Figure 2:</strong> Live System Telemetry Dashboard for AI vs. Human Vulnerability Comparison detailing absolute security flaw metrics, severity distributions, and underlying GitHub Actions execution links.
     </p>
