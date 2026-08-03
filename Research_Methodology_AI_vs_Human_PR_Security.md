@@ -88,43 +88,6 @@ To facilitate the final comparative statistical analysis, the consolidated datas
 * Vulnerability Density: The calculated CWE Density, representing the total number of identified security issues normalized per line of code changed (Issues/LOC) to enable a balanced statistical comparison between AI-Generated versus Human-Authored PRs.
 
 ### Workflow Execution Example (Case Study)
-To demonstrate the empirical pipeline in practice, this section details a representative execution run tracking an individual agentic pull request through the detection and data synthesis framework.
-
-#### 1. Context and Retrieval
-The pipeline ingested an AI-generated pull request from the execution matrix with the following initial metadata:
-* **Repository:** `FlowiseAI/Flowise`
-* **PR Number:** `#4922`
-* **Agent Identity:** `OpenAI Codex`
-* **Primary Language:** `javascript`
-* **Files Changed:** 13
-* **PR Size:** 383 Lines of Code (LOC) changed (318 additions, 65 deletions).
-* **PR Status:** Closed
-
-#### 2. Scan and SARIF Generation
-The CodeQL engine successfully initialized in buildless mode (`build-mode: none`) and scanned the checked-out source code files altered in the PR. The scan generated a standardized SARIF artifact detailing the static analysis results. 
-
-#### 3. Post-Processing and CWE Extraction  **** change this section ****
-The custom Python post-processing script parsed the SARIF file and flagged a vulnerability within a modified Python script (`controllers/auth.py`). 
-* **Discovered Flaw:** The AI agent utilized untrusted user input directly inside an OS command string without validation.
-* **CWE Mapping:** This flaw was mapped to **CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')**. 
-* **Severity Stratification:** Because CWE-78 is documented in the MITRE Top 25 security vulnerabilities, it was classified as a **High-Severity** defect. No other medium or informational alerts were found in this specific file.
-
-#### 4. Data Synthesis and Schema Mapping *** change this section ***
-The script calculated the normalized metrics for PR #4922 and generated a localized row entry. The absolute issue count was 1, and the normalized vulnerability density was calculated as:
-
-$$\text{CWE Density} = \frac{\text{Total Security Issues}}{\text{PR LOC Changed}} = \frac{1 \text{ Issue}}{120 \text{ LOC}} \approx 0.0083 \text{ Issues/LOC}$$
-
-#### 5. Consolidated Output Entry  **** change this section ****
-The data was compiled into the final master CSV for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
-
-**Table 2: Sample Extraction Row for Running Pipeline Verification** 
-
-| Repository | PR | Status | Lang | PR LOC | CWE Discovered | High | Med | Low | Total Issues | CWE Density (Issues/LOC) |
-| :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
-| `secure-router` | 142 | Merged | Python | 120 | CWE-78 | 1 | 0 | 0 | 1 | 0.0083 |
-
-
-### 3.4 Workflow Execution Example (Case Study)
 
 To demonstrate the empirical pipeline in practice, this section details a representative execution run tracking an individual agentic pull request through the security scanning and data synthesis framework.
 
@@ -157,24 +120,13 @@ The script calculated the normalized metrics for PR #4922 and generated a locali
 $$\text{CWE Density} = \frac{\text{Total Security Issues}}{\text{PR LOC Changed}} = \frac{3 \text{ Issues}}{383 \text{ LOC}} \approx 0.0078 \text{ Issues/LOC}$$
 
 #### 5. Consolidated Output Entry
-The data was compiled into the final master CSV for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
+The data was compiled into the final master table for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
 
 **Table 2: Sample Extraction Row for Running Pipeline Verification**
 
 | Repository | PR | Status | Lang | PR LOC | CWE Discovered | High | Med | Low | Total Security Issues (Files) | CWE Density (Issues/LOC) |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
 | `FlowiseAI/Flowise` | 4922 | Closed | javascript | 383 | CWE-307, CWE-352, CWE-400, CWE-770 | 3 | 0 | 0 | 3 (13) | 0.0078 |
-
-
-
-
-
-
-
-
-
-
-
 
 
 ## Comparative Security Scanning Results Analysis between AI versus Human PRs
