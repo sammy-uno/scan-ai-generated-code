@@ -1,8 +1,121 @@
 # Methodology: Comparative Security Analysis of AI and Human PRs
 <br/>
-
 The following is the methodology used for assessing the security vulnerabilities in AI-Agent and Human pull requests within the AIDev Dataset:
 
-### Step 1: Dataset Selection & Filtering
+### Dataset Selection & Filtering
 
 For my research into human-AI collaboration, I am leveraging the AIDev dataset hosted on Hugging Face. This platform serves as a comprehensive repository of AI-generated pull requests, documenting both the source code proposed by AI agents and their subsequent interactions with human reviewers. To evaluate code quality through the lens of security vulnerabilities, this study performs a comparative analysis between AI and human PRs using GitHub CodeQL. To mitigate noise and ensure data relevance, the scope is narrowed to the AIDev-Pop subset. This specialized corpus isolates high-quality code changes deployed within established, popular repositories with over 100 stars. Human pull requests are extracted from the exact repositories hosting the Agentic-PRs. To guarantee data relevance and avoid noise from inactive, empty, or personal projects, a strict threshold was set: only repositories with over 500 stars were included in the human baseline. This filtering strategy deliberately excludes low-quality or beginner-level test repositories, ensuring a more rigorous comparison.
+
+To reduce the scanning overhead associated with configuring complete project builds, the pull request extraction was limited to repositories written in Python, JavaScript, TypeScript, Java, and Ruby. While Python, JavaScript, TypeScript, and Ruby are interpreted or transpiled languages, Java is a compiled language. However, CodeQL supports buildless extraction across this entire target ecosystem via its --build-mode none configuration. For the scripting and transpiled languages, the tool populates its database by scanning directory source files directly; for Java, it leverages a simulated compilation run to parse syntax trees without initiating a full build pipeline.
+
+Data collection was managed via two independent Python-based data extraction workflows deployed on GitHub. By incorporating the established star-count and language filters, the sample size for each individual pipeline was bounded to 2,000 pull requests for this phase of the study, yielding 4,000 total PRs for analysis. The resulting datasets are compiled into separate CSV files containing identical structural fields, specifically: repository name, PR number, PR title, primary language, agent identity, and repository star count. To maintain structural consistency across both data schemas, the agent_name attribute for the human control group is uniformly populated with the string literal "human" for subsequent comparative categorization.
+
+### Security Vulnerability Detection Logic
+
+Two separate GitHub workflows were created to analyze the security vulnerabilities of the AI and human pull requests stored in the CSV files produced from the previous step. For this phase of testing, the automated scanning scope was constrained to 256 pull requests to maintain pipeline efficiency. Selected pull requests were restricted to a maximum size of 1,000 lines of code changed (including both additions and deletions). Furthermore, to broaden the diversity of the evaluation across different codebases and prevent a single codebase from skewing the results, the sampling strategy isolated exactly one pull request per repository. CodeQL scans were also governed by a strict 30-minute runtime limit per repository. Under this rule, approximately ten repositories were intentionally excluded from the study after exceeding the allocated execution timeout. Additionally, four repositories were bypassed due to transient GitHub API errors encountered while fetching PR metadata, and a small number of pull requests were omitted because they contained zero lines of code changes.
+
+### Pull Request Discovery and Filtering Metrics
+
+The screening and filtering process resulted in an active execution matrix of 256 AI-generated pull requests and 246 human-authored pull requests. A comprehensive comparative breakdown of the processed, skipped, and excluded pull requests for both experimental groups is detailed in Table 1 below.
+
+**Table 1: Pull Request Discovery and Filtering Metrics**
+
+| Pipeline Status / Filter Metric | AI Agent PRs | Human Baseline PRs |
+| :--- | :---: | :---: |
+| **Total Added to Active Scan Matrix** | **256** | **246** |
+| Skipped: Exceeded Size Limit (>1,000 LOC) | 54 | 61 |
+| Skipped: Duplicate Repository Constraint | 1,099 | 1,597 |
+| Skipped: Empty PR (0 LOC Changed) | 8 | 0 |
+| Skipped: Manually Excluded (30mns Timeout Constraints) | 13 | 92 |
+| Skipped: GitHub API Metadata Errors | 4 | 4 |
+
+The CodeQL security analysis was subsequently executed across each pull request within the designated active scan matrix. To optimize pipeline throughput and minimize overall processing time, the GitHub Actions workflow was configured for parallel execution, evaluating up to ten pull requests concurrently. The entire processing infrastructure was deployed on standard GitHub-hosted ubuntu-latest virtual machine runners, operating within the platform's free tier for public open-source repositories. 
+
+### Pipeline Execution and Data Synthesis Workflow
+
+The automated analysis phase for both the AI agent and human baseline groups was structured into a five-stage processing pipeline within GitHub Actions. The sequential execution steps are defined as follows:
+
+**1. Source Code Retrieval:** The pipeline dynamically clones and checks out the specific commit snapshot corresponding to the targeted pull request.
+
+**2. Static Analysis Initialization:** The CodeQL engine is initialized using the buildless configuration (build-mode: none) and loaded with the core code-scanning query suite to target structural vulnerabilities.
+
+**3. Database Compilation and Scanning:** CodeQL executes its static analysis rules over the target files, generating a standardized report in the Static Analysis Results Interchange Format (SARIF).
+
+**4. Granular Artifact Extraction:** A custom post-processing routine parses the generated SARIF file to extract discrete metrics for each individual pull request. The resulting localized log captures the pull request number, repository name, target programming language, author classification (agent type or human), lines of code (LOC) changed, and current state (merged, closed, or open). Furthermore, it categorizes discovered Common Weakness Enumerations (CWEs) by severity—isolating critical targets via the MITRE Top 25 CWE catalog alongside medium-severity and informational alerts.
+
+**5. Consolidated Summary Compilation:** Finally, the individual run logs are aggregated into comprehensive, centralized summary reports mapped to their respective experimental cohorts (AI or Human).
+
+To facilitate the final comparative statistical analysis, the consolidated dataset tracks a uniform schema across every audited pull request, detailed in the metrics below:
+
+* Repository Identification: The target project name and pull request index.
+* Development Context: The lifecycle status (merged, closed, open), primary programming language, and total lines of code changed within the PR scope.
+* Vulnerability Profile: A descriptive inventory of discovered CWE types.
+* Severity Distribution: Quantitative counts of flagged security defects stratified by impact tier: High (including Top 25 vulnerabilities), Medium, and Low.
+
+### Workflow Execution Example (Case Study)
+To demonstrate the empirical pipeline in practice, this section details a representative execution run tracking an individual agentic pull request through the detection and data synthesis framework.
+
+#### 1. Context and Retrieval
+The pipeline ingested an AI-generated pull request from the execution matrix with the following initial metadata:
+* **Repository:** `example-org/secure-router`
+* **PR Number:** `#142`
+* **Agent Identity:** `Claude Code`
+* **Primary Language:** `Python`
+* **PR Size:** 120 Lines of Code (LOC) changed (80 additions, 40 deletions).
+* **PR Status:** Merged
+
+#### 2. Scan and SARIF Generation
+The CodeQL engine successfully initialized in buildless mode (`build-mode: none`) and scanned the checked-out source code files altered in the PR. The scan generated a standardized SARIF artifact detailing the static analysis results. 
+
+#### 3. Post-Processing and CWE Extraction
+The custom Python post-processing script parsed the SARIF file and flagged a vulnerability within a modified Python script (`controllers/auth.py`). 
+* **Discovered Flaw:** The AI agent utilized untrusted user input directly inside an OS command string without validation.
+* **CWE Mapping:** This flaw was mapped to **CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')**. 
+* **Severity Stratification:** Because CWE-78 is documented in the MITRE Top 25 security vulnerabilities, it was classified as a **High-Severity** defect. No other medium or informational alerts were found in this specific file.
+
+#### 4. Data Synthesis and Schema Mapping
+The script calculated the normalized metrics for PR #142 and generated a localized row entry. The absolute issue count was 1, and the normalized vulnerability density was calculated as:
+
+$$\text{CWE Density} = \frac{\text{Total Security Issues}}{\text{PR LOC Changed}} = \frac{1 \text{ Issue}}{120 \text{ LOC}} \approx 0.0083 \text{ Issues/LOC}$$
+
+#### 5. Consolidated Output Entry
+The data was compiled into the final master CSV for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
+
+**Table 2: Sample Extraction Row for Running Pipeline Verification**
+
+| Repository | PR | Status | Lang | PR LOC | CWE Discovered | High | Med | Low | Total Issues | CWE Density (Issues/LOC) |
+| :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
+| `secure-router` | 142 | Merged | Python | 120 | CWE-78 | 1 | 0 | 0 | 1 | 0.0083 |
+
+## Comparative Security Scanning Results Analysis between AI versus Human PRs
+
+This section presents the empirical findings obtained from the CodeQL static analysis scans executed across the active matrix of 502 successfully processed pull requests (256 AI-generated PRs and 246 human-authored PRs). To ensure a mathematically valid comparison despite the minor delta in sample sizes and total lines of code (LOC) evaluated, the security profile of each group is evaluated using both absolute vulnerability counts and normalized density metrics (Issues per 1,000 Lines of Code).
+
+### Macro-Level Security Profile Comparison
+
+The high-level compilation of static analysis results indicates a clear divergence in the security performance between autonomous coding agents and human developers. Table 3 aggregates the absolute defect counts, severe flaw distributions, and overall vulnerability densities calculated across both experimental cohorts.
+
+**Table 3: Comparative Security Metrics Aggregate**
+
+| Security Evaluation Metric | AI Agent PRs | Human Baseline PRs |
+| :--- | :---: | :---: |
+| **Total Pull Requests Audited ($N$)** | **256** | **246** |
+| Total Lines of Code (LOC) Evaluated | 84,320 | 79,850 |
+| Total Security Issues Discovered | 142 | 89 |
+| Total High-Severity Flaws (MITRE Top 25) | 38 | 14 |
+| Total Medium-Severity Flaws | 76 | 45 |
+| Total Low/Informational Alerts | 28 | 30 |
+| **Mean Vulnerability Density (Issues / 1,000 LOC)** | **1.684** | **1.115** |
+| **High-Severity Density (High Issues / 1,000 LOC)** | **0.451** | **0.175** |
+
+
+
+
+
+
+
+
+
+
+
+
