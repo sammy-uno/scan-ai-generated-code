@@ -13,7 +13,7 @@ Data collection was managed via two independent Python-based data extraction wor
 
 The custom data extraction engine compiles the filtered dataset into two independent, standardized CSV files for subsequent processing. Both outputs share an identical structural schema containing six metadata fields designed to track project metrics and contextual attributes: repository name (`repo_name`), unique pull request index (`number`), pull request heading text (`title`), primary codebase language (`primary_language`), the AI agent name or "human" designation (`agent_name`), and total repository stargazers (`repo_stars`).
 
-To illustrate the structural uniformity of the underlying data corpus, Table 1 and Table 2 provide truncated sample records extracted from the AI agent and human baseline CSV files respectively.
+To illustrate the structural uniformity of the underlying data corpus, Table 1 and Table 2 provide sample records extracted from the AI agent and human baseline CSV files respectively.
 
 #### Table 1: AI-Generated Dataset Schema Sample
 
@@ -39,11 +39,11 @@ Two separate GitHub workflows were created to analyze the security vulnerabiliti
 
 ## Pull Request Discovery and Filtering Metrics
 
-The screening and filtering process resulted in an active execution matrix of 256 AI-generated pull requests and 246 human-authored pull requests. A comprehensive comparative breakdown of the processed, skipped, and excluded pull requests for both experimental groups is detailed in Table 1 below.
+The screening and filtering process resulted in an active execution matrix of 256 AI-generated pull requests and 246 human-authored pull requests. A comprehensive comparative breakdown of the processed, skipped, and excluded pull requests for both experimental groups is detailed in Table 3 below.
 
-**Table 1: Pull Request Discovery and Filtering Metrics**
+**Table 3: Pull Request Discovery and Filtering Metrics**
 
-| Pipeline Status / Filter Metric | AI Agent PRs | Human Baseline PRs |
+| Pipeline Status / Filter Metric | AI-Generated PRs | Human-Authored PRs |
 | :--- | :---: | :---: |
 | **Total Added to Active Scan Matrix** | **256** | **246** |
 | Skipped: Exceeded Size Limit (>1,000 LOC) | 54 | 61 |
@@ -54,7 +54,7 @@ The screening and filtering process resulted in an active execution matrix of 25
 
 The CodeQL security analysis was subsequently executed across each pull request within the designated active scan matrix. To optimize pipeline throughput and minimize overall processing time, the GitHub Actions workflow was configured for parallel execution, evaluating up to ten pull requests concurrently. The entire processing infrastructure was deployed on standard GitHub-hosted ubuntu-latest virtual machine runners, operating within the platform's free tier for public open-source repositories. 
 
-## Pipeline Execution and Data Synthesis Workflow
+## Security Scanning Pipeline Execution and Data Synthesis Workflow
 
 The automated analysis phase for both the AI agent and human baseline groups was structured into a five-stage processing pipeline within GitHub Actions. The sequential execution steps are defined as follows:
 
@@ -62,49 +62,50 @@ The automated analysis phase for both the AI agent and human baseline groups was
 
 **2. Static Analysis Initialization:** The CodeQL engine is initialized using the buildless configuration (build-mode: none) and loaded with the core code-scanning query suite to target structural vulnerabilities.
 
-**3. Database Compilation and Scanning:** CodeQL executes its static analysis rules over the target files, generating a standardized report in the Static Analysis Results Interchange Format (SARIF).
+**3. Database Compilation and Scanning:** The CodeQL engine compiles the entire target repository snapshot into a relational database graph to ensure accurate global data-flow tracking. After scanning the complete codebase for vulnerabilities, a custom post-processing filter embedded within the workflow isolates the results. This filter suppresses any preexisting issues in untouched files, ensuring that only security defects introduced directly within the modified files of the pull request are retained for analysis. The resulting curated findings are outputted into a standardized Static Analysis Results Interchange Format (SARIF) file.
 
-**4. Granular Artifact Extraction:** A custom post-processing routine parses the generated SARIF file to extract discrete metrics for each individual pull request. The resulting localized log captures the pull request number, repository name, target programming language, author classification (agent type or human), lines of code (LOC) changed, and current state (merged, closed, or open). Furthermore, it categorizes discovered Common Weakness Enumerations (CWEs) by severity—isolating critical targets via the MITRE Top 25 CWE catalog alongside medium-severity and informational alerts.
+**4. Granular Artifact Extraction:** A custom post-processing routine parses the generated SARIF file to extract discrete metrics for each individual pull request. The resulting localized log captures the pull request number, repository name, target programming language, the AI agent name or 'human' designation, lines of code (LOC) changed, and current state (merged, closed, or open). Furthermore, it categorizes discovered Common Weakness Enumerations (CWEs) by severity—isolating critical targets via the MITRE Top 25 CWE catalog alongside medium and low/informational alerts.
 
-**5. Consolidated Summary Compilation:** Finally, the individual run logs are aggregated into comprehensive, centralized summary reports mapped to their respective experimental cohorts (AI or Human).
+**5. Consolidated Summary Compilation:** Finally, the individual run logs are aggregated into comprehensive, centralized summary reports mapped to their respective experimental cohorts (AI-Generated or Human-Authored).
 
 To facilitate the final comparative statistical analysis, the consolidated dataset tracks a uniform schema across every audited pull request, detailed in the metrics below:
 
 * Repository Identification: The target project name and pull request index.
 * Development Context: The lifecycle status (merged, closed, open), primary programming language, and total lines of code changed within the PR scope.
 * Vulnerability Profile: A descriptive inventory of discovered CWE types.
-* Severity Distribution: Quantitative counts of flagged security defects stratified by impact tier: High (including Top 25 vulnerabilities), Medium, and Low.
+* Severity Distribution: Quantitative counts of flagged security defects stratified by impact tier: High (including MITRE Top 25 CWE vulnerabilities), Medium, and Low/Informational.
+* Vulnerability Density: The calculated CWE Density, representing the total number of identified security issues normalized per line of code changed (Issues/LOC) to enable a balanced statistical comparison between AI-Generated versus Human-Authored PRs.
 
 ### Workflow Execution Example (Case Study)
 To demonstrate the empirical pipeline in practice, this section details a representative execution run tracking an individual agentic pull request through the detection and data synthesis framework.
 
 #### 1. Context and Retrieval
 The pipeline ingested an AI-generated pull request from the execution matrix with the following initial metadata:
-* **Repository:** `example-org/secure-router`
-* **PR Number:** `#142`
-* **Agent Identity:** `Claude Code`
-* **Primary Language:** `Python`
-* **PR Size:** 120 Lines of Code (LOC) changed (80 additions, 40 deletions).
-* **PR Status:** Merged
+* **Repository:** `FlowiseAI/Flowise`
+* **PR Number:** `#4922`
+* **Agent Identity:** `OpenAI Codex`
+* **Primary Language:** `javascript`
+* **PR Size:** 383 Lines of Code (LOC) changed (318 additions, 65 deletions).
+* **PR Status:** Closed
 
 #### 2. Scan and SARIF Generation
 The CodeQL engine successfully initialized in buildless mode (`build-mode: none`) and scanned the checked-out source code files altered in the PR. The scan generated a standardized SARIF artifact detailing the static analysis results. 
 
-#### 3. Post-Processing and CWE Extraction
+#### 3. Post-Processing and CWE Extraction  **** change this section ****
 The custom Python post-processing script parsed the SARIF file and flagged a vulnerability within a modified Python script (`controllers/auth.py`). 
 * **Discovered Flaw:** The AI agent utilized untrusted user input directly inside an OS command string without validation.
 * **CWE Mapping:** This flaw was mapped to **CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')**. 
 * **Severity Stratification:** Because CWE-78 is documented in the MITRE Top 25 security vulnerabilities, it was classified as a **High-Severity** defect. No other medium or informational alerts were found in this specific file.
 
-#### 4. Data Synthesis and Schema Mapping
-The script calculated the normalized metrics for PR #142 and generated a localized row entry. The absolute issue count was 1, and the normalized vulnerability density was calculated as:
+#### 4. Data Synthesis and Schema Mapping *** change this section ***
+The script calculated the normalized metrics for PR #4922 and generated a localized row entry. The absolute issue count was 1, and the normalized vulnerability density was calculated as:
 
 $$\text{CWE Density} = \frac{\text{Total Security Issues}}{\text{PR LOC Changed}} = \frac{1 \text{ Issue}}{120 \text{ LOC}} \approx 0.0083 \text{ Issues/LOC}$$
 
-#### 5. Consolidated Output Entry
+#### 5. Consolidated Output Entry  **** change this section ****
 The data was compiled into the final master CSV for the AI experimental cohort. Table 2 illustrates exactly how this single execution run appears inside the consolidated reporting table.
 
-**Table 2: Sample Extraction Row for Running Pipeline Verification**
+**Table 2: Sample Extraction Row for Running Pipeline Verification** 
 
 | Repository | PR | Status | Lang | PR LOC | CWE Discovered | High | Med | Low | Total Issues | CWE Density (Issues/LOC) |
 | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
