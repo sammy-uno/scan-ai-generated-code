@@ -1,5 +1,6 @@
 name: "TEST - AI Multi-Language Chained Scanner"
 
+# 🚀 1. SUPPORT GLOBAL WEBHOOK EVENTS AND MANUAL TRIGGERS
 on:
   workflow_dispatch:
     inputs:
@@ -7,32 +8,37 @@ on:
         description: 'CSV Line Data Offset Pointer'
         required: false
         default: '0'
+  repository_dispatch:
+    types: [run_test_chunk] # Custom event listener string to clear 404 restrictions
 
 permissions:
   contents: read
   security-events: write
-  actions: write 
+  actions: write # Required to dispatch self-trigger chaining actions
 
 jobs:
   discover:
     name: Find AI PRs (Test Block)
     runs-on: ubuntu-latest
-    # 🚀 THE CRITICAL BRIDGE: Explicitly bind the step variables to the Job Outputs tier!
+    # Explicitly bind the step variables to the Job Outputs tier for cross-job boundary access
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
       next_offset: ${{ steps.detect.outputs.next_offset }}
       has_more_data: ${{ steps.detect.outputs.has_more_data }}
     steps:
       - uses: actions/checkout@v5
+      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          
       - name: Discover Scan Matrix
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          CHUNK_OFFSET: ${{ github.event.inputs.offset || '0' }}
+          # 🚀 2. DYNAMIC INPUT DISCOVERY: Reads from manual context OR webhook client payload context!
+          CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
           pip install pandas
           python scripts/test-ai-scanner.py
@@ -49,6 +55,7 @@ jobs:
       matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
+      
       - name: Prepare Workspace and Checkout PR
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -58,7 +65,53 @@ jobs:
           gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
           mkdir -p scripts && cp /tmp/scripts/* scripts/
 
-      # ... [Keep your identical init/analyze/summary steps here] ...
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          db-location: ${{ runner.temp }}/codeql_db
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        continue-on-error: true
+        with:
+          category: "/pr:${{ matrix.category_name }}"
+          output: sarif-results
+          upload: false
+
+      - name: Create Summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          SAFE_AGENT=$(echo "${{ matrix.agent_name }}" | sed 's/ /_/g')
+          LIVE_LOC=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json additions,deletions --jq '.additions + .deletions' 2>/dev/null || echo "1")
+          export PR_LOC=$LIVE_LOC
+          export PR_REPO="${{ matrix.repo_name }}"
+          export PR_NUM="${{ matrix.pr_num }}"
+          
+          if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.sarif"
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.success"
+            python scripts/parse-results.py || true
+            cp ./summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" || true
+          else
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
+          fi
+
+      - name: Save Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-${{ matrix.category_name }}
+          path: |
+            *.sarif
+            *.success
+            *.failed
+            *.json
+          retention-days: 1
 
   report:
     name: Consolidate Final Test Report
@@ -99,18 +152,16 @@ jobs:
             all-results/test_accumulated_database.json
           retention-days: 1
 
-      # 🚀 THE LOGIC FIX: Pull parameters directly from the 'needs.discover' tracking context!
+      # 🚀 3. THE NO-404 GLOBAL TRANSITION LAYER:
+      # Fires a repository dispatch payload targeting the repo root directly to bypass indexing lags!
       - name: Chain Next Chunk Automatically
         if: ${{ needs.discover.outputs.has_more_data == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           NEXT_OFFSET: ${{ needs.discover.outputs.next_offset }}
         run: |
-          echo "🔄 Chained transition confirmed. Executing branch-specific trigger for offset: $NEXT_OFFSET"
+          echo "🔄 Chained transition confirmed. Executing global repository dispatch for offset: $NEXT_OFFSET"
           
-          # 🚀 THE TARGETED SOLUTION: Wrap the endpoint path in quotes and pass the ref parameter 
-          # to force the API to read the live file tree on your active working branch name!
-          gh api "repos/${{ github.repository }}/actions/workflows/test-codeql-scan.yml/dispatches" \
-            -F ref="${{ github.ref_name }}" \
-            -F inputs[offset]="$NEXT_OFFSET"
-
+          gh api repos/${{ github.repository }}/dispatches \
+            -F event_type="run_test_chunk" \
+            -F client_payload[offset]="$NEXT_OFFSET"
