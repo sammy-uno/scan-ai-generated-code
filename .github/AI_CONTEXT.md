@@ -17,3 +17,20 @@
 * **The CWE Top 25 Threat Matrix**: Both `consolidate-report.py` and `compare-reports.py` use a standardized, automated risk inflation array check. If a CodeQL vulnerability maps to any CWE ID on the industry-standard Top 25 Most Dangerous list, its severity display badge is inflated to **🔴 High**, overriding standard `warning` levels.
 * **Conditional Column Hiding Engine**: `consolidate-report.py` utilizes smart `SCAN_TYPE` environment variable detection. When running a manual human scan (`SCAN_TYPE: "human"`), it automatically drops the **"AI Tool"** column header and its corresponding dataset cells to keep rows clean.
 * **Historical Scoping Engine**: `compare-scans.yml` utilizes direct `github.rest.actions.listWorkflowRuns` filters. It scans the absolute latest completed run IDs for both tracking paths to pull exactly active datasets, preventing old historical artifact caches from inflating comparison totals.
+
+
+                  [Thesis Scanner System Architecture]
+                                   │
+         ┌─────────────────────────┴─────────────────────────┐
+         ▼                                                   ▼
+ 🤖 [AI PR WORKFLOW]                                 👥 [HUMAN AUDIT WORKFLOW]
+  - workflow: codeql-scan.yml                         - workflow: human-codeql-scan.yml
+  - seed: scripts/ai-scanner.py                       - seed: scripts/human-scanner.py
+  - inputs: aidev_scan_list.csv                       - inputs: human_scan_list.csv
+  - tokens: Dynamic Agent Names                       - tokens: Fixed "Human_Auditor"
+         │                                                   │
+         └─────────────────────────┬─────────────────────────┘
+                                   ▼
+                    🛠️ [SHARED PROCESSING BLOCK]
+                     - row parser: scripts/parse-results.py
+                     - report builder: scripts/consolidate-report.py
