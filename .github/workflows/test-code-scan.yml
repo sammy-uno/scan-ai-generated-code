@@ -106,10 +106,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           NEXT_OFFSET: ${{ needs.discover.outputs.next_offset }}
         run: |
-          echo "🔄 Chained transition confirmed. Executing trigger for offset: $NEXT_OFFSET"
+          echo "🔄 Chained transition confirmed. Executing branch-specific trigger for offset: $NEXT_OFFSET"
           
-          # 🚀 FIXED THE API PATH: Added the missing forward slash after github.repository variable!
-          gh api repos/${{ github.repository }}/actions/workflows/test-codeql-scan.yml/dispatches \
+          # 🚀 THE TARGETED SOLUTION: Wrap the endpoint path in quotes and pass the ref parameter 
+          # to force the API to read the live file tree on your active working branch name!
+          gh api "repos/${{ github.repository }}/actions/workflows/test-codeql-scan.yml/dispatches" \
             -F ref="${{ github.ref_name }}" \
             -F inputs[offset]="$NEXT_OFFSET"
 
