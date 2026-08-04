@@ -50,3 +50,60 @@ How does the lifecycle status (Open, Closed, Merged) of a pull request correlate
 *   **Thesis Metric Focus:**
     *   Survival Analysis of Insecure PRs (Time-to-close or merge for vulnerable vs. clean AI patches).
     *   Merge Ratio of Insecure Code (What percentage of total accepted AI code units contained active vulnerabilities?).
+ 
+
+# Documentation 
+
+# 📑 Thesis Methodology Summary: Part 1
+## Dual-Track Differential Semantic Security Analysis Matrix
+
+To empirically evaluate the security debt introduced by agentic AI software developers relative to human developers, this thesis leverages a novel **split-file parallel matrix framework**. By isolating and parsing code changes across thousands of open-source pull requests (PRs) sourced from the **AIDev dataset**, the methodology establishes a highly normalized, reproducible environment for automated static analysis. 
+
+The core infrastructure consists of a multi-tier data pipeline executed natively on GitHub Actions and orchestrated via the GitHub CLI API.
+
+---
+
+### 1. Target Data Ingestion & Matrix Discovery
+The analysis is split into two structurally synchronized data acquisition streams to eliminate platform execution limits and hidden character escaping anomalies:
+* **The Automated AI Stream (`ai-scanner.py`)**: Dynamically parses the AIDev dataset (`aidev_scan_list.csv`) across agents such as Devin, Cursor, and Claude Code.
+* **The Manual Human Auditor Baseline Stream (`human-scanner.py`)**: Interrogates a balanced control group of human pull requests (`human-scan_list.csv`), injecting a hardcoded metadata token (`agent_name: "Human_Auditor"`) to maintain downward dataset schema invariance.
+
+Both discovery nodes enforce identical strict telemetry guards: they programmatically eliminate all duplicate repository hammering, exclude pre-filtered problematic mega-repos, and apply a **Zero-Change Exclusion Guard** that discards any PR yielding 0 lines of total modifications. Furthermore, an upper-bound boundary condition filters out pull requests exceeding 1,000 lines of code (LOC) to isolate atomic developer patches and prevent semantic analysis timeouts.
+
+# 📑 Thesis Methodology Summary:
+## 2. Strict File-Level Delta Gating Engine (Overview & Architecture)
+
+Standard static analysis sweeps assess an entire repository baseline. That operational flaw would pollute this research with years of pre-existing legacy security debt. To isolate *only* the vulnerabilities actively introduced by the pull request author, this methodology implements a strict **File-Level Delta Gating Engine** inside the worker processing tier (`parse-results.py`).
+
+The structural logic flow operates inside the runner loop according to the following execution path:
+
+| Execution Stage | Input Data Stream A | Input Data Stream B |
+| :--- | :--- | :--- |
+| **Stage 1: Ingestion** | `Raw CodeQL Alerts Generated` | `gh pr view API Path Capture` |
+| **Stage 2: Parsing** | Isolated Vulnerability Path | True Modified Files Array |
+| **Stage 3: Decision** | **[ Evaluate ]** | **Is trailing path slice aligned?** |
+| **Decision: YES** | 🟢 **Keep Alert** | Vulnerability belongs to active PR changes. |
+| **Decision: NO** | ❌ **Filtered Out** | Ambient or historical repository baseline noise is purged. |
+
+The filtering automation executes three distinct mapping phases inside the processing engine:
+
+1. **API Interrogation**: The system calls the GitHub CLI (`gh pr view {num} --repo {repo} --json files`) inside the transient workspace to build an absolute source-of-truth array tracking true modified relative paths.
+2. **Structural Array Segmentation**: Source paths derived from the static compiler and relative paths returned by the API changed-files engine are split into matching subdirectory string arrays via a forward-slash separator (`/`). All platform backslashes are replaced and strings are forced to lowercase to block casing mismatch anomalies.
+3. **End-to-End Segment Verification**: The engine evaluates the trailing slice of the alert directory segment against the complete changed-file path sequence array. If a strict segment boundary match is confirmed, the vulnerability is logged as a pure PR-introduced flaw. All loose legacy or ambient repository alerts are discarded from the thesis metrics.
+
+
+# 📑 Thesis Methodology Summary:
+## 3. Threat Escalation & Normalization Matrix
+
+Once the vulnerabilities are isolated, the pipeline handles data serialization and analytical risk normalization:
+* **The CWE Top 25 Threat Matrix**: To control for risk severity, both `parse-results.py` and `compare-reports.py` parse individual alert tags against the industry-standard CWE Top 25 Most Dangerous Software Weaknesses. Any matching CodeQL flaw is automatically inflated to a **🔴 High Severity Error**, overriding default warning configurations.
+* **The Pure Math Density Lock**: The system calculates the vulnerability density ratio as `Isolated Alerts / PR Size (LOC)`. If an asset reports a line delta of zero due to a null-change set, the density is programmatically locked to a hard `0.0` to eliminate division-by-zero math distortions.
+* **Pipe Sanitization Safeguard**: Raw multi-line diagnostic descriptions are scrubbed to replace vertical table delimiters (`|` to `\|`), safeguarding Markdown syntax layout integrity.
+
+---
+
+### 4. Cross-Workflow History Aggregation
+Because worker tasks operate inside ephemeral, parallel virtual matrix nodes, final synthesis is governed by a global comparative workflow (`compare-scans.yml`). 
+
+Rather than relying on local context strings, this pipeline executes a live GitHub CLI query (`gh run list --status=success --limit=1`) coupled with explicit index slicing (`jq -r '..databaseId'`) to fetch the most recently completed runs for both streams. It reaches back across history trees, downloads the fanned `summary.json` outputs, and builds a comprehensive evaluation dashboard directly on the workspace runner board.
+
