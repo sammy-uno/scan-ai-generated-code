@@ -1,3 +1,7 @@
+**Based on your complete architecture—the AIDev dataset, CodeQL automated scanning, line-level change tracking, and side-by-side human auditing—your thesis sits at the intersection of Generative AI Safety, Empirical Software Engineering, and Automated Vulnerability Management.**
+
+
+
 # 📑 Thesis Research Questions (RQs)
 ## AI-Agentic Software Engineering vs. Human Developer Security Analysis
 
