@@ -1,0 +1,21 @@
+======================================================================
+⚓ THESIS RESEARCH STATE ANCHOR LOG: DO NOT LOSE THIS PAYLOAD ⚓
+======================================================================
+[CONTEXT]: Thesis analyzing security debt of AI-Agent PRs (AIDev Dataset) vs. Human PRs using parallel multi-language CodeQL matrix sweeps.
+[INFRASTRUCTURE]: Split-file parallel matrix framework on GitHub Actions.
+[FOUNDATIONAL UTILITIES LOGIC]:
+1. ai-scanner.py / human-scanner.py: Discovery seeds reading input CSVs. Enforces size boundaries (<1000 LOC) and zero-change exclusions. Human stream injects tracking invariant agent_name: "Human_Auditor".
+2. parse-results.py: Worker processor node. IMPLEMENTED LINE-LEVEL DELTA GATE via unified diff hunk tracking (gh pr diff) to filter out historical pre-existing debt. Applied CWE Top 25 risk severity inflation to 🔴 High.
+3. consolidate-report.py: Matrix summary aggregator. Activates conditional column hiding (drops AI Tool column) when SCAN_TYPE == "human". Sorts tables alphabetically.
+4. compare-reports.py: Macro comparison analytics framework matching AI metrics vs Human control metrics. Queries live workflow logs via GitHub CLI for data freshness timestamps.
+5. codeql-scan.yml / human-codeql-scan.yml / compare-scans.yml: Orchestration workflows utilizing gh run download abstractions to sink parallel artifact outputs side-by-side.
+
+[CURRENT WORK STATUS]:
+- All Python scripts and GitHub YAML files are fully written, stitched, and validated.
+- The Line-Level Delta Gate upgrade is fully committed to parse-results.py to isolate pure security regressions.
+
+[IMMEDIATE NEXT STEPS FOR NEXT SESSION]:
+1. Review if the line-level change impacts 'consolidate-report.py' artifact counting metrics.
+2. Draft Statistical Hypotheses (Null H0 and Alternative H1) for the Research Questions.
+3. Outline the Methodology chapter text incorporating the Line-Level table diagram.
+======================================================================
