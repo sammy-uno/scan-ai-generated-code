@@ -150,21 +150,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           NEXT_OFFSET: ${{ needs.discover.outputs.next_offset }}
         run: |
-          echo "🔄 Data loop boundary not empty. Extracting true numerical Workflow ID..."
+          echo "🔄 Branch-safe tracking: Resolving numerical workflow ID on branch [${{ github.ref_name }}]"
           
-          # 1. Dynamically query the workflows list to extract the absolute Database ID
-          WORKFLOW_ID=$(gh api repos/${{ github.repository }}/actions/workflows \
+          # Force the API to look at the exact active branch reference to find the ID
+          WORKFLOW_ID=$(gh api "repos/${{ github.repository }}/actions/workflows?ref=${{ github.ref_name }}" \
             --jq '.workflows[] | select(.path | contains("test-codeql-scan.yml")) | .id')
           
           if [ -z "$WORKFLOW_ID" ] || [ "$WORKFLOW_ID" = "null" ]; then
-            echo "⚠️ [FALLBACK] Could not resolve numerical ID. Reverting to filename mapping."
-            WORKFLOW_ID="test-codeql-scan.yml"
+            echo "❌ [FATAL ERROR] API could not locate test-codeql-scan.yml."
+            exit 1
           fi
           
           echo "🎯 Target Workflow ID Resolved: $WORKFLOW_ID"
-          echo "🚀 Launching next test chunk dispatch forwarding to offset: $NEXT_OFFSET"
+          echo "🚀 Triggering next loop forwarding to chunk offset pointer: $NEXT_OFFSET"
           
-          # 2. Fire the dispatch event using the verified target identifier
           gh api repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/dispatches \
             -F ref="${{ github.ref_name }}" \
             -F inputs[offset]="$NEXT_OFFSET"
