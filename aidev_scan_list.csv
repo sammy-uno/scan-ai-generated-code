@@ -1,4 +1,11 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
 Apollon77/ioBroker.alexa2,1243,Add support for Fire HDX device (A2TX61L00VISA5),javascript,Copilot,172
+BMPixel/cui,1,Add preferences system,javascript,OpenAI_Codex,262
+BinaryBeastMaster/chat-relay,9,Add Kimi K2 provider,javascript,OpenAI_Codex,114
+FlowiseAI/Flowise,4922,Codex/add branding change option in app,javascript,OpenAI_Codex,42134
+Polymarket/poly-market-maker,85,docs: document default env endpoints,python,OpenAI_Codex,145
+Rello/analytics,533,Update threshold modal IDs,javascript,OpenAI_Codex,136
+Wei-Shaw/claude-relay-service,114,feat: Add tag support for API Keys and fix OAuth token exchange,javascript,Claude_Code,1000
+
 
 
