@@ -6,44 +6,84 @@ import sys
 
 def get_pr_changed_files_list():
     """
-    🎯 100% API-DRIVEN FULL PATH TRACKER: Queries the GitHub CLI API directly
-    to isolate true relative workspace paths, preserving entire directory trees.
+    🎯 100% LINE-LEVEL DELTA GATE: Queries the PR diff directly via GitHub CLI
+    to isolate the exact files AND specific line numbers modified in this PR.
+    Prevents pre-existing code debt in the same file from leaking into metrics!
     """
-    changed_paths = set()
+    # Key: normalized_path string, Value: set of integer line numbers modified
+    changed_lines_matrix = {} 
     repo = os.environ.get('PR_REPO', '')
     pr_num = os.environ.get('PR_NUM', '')
     
     if not repo or not pr_num:
-        print("⚠️ Environment notice: PR_REPO or PR_NUM missing. Skipping API file filters.")
-        return changed_paths
+        print("⚠️ Environment notice: PR_REPO or PR_NUM missing. Skipping line-level filters.")
+        return changed_lines_matrix
 
     try:
         print("\n====================================================")
-        print("📥 API LOG TRACE: CAPTURING TRUSTED PR MODIFIED PATHS")
+        print("📥 API LOG TRACE: EXTRACTING TRUE MODIFIED LINES DIFF")
         print("====================================================")
         
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
+        # Query the raw unified diff of the pull request
+        cmd = f"gh pr diff {pr_num} --repo {repo}"
         sub_env = os.environ.copy()
         res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=20, env=sub_env)
         
         if res.returncode == 0:
-            data = json.loads(res.stdout)
-            files = data.get('files', [])
-            for f in files:
-                path = f.get('path', '').strip()
-                if path:
-                    # Normalize slashes and force lowercase for bulletproof path array splitting
-                    normalized_path = path.replace('\\', '/').lower().strip('/')
-                    changed_paths.add(normalized_path)
-                    print(f"✅ [API PR PATH TRACE] Target path detected: {path}")
+            current_file = None
+            current_line = 0
+            
+            for line in res.stdout.splitlines():
+                # Detect file header in unified diff (e.g., "+++ b/src/main.py")
+                if line.startswith('+++ b/'):
+                    raw_path = line[6:].strip()
+                    current_file = raw_path.replace('\\', '/').lower().strip('/')
+                    if current_file not in changed_lines_matrix:
+                        changed_lines_matrix[current_file] = set()
+                    continue
+                
+                # Detect hunk header (e.g., "@@ -10,4 +15,6 @@")
+                if line.startswith('@@ '):
+                    try:
+                        # Isolate the target file delta segment after the '+' character
+                        parts = line.split(' ')
+                        target_segment = ""
+                        for p in parts:
+                            if p.startswith('+'):
+                                target_segment = p[1:] # Strip the '+' sign
+                                break
+                        
+                        if target_segment:
+                            if ',' in target_segment:
+                                current_line = int(target_segment.split(',')[0])
+                            else:
+                                current_line = int(target_segment)
+                    except Exception as hunk_err:
+                        print(f"   ⚠️ Hunk processing error: {hunk_err} on line: {line}")
+                        current_line = 0
+                    continue
+                
+                # If we are tracking a valid file context and active line counter
+                if current_file and current_line > 0:
+                    # Line additions or modifications start with '+'
+                    if line.startswith('+') and not line.startswith('+++'):
+                        changed_lines_matrix[current_file].add(current_line)
+                        current_line += 1
+                    # Unchanged context tracking lines start with an empty space ' '
+                    elif line.startswith(' '):
+                        current_line += 1
+                    # Note: Deleted lines '-' are dropped because they do not exist in the new file state
+                    
+            for path, lines in changed_lines_matrix.items():
+                print(f"✅ [LINE-LEVEL TRACE] {path} -> Tracking {len(lines)} modified lines.")
         else:
-            print(f"⚠️ GitHub CLI API Error code: {res.returncode}. Defaulting to empty baseline.")
+            print(f"⚠️ GitHub CLI Diff Error: {res.returncode}. Defaulting to empty baseline.")
             
         print("====================================================\n")
                     
     except Exception as e:
-        print(f"❌ [CRITICAL] Error parsing API pull request path map: {e}")
-    return changed_paths
+        print(f"❌ [CRITICAL] Error parsing line-level diff map: {e}")
+    return changed_lines_matrix
 
 def main():
     sarif_path = "results.sarif"
@@ -71,8 +111,9 @@ def main():
 
     print(f"📋 [DEBUG ENVIRONMENT] Repo: {repo} | PR Num: {pr_num} | Declared Size: {pr_loc} LOC")
 
-    pr_changed_files = get_pr_changed_files_list()
-    print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_files)}")
+    # Ingests the unified lines mapping dictionary
+    pr_changed_lines_map = get_pr_changed_files_list()
+    print(f"🔍 [TRACE MASTER MATRIX] Final Complete PR File Change Keys: {list(pr_changed_lines_map.keys())}")
 
     cwe_map = {}
     try:
@@ -109,11 +150,9 @@ def main():
     print("🎯 DEBUG LOG STEP 2: EVALUATING INDIVIDUAL SARIF ALERTS")
     print("====================================================")
 
-    # 🚀 EMPTY DATASET GUARD LAYER:
-    # If the PR contains 0 changed files, completely skip scanning rules 
-    # to block background baseline alerts from leaking out into the summary metrics!
-    if len(pr_changed_files) == 0:
-        print("⚠️ [EMPTY DATASET GUARD ACTIVATED] This PR has 0 changed files. Skipping alert mapping loops.")
+    # 🚀 EMPTY DATASET GUARD LAYER
+    if len(pr_changed_lines_map) == 0:
+        print("⚠️ [EMPTY DATASET GUARD ACTIVATED] This PR has 0 changed lines/files. Skipping alert mapping loops.")
     else:
         for run in runs:
             if not isinstance(run, dict): continue
@@ -139,12 +178,13 @@ def main():
 
                 print(f"🔎 [PROCESSING ALERT {total_raw_alerts_processed}] ID: `{rule_id}` Path: `{primary_path}:{primary_line}`")
 
-                # Strict whole-path segment structure check execution layer
+                # Whole-path segment structure check execution layer
                 alert_norm = primary_path.replace('\\', '/').lower().strip('/')
                 alert_segments = [p for p in alert_norm.split('/') if p]
                 
                 matched = False
-                for changed_path in pr_changed_files:
+                matched_changed_key = ""
+                for changed_path in pr_changed_lines_map.keys():
                     changed_norm = changed_path.strip().lower().strip('/')
                     changed_segments = [p for p in changed_norm.split('/') if p]
                     
@@ -152,13 +192,25 @@ def main():
                         slice_len = len(changed_segments)
                         if alert_segments[-slice_len:] == changed_segments:
                             matched = True
+                            matched_changed_key = changed_path
                             break
                             
                 if not matched:
                     print(f"   ❌ [FILTERED OUT] Strict whole-path segment structure mismatch.")
                     continue
                 
-                print(f"   🟢 [KEEP ALERT] Successfully matched strict whole-path folder boundaries!")
+                # 🚀 LINE-LEVEL DELTA GATE CRITICAL ADDITION
+                allowed_lines_set = pr_changed_lines_map.get(matched_changed_key, set())
+                try:
+                    alert_line_int = int(primary_line)
+                except ValueError:
+                    alert_line_int = -1
+
+                if alert_line_int not in allowed_lines_set:
+                    print(f"   ❌ [LINE FILTERED OUT] Vulnerability on line {primary_line} is pre-existing legacy debt.")
+                    continue
+                
+                print(f"   🟢 [KEEP ALERT] Successfully passed both folder boundaries AND line-level delta gates!")
 
                 fingerprint = f"{rule_id}::{primary_path}::{primary_line}"
                 if fingerprint not in seen_findings:
@@ -166,26 +218,20 @@ def main():
                     res_item['_primary_path'] = primary_path
                     res_item['_primary_line'] = primary_line
                     consolidated_results.append(res_item)
-
+    
     print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
     print("====================================================\n")
 
-    # Save the isolated, line-filtered results back to results.sarif
-    if consolidated_results:
-        for run in runs:
-            if isinstance(run, dict) and 'results' in run:
-                run['results'] = consolidated_results
-        with open(sarif_path, 'w') as f:
-            json.dump(data, f)
-    else:
-        for run in runs:
-            if isinstance(run, dict) and 'results' in run:
-                run['results'] = []
-        with open(sarif_path, 'w') as f:
-            json.dump(data, f)
+    # Serialize results back to workspace results file
+    for run in runs:
+        if isinstance(run, dict) and 'results' in run:
+            run['results'] = consolidated_results
+    with open(sarif_path, 'w') as f:
+        json.dump(data, f)
 
     summary_md = f"\n### 🛡️ Analysis Details: {len(consolidated_results)} PR-Introduced Issues Found (PR Size: {pr_loc} LOC)\n"
     
+    # Core severity logging trackers
     h, m, l = 0, 0, 0
     all_discovered_cwes = set()
     CWE_TOP_25 = [
@@ -226,11 +272,10 @@ def main():
             cwe_display = ", ".join(sorted(list(cwes_set))) if cwes_set else "N/A"
             raw_msg = res_item.get('message', {}).get('text', 'No description')
             
-            # 🚀 THE CRITICAL FIX: Sanitize table pipes on the raw string text FIRST!
             if isinstance(raw_msg, str):
                 cleaned_msg = raw_msg.replace('|', '\\|')
                 msg_parts = cleaned_msg.split('\n')
-                msg = msg_parts[0] if msg_parts else "No details"
+                msg = msg_parts if msg_parts else "No details"
             else:
                 msg = "No details"
 
@@ -245,16 +290,16 @@ def main():
         "medium": m,
         "low": l,
         "total_issues": len(consolidated_results),
-        "files_changed": len(pr_changed_files) if pr_changed_files else 0, # Explicitly binds 0 files changed parameter bounds
+        "files_changed": len(pr_changed_lines_map) if pr_changed_lines_map else 0,
         "cwes_discovered": sorted(list(all_discovered_cwes)) if (consolidated_results and all_discovered_cwes) else []
     }
     
     with open(os.path.join(output_dir, "summary.json"), "w", encoding="utf-8") as sm_f:
         json.dump(summary_payload, sm_f, indent=2)
-    print(f"✅ [METRICS SERIALIZED] Saved final filtered scan results to {output_dir}/summary.json")
+    print(f"✅ [METRICS SERIALIZED] Saved final line-filtered scan results to {output_dir}/summary.json")
 
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
-    with open(summary_file, 'a') as f: 
+    with open(summary_file, 'a', encoding='utf-8') as f: 
         f.write(summary_md)
 
 if __name__ == "__main__":
