@@ -3,29 +3,6 @@ import glob
 import os
 import subprocess
 
-def get_pr_changed_lines_live(repo, pr_num):
-    """
-    🎯 PR LIVE FILE QUERY: Queries the GitHub CLI safely during consolidation
-    to isolate true file modifications for line-level filtering context.
-    """
-    changed_lines = {}
-    if not repo or not pr_num:
-        return changed_lines
-    try:
-        cmd = f"gh pr view {pr_num} --repo {repo} --json files"
-        sub_env = os.environ.copy()
-        res = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=15, env=sub_env)
-        if res.returncode == 0:
-            data = json.loads(res.stdout)
-            files = data.get('files', [])
-            for f in files:
-                path = f.get('path', '').strip()
-                if path:
-                    changed_lines[path] = set()
-    except Exception as e:
-        print(f"File lookup fallback notice: {e}")
-    return changed_lines
-
 def get_live_pr_status(repo, pr_num):
     """
     🎯 LIVE PR STATUS ENGINE: Queries the GitHub CLI live loop directly to resolve
@@ -108,18 +85,13 @@ def main():
             ai_agent_tool = raw_agent.replace('_', ' ')
             live_loc = int(raw_size) if raw_size.isdigit() else 100
             
-            is_row_human = "human" in fname.lower() or "human" in ai_agent_tool.lower()
-            
-            # Extract live change files count maps
-            pr_diff_map = get_pr_changed_lines_live(repo_path, pr_num)
-            committed_files_count = len(pr_diff_map) if pr_diff_map else 1
-
             # Initialize metrics variables standard baselines
             h, m, l = 0, 0, 0
             cwe_display = "None"
             total_issues = 0
+            committed_files_count = 1  # Standard fallback baseline default
 
-            # 100% DATA-DRIVEN EXCLUSIVE SUMMARY JSON TRACKING LAYER (No hardcoding)
+            # 100% DATA-DRIVEN EXCLUSIVE SUMMARY JSON TRACKING LAYER
             custom_json_path = f.replace('.success', '.json')
             nested_json_path = os.path.join(parent_dir, f"{name_root}.json")
             flat_json_path = os.path.join(parent_dir, "summary.json")
@@ -133,44 +105,31 @@ def main():
                 with open(target_json_path, 'r', encoding='utf-8') as sm_f:
                     summary_data = json.load(sm_f)
                     
-                    # 🚀 DIAGNOSTIC JSON PAYLOAD LOGGER:
-                    print(f"\n🔍 [JSON PAYLOAD TRACE] Reading file: {target_json_path}")
-                    print(f"   └── Content: {json.dumps(summary_data)}")
-                    
+                    print(f"🔍 [JSON PAYLOAD TRACE] Reading file: {target_json_path}")
                     h = int(summary_data.get('high', summary_data.get('H', 0)))
                     m = int(summary_data.get('medium', summary_data.get('M', 0)))
                     l = int(summary_data.get('low', summary_data.get('L', 0)))
                     total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
-                    committed_files_count = int(summary_data.get('files_changed', summary_data.get('files', 1)))
+                    
+                    # 🚀 INJECTED LINE-LEVEL FIX: Pull file mutations natively from JSON outputs
+                    # Strips out network CLI dependencies entirely to eliminate API limits!
+                    committed_files_count = int(summary_data.get('files_changed', 1))
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
-                    
-                    # 🚀 CRITICAL DEBUG LOGS: Prints raw payload arrays directly into the terminal!
-                    print(f"   🧪 [CWE CONSOLE DEBUG] Target PR: {repo_path} #{pr_num}")
-                    print(f"   🧪 [CWE CONSOLE DEBUG] Raw JSON Key value: {cwes_list} (Type: {type(cwes_list).__name__})")
-                    
                     if isinstance(cwes_list, list):
                         clean_cwes = sorted(list(set(str(c).strip().upper() for c in cwes_list if c and str(c).strip())))
                         cwe_display = ', '.join(clean_cwes) if clean_cwes else "None"
                     else:
                         cwe_display = str(cwes_list).strip().upper() if cwes_list else "None"
-                        
-                    print(f"   🧪 [CWE CONSOLE DEBUG] Final string formatted for Markdown column: '{cwe_display}'")
-                    
-                    print(f"   └── Extracted Taxonomy: {cwe_display} | Issues Counted: {total_issues}")
             else:
-                print(f"⚠️ [JSON PAYLOAD WARNING] Summary file missing or skipped for: {name_root}")
-                h, m, l = 0, 0, 0
-                cwe_display = "None"
-                total_issues = 0
+                print(f"⚠️ [JSON PAYLOAD WARNING] Summary file missing for: {name_root}")
 
             total_scanned += 1
             total_loc_scanned += live_loc
             if total_issues > 0: 
                 vulnerable_count += 1
             
-            # 🚀 ENFORCE THE PURE MATH DENSITY LOCK:
-            # If files changed is 0, density is mathematically 0.0.
+            # 🚀 ENFORCE THE PURE MATH DENSITY LOCK
             if committed_files_count == 0:
                 cwe_density = 0.0
             else:
@@ -190,8 +149,7 @@ def main():
             elif "Merged" in status_badge: merged_count += 1
             else: closed_count += 1
             
-            # 🚀 DATA-DRIVEN DISPLAY OVERRIDE:
-            # If changed files count is 0, render 0 LOC on the table scorecard summary.
+            # 🚀 DATA-DRIVEN DISPLAY OVERRIDE
             display_loc = 0 if committed_files_count == 0 else live_loc
             
             row_entry = {
@@ -212,6 +170,7 @@ def main():
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
         out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
         
+        # 🚀 CONDITIONAL COLUMN HIDING ENGINE
         if is_human_run:
             out.write('\n| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
@@ -219,6 +178,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
+        # 🚀 ALPHABETICAL MATRIX SORTING
         sorted_rows = sorted(table_rows, key=lambda x: (x["repo"], x["link"]))
 
         for r in sorted_rows: 
