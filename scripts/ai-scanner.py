@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 1     # Currently set to 1 for your micromatrix testing track
+    SCAN_LIMIT = 256     # Currently set to 1 for your micromatrix testing track
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
