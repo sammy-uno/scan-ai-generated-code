@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 256     # Scaled ceiling capacity allocation bounds
+    SCAN_LIMIT = 1     # Scaled ceiling capacity allocation bounds
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
@@ -126,15 +126,15 @@ def main():
 
     # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
-    has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
+    #has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
     #has_more_data = "false"
 
-    #if chunk_offset < 3:
-    #    has_more_data = "true"
-    #    print(f"🧪 [TEST MODE] PR #{chunk_offset + 1} complete. Chaining next chunk at offset: {next_offset}")
-    #else:
-    #    has_more_data = "false"
-    #    print(f"🧪 [TEST MODE] Final PR #{chunk_offset + 1} complete. Terminating the 4-pass test chain.")
+    if chunk_offset < 3:
+        has_more_data = "true"
+        print(f"🧪 [TEST MODE] PR #{chunk_offset + 1} complete. Chaining next chunk at offset: {next_offset}")
+    else:
+        has_more_data = "false"
+        print(f"🧪 [TEST MODE] Final PR #{chunk_offset + 1} complete. Terminating the 4-pass test chain.")
 
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
