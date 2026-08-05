@@ -35,7 +35,7 @@ def main():
     
     # 🚀 THE CRITICAL FIX: PRE-POPULATE THE UNIQUE REPO CACHE FROM HISTORY
     seen_repos = set()
-    accumulated_db_path = "all-results/test_accumulated_database.json"
+    accumulated_db_path = "all-results/test_accumulated_database_v2.json"
     
     if os.path.exists(accumulated_db_path):
         try:
