@@ -27,7 +27,7 @@ def main():
     table_rows = []
     
     # 🚀 GLOBAL REGISTRATION CACHE FILE DESTINATION
-    accumulated_db_path = "all-results/test_accumulated_database.json"
+    accumulated_db_path = "all-results/test_accumulated_database_v2.json"
     seen_pr_keys = set()
 
     # Step 1: Safely load historical database rows from previous batch tracking runs
