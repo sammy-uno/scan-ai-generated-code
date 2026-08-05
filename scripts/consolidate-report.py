@@ -172,30 +172,41 @@ def main():
     print(f"💾 [LEDGER FLUSH SUCCESSFUL] Persistent tracking state committed cleanly to: {accumulated_db_path}")
 
     # =========================================================================
-    # Step 5: Write the formatted markdown table summary file
+    # Step 5: Paginated Markdown Generation to Bypass GitHub's 1MB Step Limit
     # =========================================================================
-    summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
-    with open(summary_file, 'w', encoding='utf-8') as out:
+    os.makedirs("report-chunks", exist_ok=True)
+    
+    # 1. Base Executive Summary Header File
+    with open("report-chunks/header.md", "w", encoding="utf-8") as out:
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total Accumulated PRs Parsed:** {total_scanned}\n')
         out.write(f'- **Total Accumulated LOC Scanned:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
         out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
-        
-        if is_human_run:
-            out.write('\n| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density (Issues/LOC) |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-        else:
-            out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density (Issues/LOC) |\n')
-            out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
-            
-        sorted_rows = sorted(table_rows, key=lambda x: (x.get("repo", ""), x.get("link", "")))
 
-        for r in sorted_rows: 
+    # 2. Slice and Chunk Row Data (Max 50 items per table section to guarantee size compliance)
+    sorted_rows = sorted(table_rows, key=lambda x: (x.get("repo", ""), x.get("link", "")))
+    chunk_size = 50
+    row_chunks = [sorted_rows[i:i + chunk_size] for i in range(0, len(sorted_rows), chunk_size)]
+
+    for index, chunk in enumerate(row_chunks):
+        chunk_file = f"report-chunks/table_part_{index + 1}.md"
+        with open(chunk_file, "w", encoding="utf-8") as out:
+            out.write(f"\n### Detailed Scan Logs (Part {index + 1} of {len(row_chunks)})\n")
             if is_human_run:
-                out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
+                out.write('| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density |\n')
+                out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             else:
-                out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("tool")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
+                out.write('| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density |\n')
+                out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
+            
+            for r in chunk:
+                if is_human_run:
+                    out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
+                else:
+                    out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("tool")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
+                    
+    print(f"🧩 Successfully split report into {len(row_chunks) + 1} independent compliance chunks.")
 
 if __name__ == "__main__": 
     main()
