@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 256     # Currently set to 1 for your micromatrix testing track
+    SCAN_LIMIT = 256     # Scaled ceiling capacity allocation bounds
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
@@ -123,6 +123,10 @@ def main():
         print(f"ADDED: {repo} #{num} ({total} lines)")
         stats["added"] += 1
 
+    # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC
+    next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
+    has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
+
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
     print(f"❌ Skipped (Too Large):   {stats['too_big']}")
@@ -130,12 +134,18 @@ def main():
     print(f"🚫 Skipped (Excluded):    {stats['excluded']}")
     print(f"👯 Skipped (Duplicates):  {stats['duplicates']}")
     print(f"⚠️  Skipped (API Errors): {stats['api_error']}")
+    print(f"🔢 Next Pointer Offset:   {next_offset}")
+    print(f"🔄 Continues Remaining:   {has_more_data}")
     print("-------------------------\n")
 
     output = json.dumps({"include": matrix_include})
+    
+    # 🚀 EXPORT SIGNAL METRICS DIRECTLY TO JOB CONTEXT BOUNDARIES
     if 'GITHUB_OUTPUT' in os.environ:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f: 
             f.write(f'matrix_data={output}\n')
+            f.write(f'next_offset={next_offset}\n')
+            f.write(f'has_more_data={has_more_data}\n')
     else: 
         print(f"matrix_data={output}")
 
