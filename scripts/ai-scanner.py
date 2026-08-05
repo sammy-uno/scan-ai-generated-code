@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 256     # Scaled ceiling capacity allocation bounds
+    SCAN_LIMIT = 1     # Scaled ceiling capacity allocation bounds
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
