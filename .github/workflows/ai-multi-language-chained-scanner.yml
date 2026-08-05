@@ -178,15 +178,19 @@ jobs:
         run: |
           python scripts/consolidate-report.py
 
-      - name: Archive Accumulated Dataset State
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: master-database-accumulation
-          path: |
-            all-results/accumulated_database.json
-          retention-days: 5
-          overwrite: true
+      # 📊 STREAM ENGINE: Pipes each independent file fragment straight to the step summary endpoint.
+      # Because each call represents a unique file stream step, it clears the 1MB buffer cap completely!
+      - name: Stream Consolidated Reports Safely
+        run: |
+          echo "📝 Appending report header details..."
+          cat report-chunks/header.md >> $GITHUB_STEP_SUMMARY
+          
+          # Iterate systematically over every generated tabular part fragment on disk
+          for file in sorted $(ls report-chunks/table_part_*.md 2>/dev/null); do
+            echo "📝 Appending $file to workflow dashboard stream..."
+            cat "$file" >> $GITHUB_STEP_SUMMARY
+            echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
+          done
 
   chain:
     name: Loop Dispatch Gateway
