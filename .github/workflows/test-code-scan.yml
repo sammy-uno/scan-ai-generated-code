@@ -199,7 +199,7 @@ jobs:
         run: |
           # 🚀 CHUNK SIZE LOCK CONFIGURATION CEILING: Change this "1" value to "150" or "256" 
           # when you are ready to scale from your tight test up to full production limits!
-          NEXT_OFFSET=$((CURRENT_OFFSET + 1))
+          NEXT_OFFSET=$((CURRENT_OFFSET + 256))
           echo "🔄 Loop transition verified. Directing dispatch loop to next chunk offset pointer: $NEXT_OFFSET"
           
           gh api repos/${{ github.repository }}/dispatches \
