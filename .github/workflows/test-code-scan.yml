@@ -24,7 +24,7 @@ jobs:
   discover:
     name: Find AI PRs
     runs-on: ubuntu-latest
-    # 🚀 FIXED THE MAP BRIDGE: Expose these metrics to subsequent workflow jobs!
+    # 🚀 JOB OUTPUT BRIDGE: Maps individual step parameters to global job variables
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
       next_offset: ${{ steps.detect.outputs.next_offset }}
@@ -32,13 +32,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref_name }} # Forces Git to match your current active side branch context
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
+      # Downloads the database from prior runs so that scripts/ai-scanner.py can perform deduplication checks
       - name: Fetch Historical Database Snapshot for Deduplication
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -161,27 +162,26 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       
-      - name: Download Available Artifacts
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          pattern: sarif-*
-          path: all-results
-          merge-multiple: true
-
-      - name: Fetch Historical Database Cache
+      # 🚀 GLOBAL RETRIEVAL PIPELINE: Reaches back into global run history via the GitHub CLI
+      # Downloads ALL individual active matrix artifacts across your entire batch chain
+      - name: Download Cross-Run Matrix Artifacts Globally
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          gh run download --name "master-database-accumulation" --dir "all-results" || true
+          echo "📥 Executing global history sweep for active chunk artifacts..."
+          mkdir -p all-results
+          gh run download --workflow "test-codeql-scan.yml" --pattern "sarif-*" --dir "all-results" || true
+          gh run download --workflow "test-codeql-scan.yml" --name "master-database-accumulation" --dir "all-results" || true
           rm -f all-results/results.sarif || true
+          echo "📁 Restored Unified Data Queue State:"
+          ls -R all-results/
 
       - name: Generate Consolidated Summary Table
         env:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
           SCAN_TYPE: "automated"
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
-          # 🚀 PASS ACTIVE CHUNK OFFSET SO THE PYTHON FILE CAN ENFORCE RESET LOCKS
+          # Pass the dynamic offset straight down so the script enforces local os.remove() clear locks
           CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
           python scripts/consolidate-report.py
@@ -195,16 +195,16 @@ jobs:
             all-results/accumulated_database.json
           retention-days: 5
 
+      # 🚀 SECURE GRADUATED STOP GATEWAY:
+      # Evaluates the official variable returned from the script. Stops instantly if has_more_data == false.
       - name: Chain Next Chunk Automatically
-        # 🚀 TRUE DATA BOUNDARY STOP: Only trigger if the script explicitly says there is more data remaining!
         if: ${{ needs.discover.outputs.has_more_data == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           NEXT_OFFSET: ${{ needs.discover.outputs.next_offset }}
         run: |
-          echo "🔄 Loop transition verified. Data remains in CSV. Advancing chain to offset: $NEXT_OFFSET"
+          echo "🔄 Loop transition verified. Data remains in CSV input queue. Advancing chain to offset: $NEXT_OFFSET"
           
           gh api repos/${{ github.repository }}/dispatches \
             -F event_type="run_test_chunk" \
             -F client_payload[offset]="$NEXT_OFFSET"
-
