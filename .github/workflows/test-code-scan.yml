@@ -170,8 +170,21 @@ jobs:
         run: |
           echo "📥 Executing global history sweep for active chunk artifacts..."
           mkdir -p all-results
-          gh run download --workflow "test-codeql-scan.yml" --pattern "sarif-*" --dir "all-results" || true
-          gh run download --workflow "test-codeql-scan.yml" --name "master-database-accumulation" --dir "all-results" || true
+
+          # 1. Query the latest run ID for the target workflow file
+          RUN_ID=$(gh run list --workflow "test-codeql-scan.yml" --limit 1 --json databaseId --jq '..databaseId')
+          echo "Target Workflow Run ID located: $RUN_ID"
+
+          # 2. Safely download using the explicit Run ID if available
+          if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+            gh run download "$RUN_ID" --pattern "sarif-*" --dir "all-results" || true
+            gh run download "$RUN_ID" --name "master-database-accumulation" --dir "all-results" || true
+          else
+            echo "⚠️ Workflow history not found via run list. Falling back to current context download..."
+            gh run download --pattern "sarif-*" --dir "all-results" || true
+            gh run download --name "master-database-accumulation" --dir "all-results" || true
+          fi
+
           rm -f all-results/results.sarif || true
           echo "📁 Restored Unified Data Queue State:"
           ls -R all-results/
