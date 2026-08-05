@@ -134,13 +134,21 @@ jobs:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
-
+          
       - name: Fetch Historical Database Cache
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
+          echo "📥 Downloading prior database snapshot..."
           gh run download --name "test-database-accumulation" --dir "all-results" || true
-          find all-results/ -name "results.sarif" -delete || true
+          
+          # 🚀 FIXED THE WIPEOUT BUG: 
+          # Remove ONLY a loose root results.sarif if it exists. 
+          # DO NOT run a global recursive find-delete sweep that wipes out your subdirectories!
+          rm -f all-results/results.sarif || true
+          
+          echo "📁 Active Test Workspace Directory State:"
+          ls -R all-results/
 
       - name: Generate Consolidated Summary Table
         env:
