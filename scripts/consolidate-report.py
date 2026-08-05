@@ -31,22 +31,35 @@ def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
+    # 🚀 READ OFFSET POINTER FOR CLEAN RESET LOOKUPS
+    try:
+        chunk_offset = int(os.environ.get('CHUNK_OFFSET', '0'))
+    except (ValueError, TypeError):
+        chunk_offset = 0
+        
     table_rows = []
-    
-    # 🚀 GLOBAL REGISTRATION CACHE FILE DESTINATION
     accumulated_db_path = "all-results/accumulated_database.json"
+    
+    # 🚀 THE HARD ACCUMULATION PURGE FIX:
+    # If starting from the true top (offset 0), wipe out any old downloaded 
+    # cloud snapshots on the local runner disk before parsing metrics!
+    if chunk_offset == 0 and os.path.exists(accumulated_db_path):
+        try:
+            os.remove(accumulated_db_path)
+            print("🧼 [LOCAL RESET LOCK ACTIVATED] Offset is 0. Wiped historical cache database files from runner disk.")
+        except Exception as rm_err:
+            print(f"⚠️ Warning: Could not clear local cache file: {rm_err}")
+            
     seen_pr_keys = set()
 
-    # Step 1: Load historical database rows from previous batch tracking runs
+    # Step 1: Load historical database rows if continuing a chain loop (offset > 0)
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
                 historical_rows = json.load(db_f)
                 if isinstance(historical_rows, list):
                     for r in historical_rows:
-                        # Append past run data directly into our table rows array
                         table_rows.append(r)
-                        # Mark this key as seen so we don't double-count rows
                         seen_pr_keys.add(f"{r.get('repo')}#{r.get('link')}")
                     print(f"📥 [DATABASE SYNCED] Loaded {len(historical_rows)} PR records from previous batch runs.")
         except Exception as db_err:
@@ -62,9 +75,11 @@ def main():
         success_markers.extend(glob.glob('all-results/**/*.success', recursive=True))
         success_markers = sorted(list(set(success_markers)))
 
+    print(f"📦 [FOUND ASSETS] Active session markers discovered on disk: {len(success_markers)}")
+    
     # Step 3: Parse new markers from the current active run
     for f in success_markers:
-        fname = os.path.basename(f)
+        fname = os.basename(f)
         parent_dir = os.path.dirname(f)
 
         try:
@@ -73,7 +88,6 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            # Map parameters using explicit indexing from the success marker filename
             raw_repo  = parts[0]
             raw_pr    = parts[1]
             raw_lang  = parts[2]
@@ -91,7 +105,6 @@ def main():
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
             
-            # 🚀 CORE CHECK: If this row was already captured in a prior batch, skip parsing it again!
             if f"{clean_repo_path}#{link_md}" in seen_pr_keys:
                 continue
 
