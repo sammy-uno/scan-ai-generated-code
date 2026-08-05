@@ -31,7 +31,6 @@ def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
-    # 🚀 READ OFFSET POINTER FOR CLEAN RESET LOOKUPS
     try:
         chunk_offset = int(os.environ.get('CHUNK_OFFSET', '0'))
     except (ValueError, TypeError):
@@ -40,9 +39,6 @@ def main():
     table_rows = []
     accumulated_db_path = "all-results/accumulated_database.json"
     
-    # 🚀 THE HARD ACCUMULATION PURGE FIX:
-    # If starting from the true top (offset 0), wipe out any old downloaded 
-    # cloud snapshots on the local runner disk before parsing metrics!
     if chunk_offset == 0 and os.path.exists(accumulated_db_path):
         try:
             os.remove(accumulated_db_path)
@@ -52,7 +48,6 @@ def main():
             
     seen_pr_keys = set()
 
-    # Step 1: Load historical database rows if continuing a chain loop (offset > 0)
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
@@ -60,12 +55,13 @@ def main():
                 if isinstance(historical_rows, list):
                     for r in historical_rows:
                         table_rows.append(r)
-                        seen_pr_keys.add(f"{r.get('repo')}#{r.get('link')}")
+                        raw_link = r.get('link', '')
+                        extracted_pr = "".join(filter(str.isdigit, raw_link.split(']'))) or "0"
+                        seen_pr_keys.add(f"{r.get('repo')}#{extracted_pr}")
                     print(f"📥 [DATABASE SYNCED] Loaded {len(historical_rows)} PR records from previous batch runs.")
         except Exception as db_err:
             print(f"⚠️ Failed to ingest historical row cache database: {db_err}")
 
-    # Step 2: Locate active workspace markers
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
@@ -77,7 +73,6 @@ def main():
 
     print(f"📦 [FOUND ASSETS] Active session markers discovered on disk: {len(success_markers)}")
     
-    # Step 3: Parse new markers from the current active run
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
@@ -102,11 +97,12 @@ def main():
             
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
+            
+            if f"{clean_repo_path}#{pr_num}" in seen_pr_keys:
+                continue
+
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
-            
-            if f"{clean_repo_path}#{link_md}" in seen_pr_keys:
-                continue
 
             h, m, l, total_issues = 0, 0, 0, 0
             committed_files_count = 1
@@ -154,12 +150,14 @@ def main():
                 "has_issues_bool": total_issues > 0
             }
             table_rows.append(row_entry)
-            seen_pr_keys.add(f"{clean_repo_path}#{link_md}")
+            seen_pr_keys.add(f"{clean_repo_path}#{pr_num}")
             
         except Exception as e: 
             print(f'Error processing success metadata {fname}: {e}')
-
-    # Step 4: Re-calculate accumulated macro counters across the entire unified database list
+            
+    # =========================================================================
+    # Step 4: Re-calculate accumulated macro counters across the entire database list
+    # =========================================================================
     total_scanned = len(table_rows)
     vulnerable_count = sum(1 for r in table_rows if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
@@ -168,12 +166,14 @@ def main():
     merged_count = sum(1 for r in table_rows if "Merged" in r.get('status', ''))
     closed_count = sum(1 for r in table_rows if "Closed" in r.get('status', ''))
 
-    # Save the updated combined list back to disk for the NEXT batch to load
     os.makedirs(os.path.dirname(accumulated_db_path), exist_ok=True)
     with open(accumulated_db_path, "w", encoding="utf-8") as db_w:
-        json.dump(table_rows, db_w, indent=2)
+        json.dump(table_rows, db_w, indent=2, ensure_ascii=False)
+    print(f"💾 [LEDGER FLUSH SUCCESSFUL] Persistent tracking state committed cleanly to: {accumulated_db_path}")
 
+    # =========================================================================
     # Step 5: Write the formatted markdown table summary file
+    # =========================================================================
     summary_file = os.environ.get('GITHUB_STEP_SUMMARY', 'summary.md')
     with open(summary_file, 'w', encoding='utf-8') as out:
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
@@ -195,7 +195,7 @@ def main():
             if is_human_run:
                 out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
             else:
-                out.write(f'| {r["repo"]} | {r["link"]} | {r["status"]} | {r["tool"]} | {r["lang"]} | {r["loc"]} | **{r["cwes"]}** | {r["h"]} | {r["m"]} | {r["l"]} | **{r["issues_files"]}** | **{r["density"]}** |\n')
+                out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("tool")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
 
 if __name__ == "__main__": 
     main()
