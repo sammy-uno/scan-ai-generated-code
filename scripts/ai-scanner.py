@@ -12,14 +12,20 @@ def run_command(command, max_retries=2):
     return None
 
 def main():
-    # --- CONFIGURATION (TARGET FIXED TO 20 RUNS) ---
+    # --- CONFIGURATION (TARGET FIXED TO 150ce RUNS FOR METRIC SAFETY) ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 256     # Corrected to match architecture requirement
-    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG"]
+    SCAN_LIMIT = 150     # Standard max parallel capacity allocation bounds
+    
+    # 🚀 CHUNK OFFSET INGESTION LAYER
+    try:
+        chunk_offset = int(os.environ.get('CHUNK_OFFSET', '0'))
+    except ValueError:
+        chunk_offset = 0
     
     # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
+    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG"]
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -28,13 +34,23 @@ def main():
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
     seen_repos = set()
+    processed_count = 0
 
-    print(f"--- Starting Discovery (Target: {SCAN_LIMIT} PRs) ---")
+    print(f"--- Starting Discovery (Offset: {chunk_offset} | Target Limit: {SCAN_LIMIT} PRs) ---")
     for _, row in df.iterrows():
+        # Stop building the active chunk once we hit our max concurrent runner matrix ceiling
         if stats["added"] >= SCAN_LIMIT: 
             break
         
-        # 🚀 RESTORED ORIGINAL CSV HEADERS
+        # 🚀 CHUNK GUARD CONTEXT SLICER
+        # Skips rows belonging to previous batch execution runs
+        if processed_count < chunk_offset:
+            processed_count += 1
+            continue
+            
+        processed_count += 1
+        
+        # RESTORED ORIGINAL CSV HEADERS
         repo = row['repo_name']
         num = str(row['number'])
         title = str(row['title'])
@@ -59,8 +75,7 @@ def main():
             data = json.loads(lines_res.stdout)
             total = data.get("additions", 0) + data.get("deletions", 0)
             
-            # 🚀 ZERO-CHANGE EXCLUSION GUARD:
-            # Drops any PR that has 0 modifications
+            # ZERO-CHANGE EXCLUSION GUARD: Drops any PR that has 0 modifications
             if total == 0:
                 print(f"SKIP: {repo} #{num} (Empty PR: 0 files/lines change)")
                 stats["empty"] += 1
@@ -75,7 +90,7 @@ def main():
             stats["api_error"] += 1
             continue
 
-        # 🚀 RESTORED ORIGINAL WORKFLOW MATRIX SCHEME
+        # RESTORED ORIGINAL WORKFLOW MATRIX SCHEME
         matrix_include.append({
             "pr_num": num, 
             "repo_name": repo, 
