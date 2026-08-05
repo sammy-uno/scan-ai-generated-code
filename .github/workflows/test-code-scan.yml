@@ -1,6 +1,5 @@
 name: "TEST - AI Multi-Language Chained Scanner"
 
-# 🚀 1. SUPPORT GLOBAL WEBHOOK EVENTS AND MANUAL TRIGGERS
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +19,6 @@ jobs:
   discover:
     name: Find AI PRs (Test Block)
     runs-on: ubuntu-latest
-    # Explicitly bind the step variables to the Job Outputs tier for cross-job boundary access
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
       next_offset: ${{ steps.detect.outputs.next_offset }}
@@ -32,12 +30,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      # 🚀 TRANS-BATCH SYNC: Fetch previous matrix rows BEFORE running discovery
+      # This provides scripts/test-ai-scanner.py with the historical repo context
+      - name: Fetch Historical Database Cache for Deduplication
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          echo "📥 Downloading prior database snapshot to hydrate deduplication memory..."
+          gh run download --name "test-database-accumulation" --dir "all-results" || true
           
       - name: Discover Scan Matrix
         id: detect
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # 🚀 2. DYNAMIC INPUT DISCOVERY: Reads from manual context OR webhook client payload context!
           CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
           pip install pandas
@@ -152,8 +158,6 @@ jobs:
             all-results/test_accumulated_database.json
           retention-days: 1
 
-      # 🚀 3. THE NO-404 GLOBAL TRANSITION LAYER:
-      # Fires a repository dispatch payload targeting the repo root directly to bypass indexing lags!
       - name: Chain Next Chunk Automatically
         if: ${{ needs.discover.outputs.has_more_data == 'true' }}
         env:
