@@ -128,13 +128,12 @@ def main():
     #has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
     #has_more_data = "false"
 
-    if chunk_offset == 0:
+    if chunk_offset < 3:
         has_more_data = "true"
-        print(f"🧪 [TEST MODE] First PR complete. Chaining next chunk at offset: {next_offset}")
+        print(f"🧪 [TEST MODE] PR #{chunk_offset + 1} complete. Chaining next chunk at offset: {next_offset}")
     else:
         has_more_data = "false"
-        print(f"🧪 [TEST MODE] Second PR complete (Offset: {chunk_offset}). Terminating the pipeline chain.")
-
+        print(f"🧪 [TEST MODE] Final PR #{chunk_offset + 1} complete. Terminating the 4-pass test chain.")
 
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
