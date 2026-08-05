@@ -163,7 +163,7 @@ jobs:
         with:
           name: test-database-accumulation
           path: |
-            all-results/test_accumulated_database.json
+            all-results/test_accumulated_database_v2.json
           retention-days: 1
 
       - name: Chain Next Chunk Automatically
