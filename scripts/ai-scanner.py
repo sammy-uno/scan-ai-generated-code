@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 1     # Scaled ceiling capacity allocation bounds
+    SCAN_LIMIT = 256     # Scaled ceiling capacity allocation bounds
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
@@ -25,7 +25,8 @@ def main():
     
     # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
-    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG"]
+    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG", "Azure/azure-sdk-for-js", 
+"typehero/typehero"]
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
