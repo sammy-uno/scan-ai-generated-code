@@ -28,6 +28,8 @@ jobs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
       
       - name: Setup Python
         uses: actions/setup-python@v5
