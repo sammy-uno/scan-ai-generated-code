@@ -1,4 +1,4 @@
-name: "TEST - AI Multi-Language Chained Scanner"
+name: "AI Multi-Language Chained Scanner"
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: false
         default: '0'
   repository_dispatch:
-    types: [run_test_chunk]
+    types: [Scan_Next_Chained_Batch]
 
 env:
   CODEQL_ACTION_EXPERIMENTAL_FEATURES: "false"
@@ -194,13 +194,17 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      # 🚀 SECURE GRADUATED STOP GATEWAY:
+      # Evaluates the official variable returned from the script. Stops instantly if has_more_data == false.
       - name: Chain Next Chunk Automatically
         if: ${{ needs.discover.outputs.has_more_data == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           NEXT_OFFSET: ${{ needs.discover.outputs.next_offset }}
         run: |
-          echo "🔄 Loop transition verified. Data remains in CSV input queue. Advancing chain to offset: $NEXT_OFFSET"
+          echo "🔄 Loop transition verified. Data remains in CSV input queue."
+          echo "Advancing AI Multi-Language Chained Scanner to next chunk offset: $NEXT_OFFSET"
+          
           gh api repos/${{ github.repository }}/dispatches \
-            -F event_type="run_test_chunk" \
+            -F event_type="Scan_Next_Chained_Batch" \
             -F client_payload[offset]="$NEXT_OFFSET"
