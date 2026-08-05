@@ -175,8 +175,7 @@ jobs:
           echo "Target Workflow Run ID located: $RUN_ID"
           gh run download "$RUN_ID" --pattern "sarif-*" --dir "all-results" || true
 
-          # 2. 🔄 CRUCIAL FIX: Remove $RUN_ID here. 
-          # This forces gh cli to pull the true historical asset from your global repository history!
+          # 2. 🔄 Pull down the rolling master data ledger from historical workflow records
           echo "📥 Restoring global rolling master database state..."
           gh run download --name "master-database-accumulation" --dir "all-results" || true
 
@@ -202,7 +201,14 @@ jobs:
           path: |
             all-results/accumulated_database.json
           retention-days: 5
+          overwrite: true # 🔄 CRUCIAL: Overwrites the previous historical ledger with the updated json file
 
+  chain:
+    name: Loop Dispatch Gateway
+    needs: [discover, report]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
       # 🚀 SECURE GRADUATED STOP GATEWAY:
       # Evaluates the official variable returned from the script. Stops instantly if has_more_data == false.
       - name: Chain Next Chunk Automatically
