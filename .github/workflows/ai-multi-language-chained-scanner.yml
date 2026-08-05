@@ -178,15 +178,14 @@ jobs:
         run: |
           python scripts/consolidate-report.py
 
-      # 📊 STREAM ENGINE: Pipes each independent file fragment straight to the step summary endpoint.
-      # Because each call represents a unique file stream step, it clears the 1MB buffer cap completely!
+      # 📊 STREAM ENGINE: Concatenates file pieces into the global Actions panel summary
       - name: Stream Consolidated Reports Safely
         run: |
           echo "📝 Appending report header details..."
           cat report-chunks/header.md >> $GITHUB_STEP_SUMMARY
           
-          # Iterate systematically over every generated tabular part fragment on disk
-          for file in sorted $(ls report-chunks/table_part_*.md 2>/dev/null); do
+          # Sort and loop through the part fragments numerically
+          for file in $(ls report-chunks/table_part_*.md | sort -V); do
             echo "📝 Appending $file to workflow dashboard stream..."
             cat "$file" >> $GITHUB_STEP_SUMMARY
             echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
