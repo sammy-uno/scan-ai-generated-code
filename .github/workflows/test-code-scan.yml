@@ -150,13 +150,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       
-      - name: Download Available Artifacts
+      - name: Download Active Matrix Artifacts
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           pattern: sarif-*
           path: all-results
           merge-multiple: true
+
+      # 🚀 1. DOWNLOAD CACHE: Reaches back to fetch the master json from previous runs
+      - name: Fetch Historical Database Cache
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          gh run download --name "master-database-accumulation" --dir "all-results" || true
+          rm -f all-results/results.sarif || true
 
       - name: Generate Consolidated Summary Table
         env:
@@ -166,12 +174,19 @@ jobs:
         run: |
           python scripts/consolidate-report.py
 
-      # 🚀 THE ONLY LOOP ADDITION: 
-      # Checks if there are more chunks and fires a repository dispatch to continue.
+      # 🚀 2. UPLOAD CACHE: Saves the newly expanded 500+ master json back to GitHub storage
+      - name: Archive Accumulated Dataset State
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-database-accumulation
+          path: |
+            all-results/accumulated_database.json
+          retention-days: 5
+
       - name: Chain Next Chunk Automatically
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          # Calculates the next position by adding 150 to the current offset context
           CURRENT_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
           NEXT_OFFSET=$((CURRENT_OFFSET + 1))
@@ -180,3 +195,4 @@ jobs:
           gh api repos/${{ github.repository }}/dispatches \
             -F event_type="run_test_chunk" \
             -F client_payload[offset]="$NEXT_OFFSET"
+
