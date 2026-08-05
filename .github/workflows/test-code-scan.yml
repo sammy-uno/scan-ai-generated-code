@@ -101,10 +101,20 @@ jobs:
           if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
             cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.sarif"
             echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.success"
+            
+            # Runs the shared python parser
             python scripts/parse-results.py || true
-            cp ./summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" || true
+            
+            # 🚀 FIXED THE PATH MISMATCH GAP: 
+            # Checks your true sarif-results folder destination for the output first!
+            if [ -f "sarif-results/summary.json" ]; then
+              cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+            elif [ -f "./summary.json" ]; then
+              cp ./summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+            fi
           else
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
+            echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 0, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
           fi
 
       - name: Save Artifacts
