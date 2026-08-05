@@ -126,7 +126,15 @@ def main():
     # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
     #has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
-    has_more_data = "false"
+    #has_more_data = "false"
+
+    if chunk_offset == 0:
+        has_more_data = "true"
+        print(f"🧪 [TEST MODE] First PR complete. Chaining next chunk at offset: {next_offset}")
+    else:
+        has_more_data = "false"
+        print(f"🧪 [TEST MODE] Second PR complete (Offset: {chunk_offset}). Terminating the pipeline chain.")
+
 
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
