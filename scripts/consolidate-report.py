@@ -186,8 +186,7 @@ def main():
 
     # 2. Slice and Chunk Row Data (Max 50 items per table section to guarantee size compliance)
     sorted_rows = sorted(table_rows, key=lambda x: (x.get("repo", ""), x.get("link", "")))
-    #chunk_size = 50
-    chunk_size = 2
+    chunk_size = 50
     row_chunks = [sorted_rows[i:i + chunk_size] for i in range(0, len(sorted_rows), chunk_size)]
 
     for index, chunk in enumerate(row_chunks):
