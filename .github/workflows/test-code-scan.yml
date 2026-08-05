@@ -29,42 +29,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.ref_name }} # Forces Git to track the active side branch context natively
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 🚀 THE HARD ACCUMULATION RESET LAYER:
-      # If the manual offset trigger is '0', find and delete all old cache artifacts 
-      # from GitHub cloud storage immediately to guarantee a completely fresh start!
-      - name: Purge Historical Database Cache on Initial Pass
+      - name: Fetch Historical Database Snapshot for Deduplication
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          CURRENT_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
-          if [ "$CURRENT_OFFSET" = "0" ]; then
-            echo "🧼 [CLEAN SLATE PURGE ACTIVATED] Offset is 0. Wiping out old artifact database cache..."
-            
-            # Query the REST API for all active artifacts in this repository named 'master-database-accumulation'
-            ARTIFACT_IDS=$(gh api repos/${{ github.repository }}/actions/artifacts \
-              --jq '.artifacts[] | select(.name == "master-database-accumulation") | .id')
-            
-            for ARTIFACT_ID in $ARTIFACT_IDS; do
-              if [ -not -z "$ARTIFACT_ID" ] && [ "$ARTIFACT_ID" != "null" ]; then
-                echo "🗑️ Deleting historical artifact ID: $ARTIFACT_ID"
-                gh api --method DELETE repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID || true
-              fi
-            done
-            
-            echo "✅ Historical memory cache cleared from cloud storage."
-          else
-            echo "📥 [CHAIN CONTINUITY RUN] Offset is $CURRENT_OFFSET. Fetching historical cache..."
-            gh run download --name "master-database-accumulation" --dir "all-results" || true
-          fi
+          echo "📥 Downloading master database to hydrate scanner deduplication memory..."
+          gh run download --name "master-database-accumulation" --dir "all-results" || true
 
-      # 🚀 Run discovery using your original stable file names
       - name: Discover Scan Matrix
         id: detect
         env:
@@ -180,7 +158,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       
-      - name: Download Active Matrix Artifacts
+      - name: Download Available Artifacts
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -188,7 +166,6 @@ jobs:
           path: all-results
           merge-multiple: true
 
-      # 🚀 1. DOWNLOAD CACHE: Reaches back to fetch the master json from previous runs
       - name: Fetch Historical Database Cache
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -201,10 +178,11 @@ jobs:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
           SCAN_TYPE: "automated"
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
+          # 🚀 PASS ACTIVE CHUNK OFFSET SO THE PYTHON FILE CAN ENFORCE RESET LOCKS
+          CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
           python scripts/consolidate-report.py
 
-      # 🚀 2. UPLOAD CACHE: Saves the newly expanded 500+ master json back to GitHub storage
       - name: Archive Accumulated Dataset State
         if: always()
         uses: actions/upload-artifact@v4
@@ -219,10 +197,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           CURRENT_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
+          # 🚀 CHUNK SIZE LOCK CONFIGURATION CEILING: Change this "1" value to "150" or "256" 
+          # when you are ready to scale from your tight test up to full production limits!
           NEXT_OFFSET=$((CURRENT_OFFSET + 1))
           echo "🔄 Loop transition verified. Directing dispatch loop to next chunk offset pointer: $NEXT_OFFSET"
           
           gh api repos/${{ github.repository }}/dispatches \
             -F event_type="run_test_chunk" \
             -F client_payload[offset]="$NEXT_OFFSET"
-
