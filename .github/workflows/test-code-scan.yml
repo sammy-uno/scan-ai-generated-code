@@ -166,6 +166,6 @@ jobs:
         run: |
           echo "🔄 Chained transition confirmed. Executing global repository dispatch for offset: $NEXT_OFFSET"
           
-          gh api repos/${{ github.repository }}/dispatches \
-            -F event_type="run_test_chunk" \
-            -F client_payload[offset]="$NEXT_OFFSET"
+          #gh api repos/${{ github.repository }}/dispatches \
+          #  -F event_type="run_test_chunk" \
+          #  -F client_payload[offset]="$NEXT_OFFSET"
