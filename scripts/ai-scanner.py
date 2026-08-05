@@ -125,7 +125,8 @@ def main():
 
     # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
-    has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
+    #has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
+    has_more_data = "false"
 
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
