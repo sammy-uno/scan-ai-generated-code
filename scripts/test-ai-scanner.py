@@ -32,7 +32,25 @@ def main():
 
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
+    
+    # 🚀 THE CRITICAL FIX: PRE-POPULATE THE UNIQUE REPO CACHE FROM HISTORY
     seen_repos = set()
+    accumulated_db_path = "all-results/test_accumulated_database.json"
+    
+    if os.path.exists(accumulated_db_path):
+        try:
+            with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
+                historical_rows = json.load(db_f)
+                if isinstance(historical_rows, list):
+                    for r in historical_rows:
+                        # Extract the raw repo name and store it to block future duplicates
+                        hist_repo = r.get('repo', '').strip()
+                        if hist_repo:
+                            seen_repos.add(hist_repo)
+                    print(f"📦 [MEMORY CACHE HYDRATED] Pre-loaded {len(seen_repos)} unique repositories from prior batch runs.")
+        except Exception as cache_err:
+            print(f"⚠️ Warning: Could not hydrate unique repository cache: {cache_err}")
+
     processed_count = 0
 
     print(f"--- Starting TEST Discovery (Offset: {chunk_offset} | Target: {SCAN_LIMIT} PRs) ---")
@@ -56,7 +74,10 @@ def main():
         if repo in EXCLUDE_REPOS:
             stats["excluded"] += 1
             continue
+            
+        # 🚀 CROSS-BATCH DEDUPLICATION FILTER
         if repo in seen_repos:
+            print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Globally across batches)")
             stats["duplicates"] += 1
             continue
             
@@ -92,6 +113,7 @@ def main():
     print("\n--- TEST Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
     print(f"⏩ Skipped by Offset:    {stats['skipped_by_offset']}")
+    print(f"👯 Skipped Duplicates:    {stats['duplicates']}")
     print(f"🔢 Next Pointer Offset:   {next_offset}")
     print(f"🔄 Continues Remaining:   {has_more_data}")
     print("-------------------------\n")
