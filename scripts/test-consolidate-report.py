@@ -56,7 +56,7 @@ def main():
         success_markers = sorted(list(set(success_markers)))
 
     print(f"📦 [FOUND ASSETS] Active session markers discovered on disk: {len(success_markers)}")
-
+    
     # Step 3: Loop over live success markers on disk for the current batch
     for f in success_markers:
         fname = os.path.basename(f)
@@ -68,12 +68,19 @@ def main():
             if len(parts) < 5: 
                 continue
             
-            # Extract historical file context segments cleanly via explicit indexing
-            repo_path = parts[0].replace('_SLASH_', '/')
-            pr_num = parts[1]
-            lang = parts[2]
-            ai_agent_tool = parts[3].replace('_', ' ')
-            live_loc = int(parts[4]) if parts[4].isdigit() else 100
+            # 🚀 FIXED ELEMENT INDEXING:
+            # Targets explicit position indexes instead of a raw Python list instance.
+            raw_repo  = parts[0]
+            raw_pr    = parts[1]
+            raw_lang  = parts[2]
+            raw_agent = parts[3]
+            raw_size  = parts[4]
+
+            repo_path = raw_repo.replace('_SLASH_', '/')
+            pr_num = raw_pr
+            lang = raw_lang
+            ai_agent_tool = raw_agent.replace('_', ' ')
+            live_loc = int(raw_size) if raw_size.isdigit() else 100
             
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
@@ -124,7 +131,7 @@ def main():
             status_badge = get_live_pr_status(clean_repo_path, pr_num)
             display_loc = 0 if committed_files_count == 0 else live_loc
             
-            # 🚀 SCHEMA HARMONIZATION: Standardize keys to map identically for both tracks
+            # SCHEMA HARMONIZATION: Standardize keys to map identically for both tracks
             row_entry = {
                 "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": display_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
@@ -160,7 +167,7 @@ def main():
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
         out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
         
-        # 🚀 CONDITIONAL COLUMN HIDING ENGINE
+        # CONDITIONAL COLUMN HIDING ENGINE
         if is_human_run:
             out.write('\n| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
@@ -168,7 +175,7 @@ def main():
             out.write('\n| Repository | PR | Status | AI Tool | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density (Issues/LOC) |\n')
             out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
             
-        # 🚀 ALPHABETICAL MATRIX SORTING Across all active and historical items
+        # ALPHABETICAL MATRIX SORTING Across all active and historical items
         sorted_rows = sorted(table_rows, key=lambda x: (x.get("repo", ""), x.get("link", "")))
 
         for r in sorted_rows: 
