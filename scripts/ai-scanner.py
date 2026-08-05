@@ -26,7 +26,7 @@ def main():
     # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
     EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG", "Azure/azure-sdk-for-js", 
-"typehero/typehero"]
+"typehero/typehero", "ruvnet/claude-flow"]
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
