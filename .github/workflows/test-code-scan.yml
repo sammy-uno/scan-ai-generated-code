@@ -34,15 +34,35 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🚀 THE CROSS-BATCH PROTECTION BRIDGE: 
-      # Fetch the master json file from prior runs so the discover job knows what was already scanned!
-      - name: Fetch Historical Database Snapshot for Deduplication
+      # 🚀 THE HARD ACCUMULATION RESET LAYER:
+      # If the manual offset trigger is '0', find and delete all old cache artifacts 
+      # from GitHub cloud storage immediately to guarantee a completely fresh start!
+      - name: Purge Historical Database Cache on Initial Pass
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          CURRENT_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
-          echo "📥 Downloading master database to hydrate scanner deduplication memory..."
-          gh run download --name "master-database-accumulation" --dir "all-results" || true
+          if [ "$CURRENT_OFFSET" = "0" ]; then
+            echo "🧼 [CLEAN SLATE PURGE ACTIVATED] Offset is 0. Wiping out old artifact database cache..."
+            
+            # Query the REST API for all active artifacts in this repository named 'master-database-accumulation'
+            ARTIFACT_IDS=$(gh api repos/${{ github.repository }}/actions/artifacts \
+              --jq '.artifacts[] | select(.name == "master-database-accumulation") | .id')
+            
+            for ARTIFACT_ID in $ARTIFACT_IDS; do
+              if [ -not -z "$ARTIFACT_ID" ] && [ "$ARTIFACT_ID" != "null" ]; then
+                echo "🗑️ Deleting historical artifact ID: $ARTIFACT_ID"
+                gh api --method DELETE repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID || true
+              fi
+            done
+            
+            echo "✅ Historical memory cache cleared from cloud storage."
+          else
+            echo "📥 [CHAIN CONTINUITY RUN] Offset is $CURRENT_OFFSET. Fetching historical cache..."
+            gh run download --name "master-database-accumulation" --dir "all-results" || true
+          fi
 
+      # 🚀 Run discovery using your original stable file names
       - name: Discover Scan Matrix
         id: detect
         env:
