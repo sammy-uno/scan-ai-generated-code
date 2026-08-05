@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION (TARGET FIXED TO 150ce RUNS FOR METRIC SAFETY) ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 150     # Standard max parallel capacity allocation bounds
+    SCAN_LIMIT = 1     # Standard max parallel capacity allocation bounds
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
