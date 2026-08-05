@@ -174,7 +174,7 @@ jobs:
           # Calculates the next position by adding 150 to the current offset context
           CURRENT_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
-          NEXT_OFFSET=$((CURRENT_OFFSET + 150))
+          NEXT_OFFSET=$((CURRENT_OFFSET + 1))
           echo "🔄 Loop transition verified. Directing dispatch loop to next chunk offset pointer: $NEXT_OFFSET"
           
           gh api repos/${{ github.repository }}/dispatches \
