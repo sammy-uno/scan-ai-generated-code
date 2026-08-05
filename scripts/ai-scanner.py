@@ -34,12 +34,13 @@ def main():
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
     
-    # 🚀 THE CRITICAL CROSS-BATCH PROTECTION FIX:
-    # Pre-populate the memory cache from the master historical JSON database file
+    # 🚀 THE HARDENED RESET FILTER LAYER:
+    # Only load previous memory records if the offset pointer is greater than 0.
+    # If the user starts at 0, ignore any hidden cached files to force a clean pass from the top!
     seen_repos = set()
     accumulated_db_path = "all-results/accumulated_database.json"
     
-    if os.path.exists(accumulated_db_path):
+    if chunk_offset > 0 and os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
                 historical_rows = json.load(db_f)
@@ -51,6 +52,8 @@ def main():
                     print(f"📥 [CROSS-BATCH SNAPSHOT LOADED] Pre-loaded {len(seen_repos)} unique repositories from master database memory.")
         except Exception as cache_err:
             print(f"⚠️ Warning: Could not hydrate cross-batch deduplication memory: {cache_err}")
+    else:
+        print("🧼 [CLEAN INITIAL PASS] Offset is 0. Discarding all cross-batch data caches to start fresh from row 1.")
 
     processed_count = 0
 
