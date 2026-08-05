@@ -24,12 +24,15 @@ jobs:
   discover:
     name: Find AI PRs
     runs-on: ubuntu-latest
+    # 🚀 FIXED THE MAP BRIDGE: Expose these metrics to subsequent workflow jobs!
     outputs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
+      next_offset: ${{ steps.detect.outputs.next_offset }}
+      has_more_data: ${{ steps.detect.outputs.has_more_data }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.ref_name }} # Forces Git to track the active side branch context natively
+          ref: ${{ github.ref_name }}
       
       - name: Setup Python
         uses: actions/setup-python@v5
