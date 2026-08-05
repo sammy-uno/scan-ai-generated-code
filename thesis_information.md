@@ -25,6 +25,26 @@ These papers look specifically at LLM and AI agent code generation within reposi
 
 ---
 
+### 3. The Core Dataset Baseline & Subsequent Security Analyses
+
+No, the original authors of the AIDev dataset did not deeply analyze the security vulnerabilities of the PRs in their foundational paper, ["AIDev: Studying AI Coding Agents on GitHub"](https://arxiv.org/abs/2602.09185).
+
+Instead, the original authors focused on creating a broad, empirical foundation. They mapped nearly 1 million pull requests across 5 main agents (GitHub Copilot, Devin, Cursor, Claude Code, and OpenAI Codex). Their analysis centered on structural metrics: adoption trends, PR types (bug fixes, features, documentation), review timelines, acceptance/rejection rates, and description readability. 
+
+However, because the AIDev dataset is open-source, **other research teams immediately used it to conduct the exact security analyses you are looking for.** These empirical follow-up studies explicitly analyzed the security and vulnerability profiles of those collected pull requests:
+
+*   **"Insights into Security-Related AI-Generated Pull Requests" (2026)**
+    *   *Core Finding:* This study filtered the 33,000+ core PRs from the AIDev dataset to isolate 675 explicitly security-related submissions made by agentic AIs. The results show that security-related AI PRs introduce a small set of recurring weaknesses such as regex inefficiencies (ReDoS), injection flaws, and path traversal.
+    *   *Where to read/cite:* Available as a preprint on [arXiv:2604.19965](https://arxiv.org/abs/2604.19965).
+*   **"The Quiet Contributions: Insights into AI-Generated Silent Pull Requests" (2026)**
+    *   *Core Finding:* This team quantitatively studied 4,762 silent AI pull requests (SPRs) drawn from the AIDev public dataset across popular Python repositories. They examined the hidden impact of these unreviewed or un-discussed contributions on code complexity, code quality issues, and security vulnerabilities.
+    *   *Where to read/cite:* Read the publication on [ResearchGate](https://www.researchgate.net/publication/400236799_The_Quiet_Contributions_Insights_into_AI-Generated_Silent_Pull_Requests).
+*   **"AIDev Open-Source Dataset Repository"**
+    *   *Core Finding:* The centralized community repository tracking the ecosystem, tools, scripts, and example notebooks associated with the 932,791 agentic pull requests analyzed during the MSR/ICSE mining challenges.
+    *   *Where to download/cite:* Access the data layers via the [SAILResearch GitHub Repository](https://github.com/SAILResearch/AI_Teammates_in_SE3) or directly download the Parquet files via the [hao-li AIDev HuggingFace Dataset Portal](https://huggingface.co/datasets/hao-li/AIDev).
+
+---
+
 ### 📝 How to Format These Citations inside Your Thesis Reference List
 
 When you add these to your bibliography, you can format them in standard **APA 7th Edition** style like this:
@@ -35,6 +55,10 @@ When you add these to your bibliography, you can format them in standard **APA 7
     Pearce, H., Tan, B., Ahmad, B., Karri, R., & Dolan-Gavitt, H. (2023). *Can LLMs Patch Security Vulnerabilities?* arXiv preprint arXiv:2312.00024. https://arxiv.org
 3.  **For the AI Agent Benchmark (SWE-bench):**
     Jimenez, C. E., Yang, J., Wettinger, R., & Narasimhan, K. (2023). *SWE-bench: Can Language Models Resolve Real-World GitHub Issues?* arXiv preprint arXiv:2310.06770. https://arxiv.org
+4.  **For the AIDev Baseline Paper:**
+    Li, H., Zhang, H., & Hassan, A. E. (2026). *AIDev: Studying AI Coding Agents on GitHub*. arXiv preprint arXiv:2602.09185. https://arxiv.org/abs/2602.09185
+5.  **For the Empirical Security Analysis of AIDev PRs:**
+    Rabbi, M. F., Turzo, A. K., Champa, A. I., & Zibran, M. (2026). *Insights into Security-Related AI-Generated Pull Requests*. arXiv preprint arXiv:2604.19965. https://arxiv.org/abs/2604.19965
 
 ***
 
