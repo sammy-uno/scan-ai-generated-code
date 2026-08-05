@@ -79,7 +79,7 @@ def main():
     
     # Step 3: Parse new markers from the current active run
     for f in success_markers:
-        fname = os.basename(f)
+        fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
 
         try:
