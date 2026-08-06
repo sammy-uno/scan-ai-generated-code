@@ -61,7 +61,7 @@ def main():
                         
                         if '[#' in raw_link and ']' in raw_link:
                             # 🎯 SYNTAX FIXED: Slices array indices securely step-by-step
-                            extracted_pr = raw_link.split('[#'][1].split(']')[0].strip()
+                            extracted_pr = raw_link.split('[#')[1].split(']')[0].strip()
                         else:
                             extracted_pr = "".join(filter(str.isdigit, raw_link)) or "0"
                             
