@@ -32,7 +32,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
           CHUNK_OFFSET: "0"
         run: |
-          python scripts/consolidate-report.py
+          python scripts/render-dashboard-tables.py
 
       # 4. 🚀 SAFE MULTI-STEP STREAM ENGINE: Breaks the 1MB buffer limit entirely!
       - name: Stream Summary Header Layout
