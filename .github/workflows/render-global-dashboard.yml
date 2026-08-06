@@ -1,0 +1,72 @@
+name: "AI Scanner - Render Global Dashboard"
+
+on:
+  workflow_dispatch: # Allows you to trigger this manually at any time with a button click
+
+env:
+  CODEQL_ACTION_DISABLE_DEPRECATION_WARNINGS: "true"
+
+permissions:
+  contents: write
+
+jobs:
+  display_report:
+    name: Build Summary Panels
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Pull down your main codebase scripts
+      - uses: actions/checkout@v4
+
+      # 2. Pull down the persistent JSON file directly from your database storage lane
+      - name: Restore Shared Database State
+        run: |
+          mkdir -p all-results
+          git fetch origin database:database || true
+          git checkout database -- all-results/accumulated_database.json 2>/dev/null || echo "Database file found."
+
+      # 3. Process the JSON file to build the report markdown chunk files
+      - name: Compile Text Matrices
+        env:
+          MATRIX_JSON: "{}"
+          SCAN_TYPE: "automated"
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
+          CHUNK_OFFSET: "0"
+        run: |
+          python scripts/consolidate-report.py
+
+      # 4. 🚀 SAFE MULTI-STEP STREAM ENGINE: Breaks the 1MB buffer limit entirely!
+      - name: Stream Summary Header Layout
+        run: |
+          if [ -f "report-chunks/header.md" ]; then
+            cat report-chunks/header.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # 5. Flush tables 1 to 3 in a completely clean, isolated memory buffer step
+      - name: Render Result Logs (Part 1)
+        run: |
+          for i in {1..3}; do
+            if [ -f "report-chunks/table_part_${i}.md" ]; then
+              cat "report-chunks/table_part_${i}.md" >> $GITHUB_STEP_SUMMARY
+              echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      # 6. Flush tables 4 to 6 in a fresh step (clears the 1MB API size ceiling)
+      - name: Render Result Logs (Part 2)
+        run: |
+          for i in {4..6}; do
+            if [ -f "report-chunks/table_part_${i}.md" ]; then
+              cat "report-chunks/table_part_${i}.md" >> $GITHUB_STEP_SUMMARY
+              echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      # 7. Flush tables 7 to 20 to capture any trailing large datasets securely
+      - name: Render Result Logs (Overflow Safeguard)
+        run: |
+          for i in {7..20}; do
+            if [ -f "report-chunks/table_part_${i}.md" ]; then
+              cat "report-chunks/table_part_${i}.md" >> $GITHUB_STEP_SUMMARY
+              echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
