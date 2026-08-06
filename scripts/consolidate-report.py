@@ -59,11 +59,8 @@ def main():
                         current_repo = str(r.get('repo', '')).strip()
                         raw_link = str(r.get('link', ''))
                         
-                        if '[#' in raw_link and ']' in raw_link:
-                            # 🎯 SYNTAX FIXED: Slices array indices securely step-by-step
-                            extracted_pr = raw_link.split('[#')[1].split(']')[0].strip()
-                        else:
-                            extracted_pr = "".join(filter(str.isdigit, raw_link)) or "0"
+                        # 🎯 BULLETPROOF DEDUPLICATION DECODER: Pulls ONLY raw numbers from the link element safely
+                        extracted_pr = "".join(c for c in raw_link.split(']')[0] if c.isdigit()) or "0"
                             
                         stable_key = f"{current_repo}#{extracted_pr}"
                         seen_pr_keys.add(stable_key)
@@ -82,7 +79,6 @@ def main():
         success_markers = sorted(list(set(success_markers)))
 
     print(f"📦 [FOUND ASSETS] Active session markers discovered on disk: {len(success_markers)}")
-    
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
