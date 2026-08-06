@@ -50,13 +50,24 @@ jobs:
           fi
 
       # 4. SAVE BACK TO REPOSITORY: Automatically pushes the file to your code tree
+      # 5. 📤 FLUSH TO MAIN BRANCH: Force adds the document file while skipping local cache directories
       - name: Commit Report File to Main Branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          # Force a clean sync rebase to clear any intermediate commit drift
+          git fetch origin main
+          git checkout main
           git pull origin main --rebase || true
           
-          git add GLOBAL_SUMMARY_REPORT.md
-          git commit -m "docs: update compiled global analysis summary report file" || true
-          git push origin main
+          # 🎯 EXPLICIT FORCE FORCE-STAGE: Target the file directly and ignore any untracked folders
+          if [ -f "GLOBAL_SUMMARY_REPORT.md" ]; then
+            git add -f GLOBAL_SUMMARY_REPORT.md
+            git commit -m "docs: finalize global analysis summary report file [compiled entries]" || echo "No structural textual modifications located."
+            git push origin main
+            echo "✅ Global summary report successfully committed and pushed to main branch!"
+          else
+            echo "❌ Error: GLOBAL_SUMMARY_REPORT.md was not located on disk."
+            exit 1
+          fi
