@@ -16,7 +16,7 @@ env:
   CODEQL_ACTION_IS_PERFORMANCE_TESTING: "true"
 
 permissions:
-  contents: read
+  contents: write
   security-events: write
   actions: write
 
