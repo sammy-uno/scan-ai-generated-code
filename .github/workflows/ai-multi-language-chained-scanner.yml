@@ -156,7 +156,6 @@ jobs:
       
       - name: Download Cross-Run Matrix Artifacts Globally
         env:
-          GLOBAL_SCAN_PAT: ${{ secrets.GLOBAL_SCAN_PAT }}
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           echo "📥 Executing history sweep for active chunk artifacts..."
@@ -167,19 +166,16 @@ jobs:
           echo "Target Workflow Run ID located: $RUN_ID"
           gh run download "$RUN_ID" --pattern "sarif-*" --dir "all-results" || true
 
-          # 2. Pull down the rolling master data ledger from historical workflow records
-          echo "📥 Restoring global rolling master database state..."
-          gh run download --name "master-database-accumulation" --dir "." || true
-
-          # 🛠️ THE LIFESAVING CROSS-WORKSPACE COPY:
-          # If a historical file was downloaded to the root, safely move it into the all-results/ folder
-          if [ -f "accumulated_database.json" ]; then
-            echo "✅ Found historical database asset at root! Moving to sync directory..."
-            mv accumulated_database.json all-results/accumulated_database.json
-          elif [ -f "all-results/accumulated_database.json" ]; then
-            echo "✅ Historical database asset successfully mapped inside all-results/ folder."
+          # 2. 🎯 FIND THE TRUE HISTORICAL RUN: Query the last successful database upload run ID
+          echo "🔍 Locating the most recent completed database state in repository history..."
+          LAST_SUCCEEDED_RUN=$(gh run list --workflow "AI Multi-Language Chained Scanner" --status success --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || echo "")
+          
+          if [ -n "$LAST_SUCCEEDED_RUN" ] && [ "$LAST_SUCCEEDED_RUN" != "null" ]; then
+            echo "✅ Historical database found inside past Succeeded Run ID: $LAST_SUCCEEDED_RUN"
+            # Pull down the database directly from that explicit historical run ID context
+            gh run download "$LAST_SUCCEEDED_RUN" --name "master-database-accumulation" --dir "all-results" || true
           else
-            echo "⚠️ No historical database found on the cloud ledger yet. (Normal for Run #1)"
+            echo "⚠️ No successful historical run found yet. (Normal for Run #1)"
           fi
 
           rm -f all-results/results.sarif || true
