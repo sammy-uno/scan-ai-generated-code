@@ -11,7 +11,7 @@ jobs:
     name: Build Repository Dashboard File
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       # 1. Fetch the persistent data snapshot from your database lane
       - name: Restore Shared Database State
@@ -29,12 +29,11 @@ jobs:
         run: |
           python scripts/render-dashboard-tables.py
 
-      # 3. 🚀 THE FILE STITCHING ENGINE: Combines the text fragments into one clean, permanent file
+      # 3. THE FILE STITCHING ENGINE: Combines the text fragments into one clean, permanent file
       - name: Assemble Global Summary Report File
         run: |
           echo "📝 Stitching compliance chunks into a permanent file asset..."
           
-          # Initialize/Overwrite the global markdown file
           if [ -f "report-chunks/header.md" ]; then
             cat report-chunks/header.md > GLOBAL_SUMMARY_REPORT.md
             echo -e "\n" >> GLOBAL_SUMMARY_REPORT.md
@@ -42,7 +41,6 @@ jobs:
             echo "# 📊 Global Analysis Summary\n" > GLOBAL_SUMMARY_REPORT.md
           fi
           
-          # Alphabetically append every tabular 50-row chunk file flawlessly
           if [ -d "report-chunks" ]; then
             for file in $(ls report-chunks/table_part_*.md 2>/dev/null | sort -V); do
               echo "Appending $file..."
@@ -51,13 +49,12 @@ jobs:
             done
           fi
 
-      # 4. 📤 FLUSH TO MAIN BRANCH: Saves the beautifully rendered report directly into your code view tree
+      # 4. SAVE BACK TO REPOSITORY: Automatically pushes the file to your code tree
       - name: Commit Report File to Main Branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Pull down potential branch changes to prevent sync conflicts
           git pull origin main --rebase || true
           
           git add GLOBAL_SUMMARY_REPORT.md
