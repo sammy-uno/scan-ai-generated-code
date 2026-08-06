@@ -46,7 +46,7 @@ def main():
         except Exception as rm_err:
             print(f"⚠️ Warning: Could not clear local cache file: {rm_err}")
             
-    seen_pr_keys = set()
+seen_pr_keys = set()
 
     # =========================================================================
     # Step 1: Ingest Historical Records and Build a Bulletproof Key Map
@@ -62,9 +62,10 @@ def main():
                         current_repo = str(r.get('repo', '')).strip()
                         raw_link = str(r.get('link', ''))
                         
-                        # 🎯 CORRECT SPLIT PARSING ENGINE: Extract PR number out of markdown link safely
+                        # 🎯 FIX: Extract PR number cleanly by specifying array indices
                         if '[#' in raw_link and ']' in raw_link:
-                            # Split once at '[#', take the second half, then split at ']' and take the first half [0]
+                            # Split once at '[#', grab the second item (index 1), 
+                            # then split at ']' and grab the first item (index 0)
                             extracted_pr = raw_link.split('[#')[1].split(']')[0].strip()
                         else:
                             extracted_pr = "".join(filter(str.isdigit, raw_link)) or "0"
