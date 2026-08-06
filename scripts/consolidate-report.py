@@ -48,6 +48,9 @@ def main():
             
     seen_pr_keys = set()
 
+    # =========================================================================
+    # Step 1: Ingest Historical Records and Build a Bulletproof Key Map
+    # =========================================================================
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
@@ -55,10 +58,22 @@ def main():
                 if isinstance(historical_rows, list):
                     for r in historical_rows:
                         table_rows.append(r)
-                        raw_link = r.get('link', '')
-                        extracted_pr = "".join(filter(str.isdigit, raw_link.split(']'))) or "0"
-                        seen_pr_keys.add(f"{r.get('repo')}#{extracted_pr}")
-                    print(f"📥 [DATABASE SYNCED] Loaded {len(historical_rows)} PR records from previous batch runs.")
+                        
+                        current_repo = str(r.get('repo', '')).strip()
+                        raw_link = str(r.get('link', ''))
+                        
+                        # 🎯 CORRECT SPLIT PARSING ENGINE: Extract PR number out of markdown link safely
+                        if '[#' in raw_link and ']' in raw_link:
+                            # Split once at '[#', take the second half, then split at ']' and take the first half [0]
+                            extracted_pr = raw_link.split('[#')[1].split(']')[0].strip()
+                        else:
+                            extracted_pr = "".join(filter(str.isdigit, raw_link)) or "0"
+                            
+                        # Build a stable de-duplicated token map boundary
+                        stable_key = f"{current_repo}#{extracted_pr}"
+                        seen_pr_keys.add(stable_key)
+                        
+                    print(f"📥 [DATABASE SYNCED] Successfully mapped {len(historical_rows)} PR records from previous batches.")
         except Exception as db_err:
             print(f"⚠️ Failed to ingest historical row cache database: {db_err}")
 
