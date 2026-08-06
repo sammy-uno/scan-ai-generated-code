@@ -28,5 +28,20 @@
     "density": 0.0,
     "status": "🟣 Merged",
     "has_issues_bool": false
+  },
+  {
+    "repo": "MontrealAI/AGI-Alpha-Agent-v0",
+    "link": "[#3931](https://github.com/MontrealAI/AGI-Alpha-Agent-v0/pull/3931)",
+    "tool": "OpenAI Codex",
+    "lang": "python",
+    "loc": 43,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (1)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false
   }
 ]
