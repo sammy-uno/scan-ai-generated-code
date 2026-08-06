@@ -1,72 +1,65 @@
 name: "AI Scanner - Render Global Dashboard"
 
 on:
-  workflow_dispatch: # Allows you to trigger this manually at any time with a button click
-
-env:
-  CODEQL_ACTION_DISABLE_DEPRECATION_WARNINGS: "true"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   display_report:
-    name: Build Summary Panels
+    name: Build Repository Dashboard File
     runs-on: ubuntu-latest
     steps:
-      # 1. Pull down your main codebase scripts
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # 2. Pull down the persistent JSON file directly from your database storage lane
+      # 1. Fetch the persistent data snapshot from your database lane
       - name: Restore Shared Database State
         run: |
           mkdir -p all-results
           git fetch origin database:database || true
-          git checkout database -- all-results/accumulated_database.json 2>/dev/null || echo "Database file found."
+          git checkout database -- all-results/accumulated_database.json 2>/dev/null || echo "Database file located."
 
-      # 3. Process the JSON file to build the report markdown chunk files
+      # 2. Compile the chunks using your dedicated copy script
       - name: Compile Text Matrices
         env:
           MATRIX_JSON: "{}"
           SCAN_TYPE: "automated"
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
-          CHUNK_OFFSET: "0"
         run: |
           python scripts/render-dashboard-tables.py
 
-      # 4. 🚀 SAFE MULTI-STEP STREAM ENGINE: Breaks the 1MB buffer limit entirely!
-      - name: Stream Summary Header Layout
+      # 3. 🚀 THE FILE STITCHING ENGINE: Combines the text fragments into one clean, permanent file
+      - name: Assemble Global Summary Report File
         run: |
+          echo "📝 Stitching compliance chunks into a permanent file asset..."
+          
+          # Initialize/Overwrite the global markdown file
           if [ -f "report-chunks/header.md" ]; then
-            cat report-chunks/header.md >> $GITHUB_STEP_SUMMARY
+            cat report-chunks/header.md > GLOBAL_SUMMARY_REPORT.md
+            echo -e "\n" >> GLOBAL_SUMMARY_REPORT.md
+          else
+            echo "# 📊 Global Analysis Summary\n" > GLOBAL_SUMMARY_REPORT.md
+          fi
+          
+          # Alphabetically append every tabular 50-row chunk file flawlessly
+          if [ -d "report-chunks" ]; then
+            for file in $(ls report-chunks/table_part_*.md 2>/dev/null | sort -V); do
+              echo "Appending $file..."
+              cat "$file" >> GLOBAL_SUMMARY_REPORT.md
+              echo -e "\n\n" >> GLOBAL_SUMMARY_REPORT.md
+            done
           fi
 
-      # 5. Flush tables 1 to 3 in a completely clean, isolated memory buffer step
-      - name: Render Result Logs (Part 1)
+      # 4. 📤 FLUSH TO MAIN BRANCH: Saves the beautifully rendered report directly into your code view tree
+      - name: Commit Report File to Main Branch
         run: |
-          for i in {1..3}; do
-            if [ -f "report-chunks/table_part_${i}.md" ]; then
-              cat "report-chunks/table_part_${i}.md" >> $GITHUB_STEP_SUMMARY
-              echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-
-      # 6. Flush tables 4 to 6 in a fresh step (clears the 1MB API size ceiling)
-      - name: Render Result Logs (Part 2)
-        run: |
-          for i in {4..6}; do
-            if [ -f "report-chunks/table_part_${i}.md" ]; then
-              cat "report-chunks/table_part_${i}.md" >> $GITHUB_STEP_SUMMARY
-              echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-
-      # 7. Flush tables 7 to 20 to capture any trailing large datasets securely
-      - name: Render Result Logs (Overflow Safeguard)
-        run: |
-          for i in {7..20}; do
-            if [ -f "report-chunks/table_part_${i}.md" ]; then
-              cat "report-chunks/table_part_${i}.md" >> $GITHUB_STEP_SUMMARY
-              echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Pull down potential branch changes to prevent sync conflicts
+          git pull origin main --rebase || true
+          
+          git add GLOBAL_SUMMARY_REPORT.md
+          git commit -m "docs: update compiled global analysis summary report file" || true
+          git push origin main
