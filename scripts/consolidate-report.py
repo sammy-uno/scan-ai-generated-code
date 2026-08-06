@@ -46,11 +46,8 @@ def main():
         except Exception as rm_err:
             print(f"⚠️ Warning: Could not clear local cache file: {rm_err}")
             
-seen_pr_keys = set()
+    seen_pr_keys = set()
 
-    # =========================================================================
-    # Step 1: Ingest Historical Records and Build a Bulletproof Key Map
-    # =========================================================================
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
@@ -62,15 +59,12 @@ seen_pr_keys = set()
                         current_repo = str(r.get('repo', '')).strip()
                         raw_link = str(r.get('link', ''))
                         
-                        # 🎯 FIX: Extract PR number cleanly by specifying array indices
                         if '[#' in raw_link and ']' in raw_link:
-                            # Split once at '[#', grab the second item (index 1), 
-                            # then split at ']' and grab the first item (index 0)
-                            extracted_pr = raw_link.split('[#')[1].split(']')[0].strip()
+                            # 🎯 SYNTAX FIXED: Slices array indices securely step-by-step
+                            extracted_pr = raw_link.split('[#'][1].split(']')[0].strip()
                         else:
                             extracted_pr = "".join(filter(str.isdigit, raw_link)) or "0"
                             
-                        # Build a stable de-duplicated token map boundary
                         stable_key = f"{current_repo}#{extracted_pr}"
                         seen_pr_keys.add(stable_key)
                         
@@ -170,10 +164,7 @@ seen_pr_keys = set()
             
         except Exception as e: 
             print(f'Error processing success metadata {fname}: {e}')
-            
-    # =========================================================================
-    # Step 4: Re-calculate accumulated macro counters across the entire database list
-    # =========================================================================
+
     total_scanned = len(table_rows)
     vulnerable_count = sum(1 for r in table_rows if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
@@ -187,12 +178,7 @@ seen_pr_keys = set()
         json.dump(table_rows, db_w, indent=2, ensure_ascii=False)
     print(f"💾 [LEDGER FLUSH SUCCESSFUL] Persistent tracking state committed cleanly to: {accumulated_db_path}")
 
-    # =========================================================================
-    # Step 5: Paginated Markdown Generation to Bypass GitHub's 1MB Step Limit
-    # =========================================================================
     os.makedirs("report-chunks", exist_ok=True)
-    
-    # 1. Base Executive Summary Header File
     with open("report-chunks/header.md", "w", encoding="utf-8") as out:
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
         out.write(f'- **Total Accumulated PRs Parsed:** {total_scanned}\n')
@@ -200,7 +186,6 @@ seen_pr_keys = set()
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
         out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
 
-    # 2. Slice and Chunk Row Data (Max 50 items per table section to guarantee size compliance)
     sorted_rows = sorted(table_rows, key=lambda x: (x.get("repo", ""), x.get("link", "")))
     chunk_size = 50
     row_chunks = [sorted_rows[i:i + chunk_size] for i in range(0, len(sorted_rows), chunk_size)]
@@ -224,5 +209,5 @@ seen_pr_keys = set()
                     
     print(f"🧩 Successfully split report into {len(row_chunks) + 1} independent compliance chunks.")
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     main()
