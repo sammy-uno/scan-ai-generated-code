@@ -1,0 +1,17 @@
+[
+  {
+    "repo": "Skyvern-AI/skyvern",
+    "link": "[#3063](https://github.com/Skyvern-AI/skyvern/pull/3063)",
+    "tool": "OpenAI Codex",
+    "lang": "python",
+    "loc": 111,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (4)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false
+  }
+]
