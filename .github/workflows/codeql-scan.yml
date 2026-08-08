@@ -127,7 +127,7 @@ jobs:
             *.success
             *.failed
             *.json
-          retention-days: 1
+          retention-days: 7
 
   report:
     name: Consolidate Final Report
