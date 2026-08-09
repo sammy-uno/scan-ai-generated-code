@@ -48,7 +48,7 @@ def main():
     
     # LOCAL ENGINE compilation fallback step
     compiled_fresh_list = []
-    downloaded_slices = glob.glob("all-results/*--*.json")
+    downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
     
     for filepath in downloaded_slices:
         if "accumulated_database" in filepath: 
