@@ -1,10 +1,10 @@
 name: "📊 Universal HTML Report Deployer"
 
 on:
-  workflow_dispatch:  # 🎯 Purely human-driven. Only runs when YOU click the button manually.
+  workflow_dispatch:  # Purely human-driven manual button trigger
 
 permissions:
-  contents: read      # 🎯 Strict Read-Only. Completely bars any automated bots from writing to your repo files.
+  contents: write
   actions: read
 
 jobs:
@@ -21,29 +21,46 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Download Scan Artifact Slices
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          path: all-results
-          merge-multiple: true
-          github-token: ${{ secrets.GLOBAL_SCAN_PAT }}
+      # 🎯 TARGETED SINGLE-RUN STREAMING: Automatically extracts the absolute latest 
+      # run ID of your scanner matrix and isolates its specific artifact slices cleanly!
+      - name: Download Scan Artifact Slices from Latest Run
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          mkdir -p all-results
+          
+          echo "🔍 Finding the latest Run ID for 'General AI Multi-Language Scanner'..."
+          # Query GitHub API for the most recent completed or running execution tracking ID
+          LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/codeql-scan.yml/runs?per_page=1" --jq '.workflow_runs[0].id')
+          
+          if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
+            echo "❌ ERROR: Could not locate any historical runs for the specified scanning pipeline."
+            exit 1
+          fi
+          echo "🎯 Isolated Latest Scanner Run ID: $LATEST_RUN_ID"
+          
+          echo "📥 Extracting individual artifact chunks for this run..."
+          # Fetch only the individual artifact slice IDs that belong strictly to that specific Run ID
+          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/runs/$LATEST_RUN_ID/artifacts?per_page=100" --jq '.artifacts[] | .id')
+          
+          for ART_ID in $ART_IDS; do
+            echo "⚡ Downloading artifact chunk ID: $ART_ID"
+            gh api "repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > chunk.zip
+            unzip -o chunk.zip -d all-results/ 2>/dev/null || true
+            rm -f chunk.zip
+          done
 
-      # 🎯 THE DIAGNOSTIC STEP: Prints out exactly what folders and files exist on the cloud runner!
       - name: 🔍 Debug Path Inspection
         run: |
-          echo "=== ROOT DIRECTORY CONTENT ==="
-          ls -R .
-          echo "=============================="
+          echo "=== VERIFYING SINGLE RUN DOWNLOADS ==="
+          ls -R all-results
+          echo "======================================"
 
-      # 🎯 COMPUTE STEP: Compiles the dashboard report inside a dedicated local docs directory
       - name: Compile HTML Master Dashboard
         run: |
           mkdir -p docs
           python scripts/generate_interactive_dashboard.py
 
-      # 🎯 MANUAL DOWNLOAD ONLY: Archives the report safely in the cloud context. 
-      # No automated bots, no automatic commits, and zero changes to your code branches!
       - name: 📦 Archive Interactive HTML Report Package
         uses: actions/upload-artifact@v4
         with:
