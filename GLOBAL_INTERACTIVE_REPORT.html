@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Scanner - Global Analysis Summary</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; margin: 0; padding: 40px; color: #24292f; }
+        h1 { color: #1f2328; border-bottom: 1px solid #d0d7de; padding-bottom: 10px; margin-bottom: 20px; }
+        h3 { margin-top: 30px; margin-bottom: 15px; color: #1f2328; }
+        .metrics-card { background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .metrics-card ul { list-style-type: none; padding: 0; margin: 0; }
+        .metrics-card li { padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 15px; }
+        .table-container { background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th { background-color: #f6f8fa; color: #57606a; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #d0d7de; }
+        td { padding: 12px 16px; border-bottom: 1px solid #d0d7de; vertical-align: middle; }
+        tr.main-row:hover { background-color: #f3f4f6 !important; }
+        .vulnerable-row { background-color: #ffebe9 !important; color: #82071e; }
+        .badge { display: inline-block; padding: 2px 8px; font-size: 12px; font-weight: 500; border-radius: 2em; text-decoration: none; }
+        .badge-vuln { background-color: #cf222e; color: #ffffff; }
+        .badge-clean { background-color: #2da44e; color: #ffffff; }
+        a { color: #0969da; text-decoration: none; font-weight: 600; }
+        code { background-color: rgba(175,184,193,0.2); padding: 0.2em 0.4em; border-radius: 6px; font-family: monospace; font-size: 85%; }
+        .details-row { background-color: #fafafa; display: none; }
+        .details-container { padding: 15px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e; margin: 5px 0; }
+        .details-table { width: 100%; margin: 5px 0; font-size: 13px; border: 1px solid #e1e4e8; border-collapse: collapse; }
+        .details-table th { background-color: #eaecef; padding: 6px 12px; border: 1px solid #e1e4e8; }
+        .details-table td { padding: 8px 12px; background-color: #ffffff; border: 1px solid #e1e4e8; }
+        .toggle-btn { cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }
+    </style>
+    <script>
+        function toggleDetails(rowId, btnElement) {
+            var element = document.getElementById(rowId);
+            if (element.style.display === "table-row") {
+                element.style.display = "none";
+                if(btnElement) btnElement.innerHTML = "▶ View Details";
+            } else {
+                element.style.display = "table-row";
+                if(btnElement) btnElement.innerHTML = "▼ View Details";
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>📊 Global Analysis Summary</h1>
+    <div class="metrics-card">
+        <h3>📈 Executive Summary</h3>
+        <ul>
+            <li><strong>Total Accumulated PRs Parsed:</strong> 0</li>
+            <li><strong>Total Accumulated LOC Scanned:</strong> 0 lines</li>
+            <li><strong>Security Review Bounds:</strong> <span class="badge badge-vuln">0 ⚠️ Vulnerable</span> | <span class="badge badge-clean">0 ✅ Clean</span></li>
+            <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: 0 | 🟣 Merged: 0 | 🔴 Closed: 0</li>
+        </ul>
+    </div>
+    <h3>🔍 Detailed Scan Records Ledger</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Security Alert Status</th>
+                    <th>Repository Target</th>
+                    <th>PR Reference Link</th>
+                    <th>Status</th>
+                    <th>AI Tool Engine</th>
+                    <th>Language</th>
+                    <th>LOC</th>
+                    <th>CWE Discovered</th>
+                    <th>🔴 H</th>
+                    <th>🟡 M</th>
+                    <th>🔵 L</th>
+                    <th>Total Issues (Files)</th>
+                </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
