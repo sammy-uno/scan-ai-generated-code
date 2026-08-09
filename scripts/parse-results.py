@@ -222,7 +222,7 @@ def main():
     print(f"\n📊 [SUMMARY CHECK] Scanned {total_raw_alerts_processed} raw alerts -> Isolated {len(consolidated_results)} pure PR introduced vulnerabilities.")
     print("====================================================\n")
 
-    # Serialize results back to workspace results file
+# Serialize results back to workspace results file
     for run in runs:
         if isinstance(run, dict) and 'results' in run:
             run['results'] = consolidated_results
@@ -240,6 +240,10 @@ def main():
         'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
+
+    # 🚀 INJECTED STORAGE ARRAY: Safely builds your line-filtered deep-dive details 
+    # natively at the source without altering any global calculation states.
+    findings_details_list = []
 
     if len(consolidated_results) == 0:
         h, m, l = 0, 0, 0
@@ -281,6 +285,13 @@ def main():
 
             summary_md += f"| {icon_display} | **{cwe_display}** | `{rule_id}` | `{path}:{line}` | {msg} |\n"
 
+            # 🚀 INJECTED ATTACHMENT ROUTINE: Populates specific rule arrays cleanly
+            findings_details_list.append({
+                "vulnerability": f"{rule_id} ({cwe_display})",
+                "file_line": f"{path} #L{line}",
+                "description": msg if isinstance(msg, str) else " ".join(msg)
+            })
+
     output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', '.')
     if not os.path.exists(output_dir):
         output_dir = "."
@@ -291,7 +302,9 @@ def main():
         "low": l,
         "total_issues": len(consolidated_results),
         "files_changed": len(pr_changed_lines_map) if pr_changed_lines_map else 0,
-        "cwes_discovered": sorted(list(all_discovered_cwes)) if (consolidated_results and all_discovered_cwes) else []
+        "cwes_discovered": sorted(list(all_discovered_cwes)) if (consolidated_results and all_discovered_cwes) else [],
+        # 🚀 INJECTED: Attaches the clean line-filtered findings map to the payload JSON schema
+        "findings_details": findings_details_list
     }
     
     with open(os.path.join(output_dir, "summary.json"), "w", encoding="utf-8") as sm_f:
