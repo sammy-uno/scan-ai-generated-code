@@ -37,41 +37,29 @@ def main():
         chunk_offset = 0
         
     table_rows = []
-    accumulated_db_path = "all-results/accumulated_database.json"
     
-    if chunk_offset == 0 and os.path.exists(accumulated_db_path):
-        try:
-            os.remove(accumulated_db_path)
-            print("🧼 [LOCAL RESET LOCK ACTIVATED] Offset is 0. Wiped historical cache database files from runner disk.")
-        except Exception as rm_err:
-            print(f"⚠️ Warning: Could not clear local cache file: {rm_err}")
-            
-    seen_pr_keys = set()
-
-    if os.path.exists(accumulated_db_path):
-        try:
-            with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
-                historical_rows = json.load(db_f)
-                if isinstance(historical_rows, list):
-                    for r in historical_rows:
-                        table_rows.append(r)
-                        
-                        current_repo = str(r.get('repo', '')).strip()
-                        raw_link = str(r.get('link', ''))
-                        
-                        # 🎯 BULLETPROOF DEDUPLICATION DECODER: Pulls ONLY raw numbers from the link element safely
-                        extracted_pr = "".join(c for c in raw_link.split(']')[0] if c.isdigit()) or "0"
-                            
-                        stable_key = f"{current_repo}#{extracted_pr}"
-                        seen_pr_keys.add(stable_key)
-                        
-                    print(f"📥 [DATABASE SYNCED] Successfully mapped {len(historical_rows)} PR records from previous batches.")
-        except Exception as db_err:
-            print(f"⚠️ Failed to ingest historical row cache database: {db_err}")
-
+    # 🔍 STEP 1: Discover all success markers up front to evaluate the target scan track type
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
+    # 🎯 ARCHITECTURE SPLIT: Separate databases to prevent data collisions or wiping human history trees
+    if is_human_run:
+        accumulated_db_path = "all-results/human_accumulated_database.json"
+        print("👥 Human auditing track identified. Targeting human_accumulated_database.json.")
+    else:
+        accumulated_db_path = "all-results/ai_accumulated_database.json"
+        print("🤖 Automated AI track identified. Targeting ai_accumulated_database.json.")
+    
+    # 🧼 CLEAN OVERWRITE ENFORCEMENT: Stripped all read-and-append loops. 
+    # Historical lists are discarded; only PR records from the current matrix run survive.
+    if os.path.exists(accumulated_db_path):
+        try:
+            os.remove(accumulated_db_path)
+            print(f"🧼 [LOCAL FRESH START] Wiped existing {accumulated_db_path} to isolate fresh active scans.")
+        except Exception as rm_err:
+            print(f"⚠️ Warning: Could not clear tracking file: {rm_err}")
+            
+    seen_pr_keys = set()
     success_markers = []
     if os.path.exists('all-results'):
         success_markers.extend(glob.glob('all-results/*.success'))
@@ -79,6 +67,7 @@ def main():
         success_markers = sorted(list(set(success_markers)))
 
     print(f"📦 [FOUND ASSETS] Active session markers discovered on disk: {len(success_markers)}")
+
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
@@ -177,8 +166,8 @@ def main():
     os.makedirs("report-chunks", exist_ok=True)
     with open("report-chunks/header.md", "w", encoding="utf-8") as out:
         out.write('# 📊 Global Analysis Summary\n\n### Executive Summary\n')
-        out.write(f'- **Total Accumulated PRs Parsed:** {total_scanned}\n')
-        out.write(f'- **Total Accumulated LOC Scanned:** {total_loc_scanned} lines\n')
+        out.write(f'- **Total PRs Parsed in This Run:** {total_scanned}\n')
+        out.write(f'- **Total LOC Scanned in This Run:** {total_loc_scanned} lines\n')
         out.write(f'- **PRs with Issues:** {vulnerable_count} ⚠️ | **Clean PRs:** {total_scanned - vulnerable_count} ✅\n')
         out.write(f'- **Lifecycle Breakdown:** 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}\n\n')
 
@@ -202,7 +191,6 @@ def main():
                     out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
                 else:
                     out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("tool")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
-                    
     print(f"🧩 Successfully split report into {len(row_chunks) + 1} independent compliance chunks.")
 
 if __name__ == "__main__":
