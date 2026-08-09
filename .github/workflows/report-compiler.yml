@@ -13,38 +13,39 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository Data Tree
         uses: actions/checkout@v4
+        with:
+          # 🎯 THE CLOUD FIX: Explicitly points the checkout engine to your data branch instead of main!
+          ref: database
 
       - name: Setup Python environment
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 🎯 TARGETED SINGLE-RUN STREAMING: Automatically extracts the absolute latest 
-      # run ID of your scanner matrix and isolates its specific artifact slices cleanly!
+      # 🎯 TARGETED RUN STREAMING: Grabs any intermediate parallel slice files from your last execution
       - name: Download Scan Artifact Slices from Latest Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           mkdir -p all-results
           
-          echo "🔍 Finding the latest Run ID for 'General AI Multi-Language Scanner'..."
-          # Query GitHub API for the most recent completed or running execution tracking ID
-          LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/codeql-scan.yml/runs?per_page=1" --jq '.workflow_runs[0].id')
+          echo "🔍 Searching for the most recent scanning workflow run..."
+          LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" \
+            --jq '.workflow_runs[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
           
           if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            echo "❌ ERROR: Could not locate any historical runs for the specified scanning pipeline."
-            exit 1
+            LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=1" --jq '.workflow_runs.id')
           fi
-          echo "🎯 Isolated Latest Scanner Run ID: $LATEST_RUN_ID"
           
-          echo "📥 Extracting individual artifact chunks for this run..."
-          # Fetch only the individual artifact slice IDs that belong strictly to that specific Run ID
+          echo "🎯 Target Master Run ID Isolated: $LATEST_RUN_ID"
+          
+          echo "📥 Extracting artifact packages..."
           ART_IDS=$(gh api "repos/${{ github.repository }}/actions/runs/$LATEST_RUN_ID/artifacts?per_page=100" --jq '.artifacts[] | .id')
           
           for ART_ID in $ART_IDS; do
-            echo "⚡ Downloading artifact chunk ID: $ART_ID"
+            echo "⚡ Extracting artifact package chunk ID: $ART_ID"
             gh api "repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > chunk.zip
             unzip -o chunk.zip -d all-results/ 2>/dev/null || true
             rm -f chunk.zip
@@ -52,7 +53,7 @@ jobs:
 
       - name: 🔍 Debug Path Inspection
         run: |
-          echo "=== VERIFYING SINGLE RUN DOWNLOADS ==="
+          echo "=== VERIFYING INTEGRATED DIRECTORY ==="
           ls -R all-results
           echo "======================================"
 
