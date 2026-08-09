@@ -10,70 +10,6 @@ from datetime import datetime, timedelta, timezone
 # Global list holder referenced across script blocks to pass detail matrix payloads
 data = []
 
-def sync_all_workflow_artifacts():
-    """
-    📥 REFRESH-ONLY ARTIFACT ENGINE: Connects to GitHub Actions API, filters out 
-    all historical entries over 24 hours old, and streams your fresh matrix runs.
-    """
-    print("🔄 Connecting to GitHub Actions API to stream fresh workflow artifacts...")
-    os.makedirs("all-results", exist_ok=True)
-    
-    all_artifacts = []
-    page = 1
-    per_page = 100
-    time_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
-    
-    while True:
-        cmd_list = f'gh api "repos/sammy-uno/scan-ai-generated-code/actions/artifacts?per_page={per_page}&page={page}" --jq ".artifacts[] | {{name: .name, id: .id, created_at: .created_at}}"'
-        res_list = subprocess.run(cmd_list, capture_output=True, text=True, shell=True)
-        if res_list.returncode != 0: 
-            break
-            
-        output = res_list.stdout.strip()
-        if not output: 
-            break
-            
-        for line in output.split('\n'):
-            if line.strip():
-                try:
-                    art_obj = json.loads(line.strip())
-                    art_time = datetime.strptime(art_obj["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-                    if art_time >= time_threshold:
-                        all_artifacts.append(art_obj)
-                except Exception: 
-                    pass
-        if len(output.split('\n')) < per_page: 
-            break
-        page += 1
-
-    print(f"📦 Located {len(all_artifacts)} cloud workflow artifacts built within the 24-hour execution window.")
-    
-    for artifact in all_artifacts:
-        art_name = artifact["name"]
-        art_id = artifact["id"]
-        if art_name.startswith("sarif-") or "--" in art_name:
-            clean_name = art_name.replace("sarif-", "")
-            local_zip_path = f"all-results/{clean_name}.zip"
-            if not glob.glob(f"all-results/{clean_name}*.json"):
-                cmd_dl = f'gh api "repos/sammy-uno/scan-ai-generated-code/actions/artifacts/{art_id}/zip"'
-                res_dl = subprocess.run(cmd_dl, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-                if res_dl.returncode == 0:
-                    with open(local_zip_path, "wb") as f_zip:
-                        f_zip.write(res_dl.stdout)
-                    try:
-                        with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
-                            for file_info in zip_ref.infolist():
-                                target_name = file_info.filename.replace("sarif-", "")
-                                with open(f"all-results/{target_name}", "wb") as f_out:
-                                    f_out.write(zip_ref.read(file_info.filename))
-                    except Exception: 
-                        pass
-                    finally:
-                        if os.path.exists(local_zip_path): 
-                            os.remove(local_zip_path)
-                        
-    print("✅ All active individual repository actions artifact logs synchronized and extracted successfully!")
-
 def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
     """
     🎯 LINE-FILTERED COUPLING LAYER: Prioritizes data matrices pre-bound inside global memory.
@@ -104,7 +40,7 @@ def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
 
 def main():
     global data
-    output_path = "GLOBAL_INTERACTIVE_REPORT.html"
+    output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
     json_path = "all-results/ai_accumulated_database.json"
     os.makedirs("all-results", exist_ok=True)
     
