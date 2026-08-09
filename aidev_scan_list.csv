@@ -3,4 +3,7 @@ Skyvern-AI/skyvern,3063,Add skyvern_project table,python,OpenAI_Codex,13976
 Agoric/agoric-sdk,11622,feat: Make agd installable via npm with prebuilt binaries,javascript,Copilot,353
 prebid/Prebid.js,13698,Core: use uuid for bid ids,javascript,OpenAI_Codex,1467
 BlueSkyXN/WorkerJS_CloudFlare_ImageBed,4,Update README.md with comprehensive and accurate project documentation,javascript,Copilot,121
+Pimzino/claude-code-spec-workflow,27,Fix docs and tests for updated command set,javascript,OpenAI_Codex,869
+reown-com/appkit,4741,feat: add native SOL payment asset for Solana network,javascript,Devin,5202
+mendableai/firecrawl,1894,fix: convert timeout from milliseconds to seconds in Python SDK,javascript,Devin,43970
 
