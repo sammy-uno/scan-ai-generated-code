@@ -128,7 +128,7 @@ jobs:
             *.failed
             *.json
           retention-days: 7
-
+          
   report:
     name: Consolidate Final Report
     needs: [discover, analyze]
@@ -161,3 +161,36 @@ jobs:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
         run: |
           python scripts/consolidate-report.py
+
+      # 🚀 INJECTED AUTOMATION FIX: This block automatically commits and pushes your newly built
+      # clean AI database and compliance markdown chunks directly back to your GitHub main branch.
+      - name: 🚀 Commit Fresh AI Ledger Back to Repository
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          
+          # Pull latest upstream variations to eliminate push collision traps
+          git pull origin main --rebase || true
+          
+          # Ensure target directory structure handles files safely
+          mkdir -p all-results
+          
+          # Stage the clean database file and generated report markdown segments
+          git add all-results/ai_accumulated_database.json || true
+          git add report-chunks/ || true
+          
+          # Commit and push changes safely back to the tracking repo layout
+          git commit -m "📈 Auto-update fresh AI scan metrics ledger [Clean PR Session Reset]" || echo "No changes detected to commit"
+          git push origin main
+
+      # 📦 ARCHIVE ACCELERATOR: Uploads report chunks as standard artifacts for quick review windows
+      - name: 📦 Archive Generated Report Markdown Chunks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-markdown-report-chunks
+          path: report-chunks/
+          retention-days: 14
+
