@@ -29,6 +29,13 @@ jobs:
           merge-multiple: true
           github-token: ${{ secrets.GLOBAL_SCAN_PAT }}
 
+      # 🎯 THE DIAGNOSTIC STEP: Prints out exactly what folders and files exist on the cloud runner!
+      - name: 🔍 Debug Path Inspection
+        run: |
+          echo "=== ROOT DIRECTORY CONTENT ==="
+          ls -R .
+          echo "=============================="
+
       # 🎯 COMPUTE STEP: Compiles the dashboard report inside a dedicated local docs directory
       - name: Compile HTML Master Dashboard
         run: |
