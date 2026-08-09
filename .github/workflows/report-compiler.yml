@@ -1,0 +1,59 @@
+name: "📊 Universal HTML Report Deployer"
+
+on:
+  # Allows you to trigger it manually from the Actions tab anytime
+  workflow_dispatch:
+  # Allows your main chained scanner to trigger this automatically when done
+  workflow_run:
+    workflows: ["AI Multi-Language Chained Scanner"] # Put the EXACT name of your main scanner here
+    types:
+      - completed
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  deploy-report:
+    name: Compile and Deploy Master Dashboard
+    runs-on: ubuntu-latest
+    # Only execute if the scanner finished successfully or completed its batch loop
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 📥 Downloads ALL fresh artifacts uploaded by the parallel batches in the last 24h
+      - name: Download Scan Artifact Slices
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          path: all-results
+          merge-multiple: true
+          github-token: ${{ secrets.GLOBAL_SCAN_PAT }}
+
+      # 🛠️ Natively runs your python script to compile the 256 record dashboard
+      - name: Compile HTML Master Dashboard
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          python scripts/generate_interactive_dashboard_2.py
+
+      # 🚀 Deploys the completed report directly to GitHub Pages for instant viewing
+      - name: 🌐 Push Live Dashboard to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GLOBAL_SCAN_PAT }}
+          publish_dir: .
+          publish_files: "GLOBAL_INTERACTIVE_REPORT.html"
+          publish_branch: main
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@://github.com'
