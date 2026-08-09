@@ -18,7 +18,7 @@ def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
     clean_repo = str(repo_owner_path).strip('/')
     clean_pr = str(pr_number).strip()
     
-    # 🕵️ Locates active dictionary context rows to dump detailed file lines instantly
+    # Locates active dictionary context rows to dump detailed file lines instantly
     for row in data:
         if str(row.get('repo')).strip('/') == clean_repo and str(row.get('pr_num')).strip() == clean_pr:
             if 'findings_details' in row and row['findings_details']:
@@ -30,7 +30,7 @@ def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
     
     if matched_jsons:
         try:
-            with open(matched_jsons[0], "r", encoding="utf-8") as f_meta:
+            with open(matched_jsons, "r", encoding="utf-8") as f_meta:
                 meta_details = json.load(f_meta)
                 if 'findings_details' in meta_details and meta_details['findings_details']:
                     return meta_details['findings_details']
@@ -43,73 +43,74 @@ def main():
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
     json_path = "all-results/ai_accumulated_database.json"
     os.makedirs("all-results", exist_ok=True)
+    os.makedirs("docs", exist_ok=True)
     
-    #sync_all_workflow_artifacts()
-    
-    # LOCAL ENGINE compilation fallback step
     compiled_fresh_list = []
-    downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
     
-    for filepath in downloaded_slices:
-        if "accumulated_database" in filepath: 
-            continue
+    # 🎯 STEP 1: If the unified database file exists, load records directly from it first!
+    if os.path.exists(json_path):
+        print(f"📖 Found unified database at {json_path}. Ingesting tracking matrix rows...")
         try:
-            with open(filepath, "r", encoding="utf-8") as f_slice:
-                slice_data = json.load(f_slice)
-                filename = os.path.basename(filepath).replace(".json", "")
-                parts = filename.split("--")
-                if len(parts) < 5: 
-                    continue
-                
-                repo_clean = parts[0].replace("_SLASH_", "/")
-                pr_clean = parts[1]
-                lang_clean = parts[2]
-                tool_clean = parts[3].replace("_", " ")
-                raw_size  = parts[4]
-                loc_clean = int(raw_size) if raw_size.isdigit() else 100
-                
-                h = int(slice_data.get('high', 0))
-                m = int(slice_data.get('medium', 0))
-                l = int(slice_data.get('low', 0))
-                tot = int(slice_data.get('total_issues', h + m + l))
-                cwes = slice_data.get('cwes_discovered', "None")
-                if isinstance(cwes, list): 
-                    cwes = ", ".join(cwes)
-                files_impacted = int(slice_data.get('files_changed', 1))
-                
-                # 🎯 FIXED: Pulls line-filtered flaw objects right out of unzipped artifact slices
-                embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
+            with open(json_path, "r", encoding="utf-8") as f_db:
+                db_data = json.load(f_db)
+                if isinstance(db_data, list):
+                    compiled_fresh_list = db_data
+                elif isinstance(db_data, dict) and "link" in db_data:
+                    compiled_fresh_list = db_data.get("rows", [db_data])
+        except Exception as e:
+            print(f"⚠️ Unified database ingestion notice: {e}")
 
-                # Direct live PR lifecycle checking loop
-                live_status = "🟣 Merged"
-                try:
-                    check_cmd = f"gh pr view {pr_clean} --repo {repo_clean} --json state"
-                    state_res = subprocess.run(check_cmd, capture_output=True, text=True, shell=True, timeout=10)
-                    if state_res.returncode == 0:
-                        state_data = json.loads(state_res.stdout)
-                        raw_state = str(state_data.get('state', 'CLOSED')).upper().strip()
-                        if raw_state == "MERGED": 
-                            live_status = "🟣 Merged"
-                        elif raw_state == "OPEN": 
-                            live_status = "🟢 Open"
-                        else: 
-                            live_status = "🔴 Closed"
-                except Exception: 
-                    pass
+    # 🎯 STEP 2: Fallback to scanning individual file slices if the array list is still empty
+    if not compiled_fresh_list:
+        downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
+        for filepath in downloaded_slices:
+            if "accumulated_database" in filepath: 
+                continue
+            try:
+                with open(filepath, "r", encoding="utf-8") as f_slice:
+                    slice_data = json.load(f_slice)
+                    filename = os.path.basename(filepath).replace(".json", "")
+                    parts = filename.split("--")
+                    if len(parts) < 5: 
+                        continue
+                    
+                    repo_clean = parts.replace("_SLASH_", "/")
+                    pr_clean = parts
+                    lang_clean = parts
+                    tool_clean = parts.replace("_", " ")
+                    raw_size  = parts
+                    loc_clean = int(raw_size) if raw_size.isdigit() else 100
+                    
+                    h = int(slice_data.get('high', 0))
+                    m = int(slice_data.get('medium', 0))
+                    l = int(slice_data.get('low', 0))
+                    tot = int(slice_data.get('total_issues', h + m + l))
+                    cwes = slice_data.get('cwes_discovered', "None")
+                    if isinstance(cwes, list): 
+                        cwes = ", ".join(cwes)
+                    files_impacted = int(slice_data.get('files_changed', 1))
+                    
+                    embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
 
-                compiled_fresh_list.append({
-                    "repo": repo_clean,
-                    "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
-                    "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
-                    "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
-                    "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
-                    "status": live_status, "has_issues_bool": tot > 0, "pr_num": pr_clean,
-                    # 🎯 FIXED: Injects the extracted details into memory to populate your table!
-                    "findings_details": embedded_details
-                })
-        except Exception: 
-            pass
-            
+                    compiled_fresh_list.append({
+                        "repo": repo_clean,
+                        "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
+                        "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
+                        "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
+                        "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
+                        "status": "🟣 Merged", "has_issues_bool": tot > 0, "pr_num": pr_clean,
+                        "findings_details": embedded_details
+                    })
+            except Exception:
+                pass
+
+    # Ensure all row metrics have valid string fallback keys for pull request links
+    for r in compiled_fresh_list:
+        if 'pr_num' not in r or str(r['pr_num']) == '0':
+            link_str = r.get('link', '')
+            digits = "".join(c for c in link_str.split(']') if c.isdigit())
+            r['pr_num'] = digits if digits else "0"
+
     data = compiled_fresh_list
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -149,8 +150,9 @@ def main():
         code {{ background-color: rgba(175,184,193,0.2); padding: 0.2em 0.4em; border-radius: 6px; font-family: monospace; font-size: 85%; }}
         .details-row {{ background-color: #fafafa; display: none; }}
         .details-container {{ padding: 15px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e; margin: 5px 0; }}
+        .details-container h4 {{ margin-top: 0; color: #cf222e; }}
         .details-table {{ width: 100%; margin: 5px 0; font-size: 13px; border: 1px solid #e1e4e8; border-collapse: collapse; }}
-        .details-table th {{ background-color: #eaecef; padding: 6px 12px; border: 1px solid #e1e4e8; }}
+        .details-table th {{ background-color: #eaecef; padding: 6px 12px; border: 1px solid #e1e4e8; color: #24292f; }}
         .details-table td {{ padding: 8px 12px; background-color: #ffffff; border: 1px solid #e1e4e8; }}
         .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }}
     </style>
@@ -206,8 +208,8 @@ def main():
         clean_repo = str(r.get('repo', 'None')).strip('/')
         clean_pr = str(r.get('pr_num', '0')).strip()
         
-        # 🎯 LINK REPAIR COMPLETE: Explicit hardcoded trailing forward-slash added after .com natively!
-        html_link = '<a href="https://github.com/' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
+        # 🎯 EXPLICIT FORWARD SLASH RENDER: Locks down your explicit syntax choice securely
+        html_link = '<a href="https://github.com' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
 
         status_raw = str(r.get('status', '🟣 Merged')).strip().lower()
         if "open" in status_raw or "🟢" in status_raw: 
