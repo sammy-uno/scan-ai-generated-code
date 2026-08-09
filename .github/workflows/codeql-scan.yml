@@ -1,0 +1,196 @@
+name: "General AI Multi-Language Scanner"
+
+on:
+  workflow_dispatch: 
+
+env:
+  CODEQL_ACTION_EXPERIMENTAL_FEATURES: "false"
+  CODEQL_ACTION_DISABLE_DEPRECATION_WARNINGS: "true"
+  CODEQL_ACTION_IS_PERFORMANCE_TESTING: "true"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  discover:
+    name: Find AI PRs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix_data }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Discover Scan Matrix
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          pip install pandas
+          python scripts/ai-scanner.py
+
+  analyze:
+    name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
+    needs: discover
+    # Safe validation to prevent matrix syntax crashes on empty or null discovery results
+    if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && fromJson(needs.discover.outputs.matrix).include[0] != null }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CODEQL_RAM: 12000
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare Workspace and Checkout PR
+        id: pr_checkout
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          GIT_LFS_SKIP_SMUDGE: 1
+        run: |
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+          mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/
+          rm -rf ./*
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          mkdir -p scripts && cp /tmp/scripts/* scripts/
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          db-location: ${{ runner.temp }}/codeql_db
+          trap-caching: false
+          queries: code-scanning
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        continue-on-error: true
+        with:
+          category: "/pr:${{ matrix.category_name }}"
+          output: sarif-results
+          upload: false
+          upload-database: false
+          wait-for-processing: false 
+          threads: 2
+
+      - name: Create Summary
+        if: always()
+        run: |
+          SAFE_REPO=$(echo "${{ matrix.repo_name }}" | sed 's/\//_SLASH_/g')
+          SAFE_AGENT=$(echo "${{ matrix.agent_name }}" | sed 's/ /_/g')
+          
+          # Query live PR line modifications from workspace checkout
+          LIVE_LOC=$(gh pr view ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --json additions,deletions --jq '.additions + .deletions' 2>/dev/null || echo "1")
+          if [ -z "$LIVE_LOC" ] || [ "$LIVE_LOC" = "0" ]; then LIVE_LOC="1"; fi
+          
+          # Pass delta configurations to python runner context
+          export PR_LOC=$LIVE_LOC
+          export PR_REPO="${{ matrix.repo_name }}"
+          export PR_NUM="${{ matrix.pr_num }}"
+
+          if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
+            cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.sarif" 2>/dev/null || true
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.success"
+            
+            # Executes the line-filtered delta calculation engine
+            python scripts/parse-results.py || true
+            
+            # 🚀 THE FIX: Checks your true sarif-results folder destination for the output!
+            if [ -f "sarif-results/summary.json" ]; then
+              cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" 2>/dev/null || true
+            elif [ -f "./summary.json" ]; then
+              cp ./summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json" 2>/dev/null || true
+            fi
+          else
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+
+      - name: Save Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-${{ matrix.category_name }}
+          path: |
+            *.sarif
+            *.success
+            *.failed
+            *.json
+          retention-days: 7
+          
+  report:
+    name: Consolidate Final Report
+    needs: [discover, analyze]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      
+      - name: Download Available Artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: sarif-*
+          path: all-results
+          merge-multiple: true
+
+      # 🚀 CRITICAL SINK FIX: Clear out any pre-existing nested background 'results.sarif' caches 
+      # This guarantees that only your cleanly formatted custom filename strings are aggregated!
+      - name: Purge Historical Cache Clones
+        run: |
+          find all-results/ -name "results.sarif" -delete || true
+          echo "📁 Active Clean Artifacts Queue Check:"
+          ls -R all-results/
+
+      - name: Generate Consolidated Summary Table
+        env:
+          MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
+          SCAN_TYPE: "automated"
+          # 🚀 INJECTED: Grants CLI token context to the consolidation task node
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
+        run: |
+          python scripts/consolidate-report.py
+
+      # 🚀 INJECTED AUTOMATION FIX: This block automatically commits and pushes your newly built
+      # clean AI database and compliance markdown chunks directly back to your GitHub main branch.
+      - name: 🚀 Commit Fresh AI Ledger Back to Repository
+        env:
+          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          
+          # Pull latest upstream variations to eliminate push collision traps
+          git pull origin main --rebase || true
+          
+          # Ensure target directory structure handles files safely
+          mkdir -p all-results
+          
+          # Stage the clean database file and generated report markdown segments
+          git add all-results/ai_accumulated_database.json || true
+          git add report-chunks/ || true
+          
+          # Commit and push changes safely back to the tracking repo layout
+          git commit -m "📈 Auto-update fresh AI scan metrics ledger [Clean PR Session Reset]" || echo "No changes detected to commit"
+          git push origin main
+
+      # 📦 ARCHIVE ACCELERATOR: Uploads report chunks as standard artifacts for quick review windows
+      - name: 📦 Archive Generated Report Markdown Chunks
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-markdown-report-chunks
+          path: report-chunks/
+          retention-days: 14
+
