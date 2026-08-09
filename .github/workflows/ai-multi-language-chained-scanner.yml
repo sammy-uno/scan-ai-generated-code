@@ -32,6 +32,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.ref_name }}
+          clean: true
       
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -69,6 +70,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v5
+        with:
+          clean: true
       
       - name: Prepare Workspace and Checkout PR
         id: pr_checkout
@@ -76,11 +79,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           GIT_LFS_SKIP_SMUDGE: 1
         run: |
+          # 🎯 WORKSPACE ISOLATION FIX: Wipes untracked local anomalies before PR tracking shifts
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git reset --hard HEAD || true
+          git clean -xdf || true
+          
           git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
           git config --global filter.lfs.process "git-lfs filter-process --skip"
           mkdir -p /tmp/scripts && cp scripts/* /tmp/scripts/ 2>/dev/null || true
           rm -rf ./*
-          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }}
+          
+          gh pr checkout ${{ matrix.pr_num }} --repo ${{ matrix.repo_name }} --force
           mkdir -p scripts && cp /tmp/scripts/* scripts/ 2>/dev/null || true
           
       - name: Initialize CodeQL
@@ -102,7 +111,6 @@ jobs:
           upload-database: false
           wait-for-processing: false 
           threads: 2
-
       - name: Create Summary
         if: always()
         run: |
@@ -153,9 +161,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          clean: true
 
       - name: Restore Shared Database State
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git reset --hard HEAD || true
+          git clean -xdf || true
+          
           mkdir -p all-results
           git fetch origin database:database || true
           git checkout database -- all-results/accumulated_database.json 2>/dev/null || echo "First run initialization: starting a fresh database file."
@@ -175,15 +189,14 @@ jobs:
         run: |
           python scripts/consolidate-report.py
 
-      # 🎯 STEP SHIFTED HERE: Stream your markdown logs while they are still safely on disk!
       - name: Stream Consolidated Reports Safely
+        if: always()
         run: |
           echo "📝 Appending report header details..."
           if [ -f "report-chunks/header.md" ]; then
             cat report-chunks/header.md >> $GITHUB_STEP_SUMMARY
           fi
           
-          # Sort and loop through the part fragments numerically
           if [ -d "report-chunks" ]; then
             for file in $(ls report-chunks/table_part_*.md 2>/dev/null | sort -V); do
               echo "📝 Appending $file to workflow dashboard stream..."
@@ -192,13 +205,17 @@ jobs:
             done
           fi
 
-      # 📤 FINAL STEP: Securely push the JSON dataset database asset onto your storage branch
       - name: Save Updated State to Shared Database Branch
         if: success()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@://github.com"
           
+          # 🎯 WORKSPACE ISOLATION FIX: Clears dirty matrix runtime data out of the tracking index before checkout
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git reset --hard HEAD || true
+          git clean -xdf -e all-results/ || true
+
           git checkout -b database 2>/dev/null || git checkout database
           git add all-results/accumulated_database.json
           git commit -m "database: sync accumulated scans [Offset ${{ github.event.inputs.offset || '0' }}]" || true
@@ -210,8 +227,6 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      # 🚀 SECURE GRADUATED STOP GATEWAY:
-      # Evaluates the official variable returned from the script. Stops instantly if has_more_data == false.
       - name: Chain Next Chunk Automatically
         if: ${{ needs.discover.outputs.has_more_data == 'true' }}
         env:
