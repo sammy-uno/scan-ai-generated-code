@@ -45,7 +45,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          python scripts/generate_interactive_dashboard_2.py
+          python scripts/generate_interactive_dashboard.py
 
       # 🚀 Deploys the completed report directly to GitHub Pages for instant viewing
       - name: 🌐 Push Live Dashboard to GitHub Pages
