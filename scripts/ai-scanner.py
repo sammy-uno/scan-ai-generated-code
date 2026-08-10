@@ -42,7 +42,7 @@ def main():
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
     
-    # 🎯 BLANKET REPOSITORY DEDUPLICATOR INDICES MAINTAINED NATIVELY
+    # 🎯 BLANKET REPOSITORY DEDUPLICATOR INDICES RE-ALIGNED
     seen_repos = set()
     accumulated_db_path = "all-results/accumulated_database.json"
     if chunk_offset > 0 and os.path.exists(accumulated_db_path):
@@ -51,9 +51,9 @@ def main():
                 historical_rows = json.load(db_f)
                 if isinstance(historical_rows, list):
                     for r in historical_rows:
-                        hist_repo = r.get('repo', '').strip()
+                        # 🎯 FIXED: Key aligned to read 'repo_name' accurately from the shared tracking file
+                        hist_repo = r.get('repo_name', r.get('repo', '')).strip()
                         if hist_repo:
-                            # 🎯 REPOSITORY LEVEL RETENTION: Blanket flags the repository root string
                             seen_repos.add(hist_repo)
                     print(f"📥 [CROSS-BATCH SNAPSHOT LOADED] Pre-loaded {len(seen_repos)} unique repositories from master database memory.")
         except Exception as cache_err:
@@ -62,7 +62,7 @@ def main():
         print("🧼 [CLEAN INITIAL PASS] Starting clean discovery session without old historical cache injections.")
 
     processed_count = 0
-    
+
     print(f"--- Starting Discovery (Offset: {chunk_offset} | Target Limit: {SCAN_LIMIT} PRs) ---")
     for _, row in df.iterrows():
         # 🚀 CHUNK GUARD CONTEXT SLICER
@@ -84,23 +84,18 @@ def main():
             stats["excluded"] += 1
             continue
 
-        # 🎯 THE PRODUCTION BATCH FIX: Blanket exclude repositories scanned in past run passes
+        # 🎯 REPOSITORY LEVEL EXCLUSION GUARD
         if repo in seen_repos:
             print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
             stats["duplicates"] += 1
-            # 🎯 CRITICAL CEILING ADJUSTMENT: If we skip a duplicate repo, we push the chunk_offset pointer 
-            # forward by 1 right now to ensure the next batch pass jumps past this line cleanly!
-            chunk_offset += 1
             continue
             
-        # 🎯 FIX PART 2b: Stop building the active chunk ONLY after evaluating duplicate skips!
-        # This guarantees we extract 5 completely fresh repositories every pass.
-        if stats["added"] >= SCAN_LIMIT: 
-            break
+        # 🎯 FIXED: Continue looping instead of breaking early to step the processed_count pointer correctly
+        if stats["added"] >= SCAN_LIMIT:
+            continue
 
         # Track immediately to block duplicates inside the current fanned execution row loop
         seen_repos.add(repo)
-        
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
             data_res = json.loads(lines_res.stdout)
@@ -137,9 +132,9 @@ def main():
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
-    # Stops the loop once you have processed your goal of 20 total items!
-    if next_offset >= 20:
-        print(f"🧪 [TEST CHAIN] Target total batch threshold of 20 items hit. Terminating chaining loop sequence gracefully.")
+    # Stops the loop once you have processed your goal of 10 total items!
+    if next_offset >= 10:
+        print(f"🧪 [TEST CHAIN] Target total batch threshold of 10 items hit. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
         print(f"🧪 [TEST CHAIN] Pass complete. Chaining next chunk of 5 at offset: {next_offset}")
