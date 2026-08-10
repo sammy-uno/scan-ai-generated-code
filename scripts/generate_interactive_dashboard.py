@@ -1,42 +1,3 @@
-import json
-import os
-import base64
-import subprocess
-import re
-import glob
-import zipfile
-from datetime import datetime, timedelta, timezone
-
-# Global list holder referenced across script blocks to pass detail matrix payloads
-data = []
-
-def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
-    """
-    🎯 LINE-FILTERED COUPLING LAYER: Prioritizes data matrices pre-bound inside global memory.
-    """
-    global data
-    clean_repo = str(repo_owner_path).strip('/')
-    clean_pr = str(pr_number).strip()
-    
-    # Locates active dictionary context rows to dump detailed file lines instantly
-    for row in data:
-        if str(row.get('repo')).strip('/') == clean_repo and str(row.get('pr_num')).strip() == clean_pr:
-            if 'findings_details' in row and row['findings_details']:
-                return row['findings_details']
-                
-    clean_repo_file = repo_owner_path.replace('/', '_SLASH_')
-    json_pattern = f"all-results/{clean_repo_file}--{clean_pr}--*.json"
-    matched_jsons = glob.glob(json_pattern)
-    
-    if matched_jsons:
-        try:
-            with open(matched_jsons, "r", encoding="utf-8") as f_meta:
-                meta_details = json.load(f_meta)
-                if 'findings_details' in meta_details and meta_details['findings_details']:
-                    return meta_details['findings_details']
-        except Exception: 
-            pass
-    return []
 def main():
     global data
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
@@ -62,11 +23,11 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                repo_clean = parts[0].replace("_SLASH_", "/")
-                pr_clean = parts[1]
-                lang_clean = parts[2]
-                tool_clean = parts[3].replace("_", " ")
-                raw_size  = parts[4]
+                repo_clean = parts.replace("_SLASH_", "/")
+                pr_clean = parts
+                lang_clean = parts
+                tool_clean = parts.replace("_", " ")
+                raw_size  = parts
                 loc_clean = int(raw_size) if raw_size.isdigit() else 100
                 
                 h = int(slice_data.get('high', 0))
@@ -81,20 +42,15 @@ def main():
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
                 
-                if lookup_key in pr_lookup:
-                    if embedded_details:
-                        pr_lookup[lookup_key]['findings_details'] = embedded_details
-                        pr_lookup[lookup_key]['has_issues_bool'] = True
-                else:
-                    pr_lookup[lookup_key] = {
-                        "repo": repo_clean,
-                        "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
-                        "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
-                        "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
-                        "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
-                        "status": "🟣 Merged", "has_issues_bool": tot > 0, "pr_num": pr_clean,
-                        "findings_details": embedded_details
-                    }
+                pr_lookup[lookup_key] = {
+                    "repo": repo_clean,
+                    "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
+                    "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
+                    "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
+                    "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
+                    "status": "🟣 Merged", "has_issues_bool": tot > 0, "pr_num": pr_clean,
+                    "findings_details": embedded_details
+                }
         except Exception as e:
             print(f"⚠️ Error parsing slice {filepath}: {e}")
 
@@ -107,12 +63,12 @@ def main():
         parts = filename.split("--")
         if len(parts) < 2: 
             continue
-        repo_clean = parts[0].replace("_SLASH_", "/")
-        pr_clean = parts[1]
+        repo_clean = parts.replace("_SLASH_", "/")
+        pr_clean = parts
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
         
         if lookup_key in pr_lookup:
-            valid_pr_lines = {} # Maps filename -> set of integer line numbers added
+            valid_pr_lines = {}
             
             if gh_token:
                 try:
@@ -177,6 +133,7 @@ def main():
                                 "description": msg
                             })
                     
+                    # 🎯 CRITICAL MATH RESET: Force counts to reflect strictly filtered issues
                     total_filtered_issues = filtered_h + filtered_m + filtered_l
                     pr_lookup[lookup_key]['findings_details'] = extracted_findings
                     pr_lookup[lookup_key]['h'] = filtered_h
@@ -185,7 +142,11 @@ def main():
                     
                     files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                     pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-                    pr_lookup[lookup_key]['has_issues_bool'] = total_filtered_issues > 0
+                    
+                    # 🎯 FIXED: A row is ONLY marked true if total filtered issues is greater than zero!
+                    pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                    if total_filtered_issues == 0:
+                        pr_lookup[lookup_key]['cwes'] = "None"
                     
             except Exception as e:
                 print(f"⚠️ Error filtering vulnerabilities for {s_path}: {e}")
@@ -199,9 +160,11 @@ def main():
     total_scanned = len(data)
     vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
-    open_count = sum(1 for r in data if "Open" in r.get('status', ''))
-    merged_count = sum(1 for r in data if "Merged" in r.get('status', ''))
-    closed_count = sum(1 for r in data if "Closed" in r.get('status', ''))
+    
+    # Sync with your exact image lifecycle counts
+    open_count = sum(1 for r in data if "Open" in r.get('status', '') or r.get('status') == '🟢 Open')
+    merged_count = sum(1 relative_status for r in data if "Merged" in r.get('status', '') or '🟣' in r.get('status', ''))
+    closed_count = sum(1 for r in data if "Closed" in r.get('status', '') or r.get('status') == '🔴 Closed')
 
     green_emoji, purple_emoji, red_emoji, check_emoji, alert_tag = "🟢", "🟣", "🔴", "✅", "🚨"
     print(f"📊 Compiling {total_scanned} records into an interactive HTML dashboard...")
