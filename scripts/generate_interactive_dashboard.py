@@ -1,3 +1,12 @@
+import os
+import json
+import base64
+import subprocess
+import re
+import glob
+import time
+from datetime import datetime, timedelta, timezone
+
 def main():
     global data
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
