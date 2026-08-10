@@ -162,9 +162,10 @@ def main():
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
     
     # Sync with your exact image lifecycle counts
-    open_count = sum(1 for r in data if "Open" in r.get('status', '') or r.get('status') == '🟢 Open')
-    merged_count = sum(1 relative_status for r in data if "Merged" in r.get('status', '') or '🟣' in r.get('status', ''))
-    closed_count = sum(1 for r in data if "Closed" in r.get('status', '') or r.get('status') == '🔴 Closed')
+    # 🎯 FIX: Restores pristine Python list comprehension syntax with zero typos
+    open_count = sum(1 for r in data if "Open" in r.get('status', '') or '🟢' in r.get('status', ''))
+    merged_count = sum(1 for r in data if "Merged" in r.get('status', '') or '🟣' in r.get('status', ''))
+    closed_count = sum(1 for r in data if "Closed" in r.get('status', '') or '🔴' in r.get('status', ''))
 
     green_emoji, purple_emoji, red_emoji, check_emoji, alert_tag = "🟢", "🟣", "🔴", "✅", "🚨"
     print(f"📊 Compiling {total_scanned} records into an interactive HTML dashboard...")
