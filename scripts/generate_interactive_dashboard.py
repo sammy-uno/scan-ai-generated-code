@@ -84,7 +84,7 @@ def main():
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
                 
-                # 🎯 LIVE LIFECYCLE STATUS FETCH: Queries GitHub API for the true current state
+                # LIVE LIFECYCLE STATUS FETCH: Queries GitHub API for the true current state
                 live_status = "🟣 Merged"
                 if gh_token:
                     try:
@@ -111,7 +111,7 @@ def main():
         except Exception as e:
             print(f"⚠️ Error parsing slice {filepath}: {e}")
 
-    # 🔍 STEP 2: FALLBACK EXTRACTOR WITH TRUE PR LINE FILTERING
+    # 🔍 STEP 2: FALLBACK EXTRACTOR WITH ROBUST LOOSE PATH MATCHING
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
 
     for s_path in sarif_logs:
@@ -170,11 +170,22 @@ def main():
                                 f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
                                 line_num = int(p_loc.get('region', {}).get('startLine', 0))
                             
-                            if valid_pr_lines:
-                                file_key = str(f_path).strip()
-                                matched_file = next((k for k in valid_pr_lines if file_key in k or k in file_key), None)
-                                if matched_file and line_num not in valid_pr_lines[matched_file]:
-                                    continue
+                            # 🎯 LOOSE PATH CHECK: Safely matches files regardless of leading slashes
+                            file_key = str(f_path).strip().strip('/')
+                            matched_file = None
+                            
+                            for diff_file in valid_pr_lines.keys():
+                                clean_diff_file = str(diff_file).strip().strip('/')
+                                if file_key in clean_diff_file or clean_diff_file in file_key:
+                                    matched_file = diff_file
+                                    break
+                            
+                            if matched_file:
+                                if line_num not in valid_pr_lines[matched_file]:
+                                    continue  # Skip historical flaws outside the PR code changes!
+                            else:
+                                if valid_pr_lines:
+                                    continue  # Skip if file didn't receive additions in this PR
 
                             if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
                                 filtered_h += 1
@@ -198,6 +209,7 @@ def main():
                     files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                     pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
                     
+                    # 🎯 SYNC BOUNDS: Safe triage to turn the row white if zero items remain after filtering
                     pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
                     if total_filtered_issues == 0:
                         pr_lookup[lookup_key]['cwes'] = "None"
@@ -210,10 +222,10 @@ def main():
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+    # Global Metric Summary Calculation
     total_scanned = len(data)
     vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
-    
     open_count = sum(1 for r in data if "Open" in r.get('status', '') or '🟢' in r.get('status', ''))
     merged_count = sum(1 for r in data if "Merged" in r.get('status', '') or '🟣' in r.get('status', ''))
     closed_count = sum(1 for r in data if "Closed" in r.get('status', '') or '🔴' in r.get('status', ''))
@@ -307,6 +319,7 @@ def main():
         html_link = '<a href="https://github.com' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
         status_display = r.get('status', '🟣 Merged')
         
+        # Row coloring matches filtered issue density calculations strictly
         has_flaw = (int(r.get('h', 0)) + int(r.get('m', 0)) + int(r.get('l', 0))) > 0
         cwes_found = r.get('cwes', 'None')
         row_id = f"details_{index}"
