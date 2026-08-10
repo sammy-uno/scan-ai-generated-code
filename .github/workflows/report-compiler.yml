@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 THE FIX: Direct array evaluation syntax to safely grab the correct master execution Run ID
+      # 🎯 THE CLOUD FIX: Correct object mapping query to pull down the correct master execution Run ID
       - name: Download Scan Artifact Slices from Latest Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -32,13 +32,13 @@ jobs:
           mkdir -p all-results
           echo "🔍 Searching for the most recent scanning workflow run..."
           
-          # 🎯 CHANGED: Parses the flat array output securely by evaluating the root elements directly
+          # 🎯 UPDATED PATHS: Maps directly over the nested child object array elements safely!
           LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=20" \
-            --jq '.[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
+            --jq '.workflow_runs[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
           
           if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            echo "⚠️ Direct run lookup failed. Falling back to the most recent run ID element..."
-            LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=1" --jq '.[0].id')
+            echo "⚠️ Direct run lookup failed. Extracting primary first fallback run element..."
+            LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=1" --jq '.workflow_runs[0].id')
           fi
           
           echo "🎯 Target Master Run ID Isolated: $LATEST_RUN_ID"
