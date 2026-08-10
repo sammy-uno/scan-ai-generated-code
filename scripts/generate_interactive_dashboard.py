@@ -1,3 +1,43 @@
+import os
+import json
+import base64
+import subprocess
+import re
+import glob
+import zipfile
+from datetime import datetime, timedelta, timezone
+
+# Global list holder referenced across script blocks to pass detail matrix payloads
+data = []
+
+def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
+    """
+    🎯 LINE-FILTERED COUPLING LAYER: Prioritizes data matrices pre-bound inside global memory.
+    """
+    global data
+    clean_repo = str(repo_owner_path).strip('/')
+    clean_pr = str(pr_number).strip()
+    
+    # Locates active dictionary context rows to dump detailed file lines instantly
+    for row in data:
+        if str(row.get('repo')).strip('/') == clean_repo and str(row.get('pr_num')).strip() == clean_pr:
+            if 'findings_details' in row and row['findings_details']:
+                return row['findings_details']
+                
+    clean_repo_file = repo_owner_path.replace('/', '_SLASH_')
+    json_pattern = f"all-results/{clean_repo_file}--{clean_pr}--*.json"
+    matched_jsons = glob.glob(json_pattern)
+    
+    if matched_jsons:
+        try:
+            with open(matched_jsons, "r", encoding="utf-8") as f_meta:
+                meta_details = json.load(f_meta)
+                if 'findings_details' in meta_details and meta_details['findings_details']:
+                    return meta_details['findings_details']
+        except Exception: 
+            pass
+    return []
+
 def main():
     global data
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
@@ -5,7 +45,7 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # Pristine single run tracking cache buffer
+    # Pristine single-run tracking cache buffer
     pr_lookup = {}
 
     # 🔍 STEP 1: Deep scan all artifact slices matching your fresh cloud run
@@ -23,11 +63,11 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                repo_clean = parts.replace("_SLASH_", "/")
-                pr_clean = parts
-                lang_clean = parts
-                tool_clean = parts.replace("_", " ")
-                raw_size  = parts
+                repo_clean = parts[0].replace("_SLASH_", "/")
+                pr_clean = parts[1]
+                lang_clean = parts[2]
+                tool_clean = parts[3].replace("_", " ")
+                raw_size  = parts[4]
                 loc_clean = int(raw_size) if raw_size.isdigit() else 100
                 
                 h = int(slice_data.get('high', 0))
@@ -63,8 +103,8 @@ def main():
         parts = filename.split("--")
         if len(parts) < 2: 
             continue
-        repo_clean = parts.replace("_SLASH_", "/")
-        pr_clean = parts
+        repo_clean = parts[0].replace("_SLASH_", "/")
+        pr_clean = parts[1]
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
         
         if lookup_key in pr_lookup:
@@ -161,8 +201,6 @@ def main():
     vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
     
-    # Sync with your exact image lifecycle counts
-    # 🎯 FIX: Restores pristine Python list comprehension syntax with zero typos
     open_count = sum(1 for r in data if "Open" in r.get('status', '') or '🟢' in r.get('status', ''))
     merged_count = sum(1 for r in data if "Merged" in r.get('status', '') or '🟣' in r.get('status', ''))
     closed_count = sum(1 for r in data if "Closed" in r.get('status', '') or '🔴' in r.get('status', ''))
@@ -264,7 +302,7 @@ def main():
         else: 
             status_display = f"{purple_emoji} Merged"
 
-        has_flaw = r.get('has_issues_bool', False) or (int(r.get('h', 0)) + int(r.get('m', 0)) + int(r.get('l', 0)) > 0)
+        has_flaw = r.get('has_issues_bool', False)
         cwes_found = r.get('cwes', 'None')
         row_id = f"details_{index}"
 
