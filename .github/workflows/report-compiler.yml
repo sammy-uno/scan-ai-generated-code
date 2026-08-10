@@ -24,27 +24,23 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 THE CLOUD FIX: Correct object mapping query to pull down the correct master execution Run ID
+      # 🎯 STEP 2: REPO-WIDE ARTIFACT INGESTION - Bypasses run lookup bugs entirely
+      # by locating your scan containers directly across the whole repository index!
       - name: Download Scan Artifact Slices from Latest Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           mkdir -p all-results
-          echo "🔍 Searching for the most recent scanning workflow run..."
+          echo "📥 Fetching scan artifact lists straight from the repository index..."
           
-          # 🎯 UPDATED PATHS: Maps directly over the nested child object array elements safely!
-          LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=20" \
-            --jq '.workflow_runs[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
+          # Query the repository's active artifacts directly using the GitHub CLI
+          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false and (.name | contains("sarif"))) | .id')
           
-          if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            echo "⚠️ Direct run lookup failed. Extracting primary first fallback run element..."
-            LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=1" --jq '.workflow_runs[0].id')
+          if [ -z "$ART_IDS" ]; then
+            echo "⚠️ No explicit sarif artifact containers located. Pulling the 3 most recent entries..."
+            ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=3" --jq '.artifacts[].id')
           fi
-          
-          echo "🎯 Target Master Run ID Isolated: $LATEST_RUN_ID"
-          
-          echo "📥 Extracting all artifact packages..."
-          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/runs/$LATEST_RUN_ID/artifacts?per_page=100" --jq '.artifacts[] | .id')
           
           for ART_ID in $ART_IDS; do
             echo "⚡ Extracting artifact package chunk ID: $ART_ID"
@@ -69,7 +65,6 @@ jobs:
           echo "=================================================="
 
       - name: Compile HTML Master Dashboard
-        # 🎯 ADDED: Injects your secure token so the script can map PR line numbers
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
