@@ -16,12 +16,11 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # Direct list array to guarantee every file gets its own row
-    pr_list = []
+    # Restored your original dictionary mapping engine
+    pr_lookup = {}
 
-    # 🔍 STEP 1: Gather every single JSON chunk downloaded for this Master Run ID
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
-    print(f"🔍 Direct mapping {len(downloaded_slices)} raw scan files into the HTML report table...")
+    print(f"🔍 Processing {len(downloaded_slices)} raw scan files using restored dashboard engine...")
     
     gh_token = os.environ.get("GH_TOKEN", "")
 
@@ -36,6 +35,7 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
+                # Restored your original parsing indices perfectly
                 repo_clean = parts[0].replace("_SLASH_", "/")
                 pr_clean = parts[1]
                 lang_clean = parts[2]
@@ -43,44 +43,21 @@ def main():
                 raw_size  = parts[4]
                 loc_clean = int(raw_size) if raw_size.isdigit() else 100
                 
-                # Check for its exact matching sarif file using the unique filename signature
-                corresponding_sarif = filepath.replace(".json", ".sarif")
-                extracted_findings = []
-                h, m, l, tot = 0, 0, 0, 0
-                cwes_discovered = []
-
-                if os.path.exists(corresponding_sarif):
-                    try:
-                        with open(corresponding_sarif, "r", encoding="utf-8") as s_f:
-                            s_data = json.load(s_f)
-                            for run in s_data.get('runs', []):
-                                for res in run.get('results', []):
-                                    v_id = res.get('ruleId', 'Static Code Defect')
-                                    msg = res.get('message', {}).get('text', 'Security issue.')
-                                    f_path = "Unknown"
-                                    line_num = 0
-                                    for loc in res.get('locations', []):
-                                        p_loc = loc.get('physicalLocation', {})
-                                        f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
-                                        line_num = int(p_loc.get('region', {}).get('startLine', 0))
-
-                                    if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
-                                        h += 1
-                                    elif "low" in v_id.lower():
-                                        l += 1
-                                    else:
-                                        m += 1
-
-                                    extracted_findings.append({
-                                        "vulnerability": v_id,
-                                        "file_line": f"{f_path}#L{line_num}",
-                                        "description": msg
-                                    })
-                        tot = h + m + l
-                    except Exception:
-                        pass
-
-                # Live Lifecycle Status Check
+                h = int(slice_data.get('high', 0))
+                m = int(slice_data.get('medium', 0))
+                l = int(slice_data.get('low', 0))
+                tot = int(slice_data.get('total_issues', h + m + l))
+                cwes = slice_data.get('cwes_discovered', "None")
+                if isinstance(cwes, list): 
+                    cwes = ", ".join(cwes) if cwes else "None"
+                files_impacted = int(slice_data.get('files_changed', 1))
+                
+                embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
+                
+                # 🎯 THE COMPLIANCE FIX: Add the tool name to the lookup key combo!
+                # This perfectly preserves your original code while stopping duplicate PR rows from overwriting each other.
+                lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
+                
                 live_status = "🟣 Merged"
                 if gh_token:
                     try:
@@ -90,25 +67,126 @@ def main():
                         elif "CLOSED" in raw_state: live_status = "🔴 Closed"
                     except Exception: pass
 
-                # 🎯 PURE 1-TO-1 EXTRACTION: Append every file directly to its own isolated row layout slot!
-                pr_list.append({
+                # Restored your original clean HTML link parsing format
+                pr_lookup[lookup_key] = {
                     "repo": repo_clean,
-                    "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
-                    "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": "None" if tot == 0 else "Detected",
-                    "h": h, "m": m, "l": l, "issues_files": f"{tot} (1)",
+                    "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
+                    "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
+                    "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
                     "status": live_status, "has_issues_bool": tot > 0, "pr_num": pr_clean,
-                    "findings_details": extracted_findings
-                })
+                    "findings_details": embedded_details
+                }
         except Exception as e:
-            print(f"⚠️ Error parsing file {filepath}: {e}")
+            print(f"⚠️ Error parsing slice file {filepath}: {e}")
 
-    # Save tracking data directly to your JSON database branch registry
-    data = pr_list
+    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR
+    sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
+
+    for s_path in sarif_logs:
+        filename = os.path.basename(s_path).replace(".sarif", "")
+        parts = filename.split("--")
+        if len(parts) < 2: 
+            continue
+        repo_clean = parts[0].replace("_SLASH_", "/")
+        pr_clean = parts[1]
+        
+        # 🎯 RESTORED LOOKUP MATRIX ALIGNMENT
+        lang_clean = parts[2] if len(parts) > 2 else "Unknown"
+        tool_clean = parts[3].replace("_", " ") if len(parts) > 3 else "Static Engine"
+        lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
+        
+        if lookup_key in pr_lookup:
+            valid_pr_lines = {}
+            if gh_token:
+                try:
+                    diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
+                    diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
+                    current_file = None
+                    line_cursor = 0
+                    for line in diff_output.splitlines():
+                        if line.startswith("+++ b/"):
+                            current_file = line[6:].strip()
+                            valid_pr_lines[current_file] = set()
+                        elif line.startswith("@@ ") and current_file:
+                            match = re.search(r"\+(\d+),?(\d+)?", line)
+                            if match:
+                                line_cursor = int(match.group(1))
+                        elif current_file and line.startswith("+") and not line.startswith("+++"):
+                            if current_file in valid_pr_lines:
+                                valid_pr_lines[current_file].add(line_cursor)
+                            line_cursor += 1
+                        elif current_file and not line.startswith("-"):
+                            line_cursor += 1
+                except Exception:
+                    pass
+
+            try:
+                with open(s_path, "r", encoding="utf-8") as s_f:
+                    s_data = json.load(s_f)
+                    extracted_findings = []
+                    filtered_h, filtered_m, filtered_l = 0, 0, 0
+
+                    for run in s_data.get('runs', []):
+                        for res in run.get('results', []):
+                            v_id = res.get('ruleId', 'Static Code Defect')
+                            msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
+                            f_path = "Unknown"
+                            line_num = 0
+                            for loc in res.get('locations', []):
+                                p_loc = loc.get('physicalLocation', {})
+                                f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
+                                line_num = int(p_loc.get('region', {}).get('startLine', 0))
+                            
+                            file_key = str(f_path).strip().strip('/')
+                            matched_file = None
+                            for diff_file in valid_pr_lines.keys():
+                                clean_diff_file = str(diff_file).strip().strip('/')
+                                if file_key in clean_diff_file or clean_diff_file in file_key:
+                                    matched_file = diff_file
+                                    break
+                            
+                            if matched_file:
+                                if line_num not in valid_pr_lines[matched_file]:
+                                    continue
+                            else:
+                                if valid_pr_lines:
+                                    continue
+
+                            if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
+                                filtered_h += 1
+                            elif "low" in v_id.lower():
+                                filtered_l += 1
+                            else:
+                                filtered_m += 1
+
+                            extracted_findings.append({
+                                "vulnerability": v_id,
+                                "file_line": f"{f_path}#L{line_num}",
+                                "description": msg
+                            })
+                    
+                    total_filtered_issues = filtered_h + filtered_m + filtered_l
+                    pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                    pr_lookup[lookup_key]['h'] = filtered_h
+                    pr_lookup[lookup_key]['m'] = filtered_m
+                    pr_lookup[lookup_key]['l'] = filtered_l
+                    
+                    files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
+                    pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+                    pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                    if total_filtered_issues == 0:
+                        pr_lookup[lookup_key]['cwes'] = "None"
+                    
+            except Exception:
+                pass
+
+    compiled_fresh_list = list(pr_lookup.values())
+    data = compiled_fresh_list
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-        
-    # 📊 HTML DASHBOARD CONSTRUCTION RENDERER
+
+    # 📊 RESTORED ORIGINAL HTML DASHBOARD CONSTRUCTION RENDERER
     total_scanned = len(data)
     vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
     total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
@@ -195,6 +273,7 @@ def main():
 
     for index, r in enumerate(data):
         clean_repo = r.get('repo', 'None')
+        # 🎯 RESTORED NATIVE PARSING: Leverages the verified HTML string wrapper from Part 1
         html_link = r.get('link', '#')
         status_display = r.get('status', '🟣 Merged')
         cwes_found = r.get('cwes', 'None')
@@ -280,7 +359,7 @@ def main():
 
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write(html_content)
-    print(f"✨ SUCCESS: Report dashboard generated at: {output_path}")
+    print(f"✨ SUCCESS: Restored reporting dashboard generated at: {output_path}")
 
 if __name__ == "__main__":
     main()
