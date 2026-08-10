@@ -24,22 +24,33 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 STEP 2: REPO-WIDE ARTIFACT INGESTION - Bypasses run lookup bugs entirely
-      # by locating your scan containers directly across the whole repository index!
+      # 🎯 STEP 2: RUN-ID COMPLIANCE LAYER
+      # Locates the SINGLE most recent run ID of your scanning workflow 
+      # to guarantee zero historical or duplicate files leak into your HTML folder view!
       - name: Download Scan Artifact Slices from Latest Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           mkdir -p all-results
-          echo "📥 Fetching scan artifact lists straight from the repository index..."
+          echo "🔍 Finding the most recent run of the Chained Scanner workflow..."
           
-          # Query the repository's active artifacts directly using the GitHub CLI
-          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.expired == false and (.name | contains("sarif"))) | .id')
+          # 🎯 THE CLOUD FIX: Fetches the single newest Run ID from your active scanning workflow
+          LATEST_SCAN_RUN_ID=$(gh run list --workflow "AI Multi-Language Chained Scanner" --limit 1 --json databaseId --jq '.[0].databaseId')
+          
+          if [ -z "$LATEST_SCAN_RUN_ID" ] || [ "$LATEST_SCAN_RUN_ID" = "null" ]; then
+            echo "⚠️ Could not locate a specific scanning workflow run. Falling back to global lookup..."
+            LATEST_SCAN_RUN_ID="${{ github.run_id }}"
+          fi
+          
+          echo "📥 Fetching scan artifact lists straight from isolated Run ID: $LATEST_SCAN_RUN_ID"
+          
+          # Query and extract matching artifacts belonging ONLY to that specific latest run pass!
+          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/runs/$LATEST_SCAN_RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.name | contains("sarif")) | .id')
           
           if [ -z "$ART_IDS" ]; then
-            echo "⚠️ No explicit sarif artifact containers located. Pulling the 3 most recent entries..."
-            ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=3" --jq '.artifacts[].id')
+            echo "❌ No matching sarif containers found inside the latest run."
+            exit 1
           fi
           
           for ART_ID in $ART_IDS; do
@@ -48,7 +59,7 @@ jobs:
             unzip -o chunk.zip -d all-results/ 2>/dev/null || true
             rm -f chunk.zip
           done
-
+          
       # 🎯 STEP 3: Fallback extraction step if CodeQL generated nested raw sarif findings
       - name: ⚙️ Extract Internal SARIF Records
         run: |
