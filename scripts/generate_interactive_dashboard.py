@@ -99,57 +99,110 @@ def main():
         except Exception as e:
             print(f"⚠️ Error parsing slice {filepath}: {e}")
 
-    # 🔍 STEP 2: FALLBACK EXTRACTOR - If details drawers are still empty, parse raw .sarif logs directly!
+    # 🔍 STEP 2: FALLBACK EXTRACTOR WITH TRUE PR LINE FILTERING
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
+    gh_token = os.environ.get("GH_TOKEN", "")
+
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
         parts = filename.split("--")
-        if len(parts) < 2: continue
+        if len(parts) < 2: 
+            continue
         repo_clean = parts[0].replace("_SLASH_", "/")
         pr_clean = parts[1]
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
         
-        if lookup_key in pr_lookup and not pr_lookup[lookup_key]['findings_details']:
+        if lookup_key in pr_lookup:
+            # 🎯 DYNAMIC LINE DIFF MAPPER: Pulls down the exact line changes of the PR
+            valid_pr_lines = {} # Maps filename -> set of integer line numbers added
+            
+            if gh_token:
+                try:
+                    print(f"🕵️ Mapping live PR code line bounds for {repo_clean} #{pr_clean}...")
+                    diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
+                    diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
+                    
+                    current_file = None
+                    # Parse standard unified diff patch patterns
+                    for line in diff_output.splitlines():
+                        if line.startswith("+++ b/"):
+                            current_file = line[6:].strip()
+                            valid_pr_lines[current_file] = set()
+                        elif line.startswith("@@ ") and current_file:
+                            # Extract starting line line and counts (e.g., @@ -1,4 +5,12 @@)
+                            match = re.search(r"\+(\d+),?(\d+)?", line)
+                            if match:
+                                start_line = int(match.group(1))
+                                # Keep an active pointer tracker for code positions
+                                line_cursor = start_line
+                        elif current_file and line.startswith("+") and not line.startswith("+++"):
+                            if current_file in valid_pr_lines:
+                                valid_pr_lines[current_file].add(line_cursor)
+                            line_cursor += 1
+                        elif current_file and not line.startswith("-"):
+                            line_cursor += 1
+                except Exception as e:
+                    print(f"⚠️ Could not pull line diff bounds via GitHub API: {e}")
+
             try:
                 with open(s_path, "r", encoding="utf-8") as s_f:
                     s_data = json.load(s_f)
                     extracted_findings = []
+                    
+                    # Target severity counts to re-compute after filtering out un-related lines
+                    filtered_h, filtered_m, filtered_l = 0, 0, 0
+
                     for run in s_data.get('runs', []):
                         for res in run.get('results', []):
                             v_id = res.get('ruleId', 'Static Code Defect')
                             msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
-                            f_line = "Unknown"
+                            
+                            f_path = "Unknown"
+                            line_num = 0
+                            
                             for loc in res.get('locations', []):
                                 p_loc = loc.get('physicalLocation', {})
                                 f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
-                                line_num = p_loc.get('region', {}).get('startLine', 0)
-                                f_line = f"{f_path}#L{line_num}"
+                                line_num = int(p_loc.get('region', {}).get('startLine', 0))
                             
+                            # 🎯 THE FILTER GATE: If line tracking is active, ensure this issue falls strictly inside the PR lines!
+                            if valid_pr_lines:
+                                file_key = str(f_path).strip()
+                                # Fallback match for subfolder string configurations
+                                matched_file = next((k for k in valid_pr_lines if file_key in k or k in file_key), None)
+                                
+                                if matched_file and line_num not in valid_pr_lines[matched_file]:
+                                    # Skip this finding entirely—it sits on lines of code that the PR didn't touch!
+                                    continue
+
+                            # Update severity metrics for matched code lines
+                            if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
+                                filtered_h += 1
+                            elif "low" in v_id.lower():
+                                filtered_l += 1
+                            else:
+                                filtered_m += 1
+
                             extracted_findings.append({
                                 "vulnerability": v_id,
-                                "file_line": f_line,
+                                "file_line": f"{f_path}#L{line_num}",
                                 "description": msg
                             })
-                    if extracted_findings:
-                        pr_lookup[lookup_key]['findings_details'] = extracted_findings
-                        pr_lookup[lookup_key]['has_issues_bool'] = True
-            except Exception:
-                pass
-
-    compiled_fresh_list = list(pr_lookup.values())
-    data = compiled_fresh_list
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    total_scanned = len(data)
-    vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
-    total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
-    open_count = sum(1 for r in data if "Open" in r.get('status', ''))
-    merged_count = sum(1 for r in data if "Merged" in r.get('status', ''))
-    closed_count = sum(1 for r in data if "Closed" in r.get('status', ''))
-
-    green_emoji, purple_emoji, red_emoji, check_emoji, alert_tag = "🟢", "🟣", "🔴", "✅", "🚨"
-    print(f"📊 Compiling {total_scanned} records into an interactive HTML dashboard...")
+                    
+                    # Update row tracking summary metrics to display accurately in the main table layout
+                    total_filtered_issues = filtered_h + filtered_m + filtered_l
+                    pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                    pr_lookup[lookup_key]['h'] = filtered_h
+                    pr_lookup[lookup_key]['m'] = filtered_m
+                    pr_lookup[lookup_key]['l'] = filtered_l
+                    
+                    # Recalculate cell tracking summaries
+                    files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
+                    pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+                    pr_lookup[lookup_key]['has_issues_bool'] = total_filtered_issues > 0
+                    
+            except Exception as e:
+                print(f"⚠️ Error filtering vulnerabilities for {s_path}: {e}")
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
