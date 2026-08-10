@@ -141,6 +141,16 @@ def main():
     elif has_more_data == "true":
         print(f"🧪 [TEST CHAIN] Pass complete. Chaining next chunk of 5 at offset: {next_offset}")
 
+    # 🎯 THE PRODUCTION RUNTIME FIX: Write to GITHUB_OUTPUT right here!
+    # This guarantees that even if a lower summary step prints an invalid character or fails,
+    # your next batch's offset variables are locked into cloud memory safely.
+    output = json.dumps({"include": matrix_include})
+    if 'GITHUB_OUTPUT' in os.environ:
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f: 
+            f.write(f'matrix_data={output}\n')
+            f.write(f'next_offset={next_offset}\n')
+            f.write(f'has_more_data={has_more_data}\n')
+
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
     print(f"❌ Skipped (Too Large):   {stats['too_big']}")
@@ -152,16 +162,6 @@ def main():
     print(f"🔄 Continues Remaining:   {has_more_data}")
     print("-------------------------\n")
 
-    output = json.dumps({"include": matrix_include})
-    
-    # 🚀 EXPORT SIGNAL METRICS DIRECTLY TO JOB CONTEXT BOUNDARIES
-    if 'GITHUB_OUTPUT' in os.environ:
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as f: 
-            f.write(f'matrix_data={output}\n')
-            f.write(f'next_offset={next_offset}\n')
-            f.write(f'has_more_data={has_more_data}\n')
-    else: 
-        print(f"matrix_data={output}")
 
 if __name__ == '__main__': 
     main()
