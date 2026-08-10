@@ -84,18 +84,20 @@ def main():
             stats["excluded"] += 1
             continue
 
-        # 🎯 REPOSITORY LEVEL EXCLUSION GUARD
+       # 🎯 REPOSITORY LEVEL EXCLUSION GUARD
         if repo in seen_repos:
             print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
             stats["duplicates"] += 1
             continue
             
-        # 🎯 FIXED: Continue looping instead of breaking early to step the processed_count pointer correctly
+        # 🎯 THE PRODUCTION FIX: Track the repo immediately right here! 
+        # This guarantees it gets saved to your database branch ledger file so subsequent batches know to block it.
+        seen_repos.add(repo)
+            
+        # Evaluate your 5-item matrix slice runner capacity limits down here instead
         if stats["added"] >= SCAN_LIMIT:
             continue
-
-        # Track immediately to block duplicates inside the current fanned execution row loop
-        seen_repos.add(repo)
+            
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
             data_res = json.loads(lines_res.stdout)
