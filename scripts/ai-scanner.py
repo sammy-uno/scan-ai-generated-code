@@ -88,24 +88,25 @@ def main():
             stats["excluded"] += 1
             continue
 
-        # 🎯 REPOSITORY LEVEL EXCLUSION GUARD MAINTAINED EXACTLY
+        # 🎯 EXCLUSION GUARD: Checks if this repository has been successfully scanned in a past run
         if repo in seen_repos:
-            print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
+            print(f"SKIP: {repo} #{num} (Duplicate repository already assigned to scan matrix)")
             stats["duplicates"] += 1
             continue
             
-        # 🎯 THE PRODUCTION MEMORY FIX: Add immediately to seen_repos BEFORE capacity filters
-        seen_repos.add(repo)
-            
-        # Continue loop context traversal to advance pointers smoothly past duplicate clusters
+        # 🎯 MATRIX CAPACITY LIMIT CHECK: 
+        # If your 5 chunks are filled, continue looping to step pointer indices,
+        # but do NOT add this repository to your seen_repos filter! 
+        # This keeps it completely free to be picked up by your next batch run pass.
         if stats["added"] >= SCAN_LIMIT:
             continue
+
+        # 🚀 YOUR RULES PASS CHECKS CONTINUE BELOW (Size checks, API view checks...)
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
             data_res = json.loads(lines_res.stdout)
             total = data_res.get("additions", 0) + data_res.get("deletions", 0)
             
-            # ZERO-CHANGE EXCLUSION GUARD: Drops any PR that has 0 modifications
             if total == 0:
                 print(f"SKIP: {repo} #{num} (Empty PR: 0 files/lines change)")
                 stats["empty"] += 1
@@ -119,6 +120,10 @@ def main():
             print(f"SKIP: {repo} #{num} (API/Access Error)")
             stats["api_error"] += 1
             continue
+
+        # 🎯 THE PLACEMENT FIX: Only track the repo in memory once it is completely successful!
+        # This prevents un-scanned or broken rows from locking out the entire codebase.
+        seen_repos.add(repo)
 
         matrix_include.append({
             "pr_num": num, 
