@@ -56,6 +56,10 @@ jobs:
           if ls *.zip 1> /dev/null 2>&1; then
             for f in *.zip; do unzip -o "$f" 2>/dev/null || true; done
           fi
+          
+          # 🎯 THE CLOUD FIX: Deletes intermediate matrix duplicates so we keep EXACTLY your 20 unique items
+          rm -f *--*--*--*--*.success.json 2>/dev/null || true
+          rm -f *--*--*--*--*.failed.json 2>/dev/null || true
           cd ..
 
       - name: 🔍 Debug Path Inspection
