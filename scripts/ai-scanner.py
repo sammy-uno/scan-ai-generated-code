@@ -134,16 +134,16 @@ def main():
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
-    # Stops the loop once you have processed your goal of 10 total items!
-    if next_offset >= 10:
-        print(f"🧪 [TEST CHAIN] Target total batch threshold of 10 items hit. Terminating chaining loop sequence gracefully.")
+    # 🎯 THE ACTUAL GLOBAL FIX: Calculate true total accumulated unique scans!
+    total_accumulated_scans = len(seen_repos)
+
+    # Stops the loop ONLY when we have successfully scanned your goal of 10 unique repositories total!
+    if total_accumulated_scans >= 10:
+        print(f"🧪 [TEST CHAIN] Target total unique database cap of 10 items hit. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
         print(f"🧪 [TEST CHAIN] Pass complete. Chaining next chunk of 5 at offset: {next_offset}")
 
-    # 🎯 THE PRODUCTION RUNTIME FIX: Write to GITHUB_OUTPUT right here!
-    # This guarantees that even if a lower summary step prints an invalid character or fails,
-    # your next batch's offset variables are locked into cloud memory safely.
     output = json.dumps({"include": matrix_include})
     if 'GITHUB_OUTPUT' in os.environ:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f: 
@@ -161,7 +161,6 @@ def main():
     print(f"🔢 Next Pointer Offset:   {next_offset}")
     print(f"🔄 Continues Remaining:   {has_more_data}")
     print("-------------------------\n")
-
 
 if __name__ == '__main__': 
     main()
