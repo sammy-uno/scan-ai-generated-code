@@ -79,7 +79,7 @@ def main():
         except Exception as e:
             print(f"⚠️ Error parsing slice file {filepath}: {e}")
 
-    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR (WITH CWE BIND FIX)
+    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
 
     for s_path in sarif_logs:
@@ -123,7 +123,6 @@ def main():
                 with open(s_path, "r", encoding="utf-8") as s_f:
                     s_data = json.load(s_f)
                     extracted_findings = []
-                    # 🎯 TRACKER: Gathers unique CWE IDs found in this specific file slice
                     unique_cwes = set()
                     filtered_h, filtered_m, filtered_l = 0, 0, 0
 
@@ -153,7 +152,6 @@ def main():
                                 if valid_pr_lines:
                                     continue
 
-                            # 🎯 EXTRACTOR: Captures CWE labels directly from the Rule ID name string
                             cwe_matches = re.findall(r'(cwe-\d+)', v_id.lower())
                             for match in cwe_matches:
                                 unique_cwes.add(match.upper())
@@ -177,7 +175,6 @@ def main():
                     pr_lookup[lookup_key]['m'] = filtered_m
                     pr_lookup[lookup_key]['l'] = filtered_l
                     
-                    # 🎯 FIXED: Assigns the string list of unique CWEs back to the column slot
                     if unique_cwes:
                         pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
                     else:
@@ -323,14 +320,31 @@ def main():
                 file_line  = bug.get('file_line', 'Unknown File Location')
                 desc       = bug.get('description', 'No details provided.')
                 
+                # 🎯 THE PRODUCTION FIX: Appends explicit CWE identifiers next to rules on each line entry
+                display_rule_text = vuln_title
+                lower_title = vuln_title.lower()
+                
+                if "xss" in lower_title or "through-dom" in lower_title:
+                    display_rule_text = f"{vuln_title} (CWE-79)"
+                elif "untrusted-source" in lower_title or "integrity" in lower_title:
+                    display_rule_text = f"{vuln_title} (CWE-829)"
+                elif "sql-injection" in lower_title or "sqli" in lower_title:
+                    display_rule_text = f"{vuln_title} (CWE-89)"
+                elif "command-injection" in lower_title or "path-injection" in lower_title:
+                    display_rule_text = f"{vuln_title} (CWE-78)"
+                else:
+                    cwe_match = re.search(r'(cwe-\d+)', lower_title)
+                    if cwe_match:
+                        display_rule_text = f"{vuln_title} ({cwe_match.group(1).upper()})"
+
                 bug_icon = "🟡 Medium"
-                if "cwe-79" in vuln_title.lower() or "cwe-89" in vuln_title.lower() or "high" in vuln_title.lower():
+                if "cwe-79" in display_rule_text.lower() or "cwe-89" in display_rule_text.lower() or "high" in lower_title:
                     bug_icon = "🔴 High"
                 
                 sub_table_rows += f"""
                             <tr>
                                 <td><strong>{bug_icon}</strong></td>
-                                <td><strong>{vuln_title}</strong></td>
+                                <td><strong>{display_rule_text}</strong></td>
                                 <td><code>{file_line}</code></td>
                                 <td>{desc}</td>
                             </tr>"""
@@ -367,7 +381,7 @@ def main():
 
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write(html_content)
-    print(f"✨ SUCCESS: Restored reporting dashboard generated at: {output_path}")
+    print(f"✨ SUCCESS: HTML Reporting dashboard compiled at: {output_path}")
 
 if __name__ == "__main__":
     main()
