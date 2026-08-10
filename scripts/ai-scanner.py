@@ -19,7 +19,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 5     # Maximum new repositories to add per batch run
+    SCAN_LIMIT = 5     # Pure maximum slots per batch pass
     
     # 🚀 CHUNK OFFSET AND EXTRACTION COUNTER INGESTION
     try:
@@ -47,20 +47,21 @@ def main():
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
     
-    # 🎯 REPOSITORY LEVEL DEDUPLICATOR INDICES FIXED
     seen_repos = set()
     accumulated_db_path = "all-results/accumulated_database.json"
 
+    # 🎯 STEP 1: Copy the repos from the database file to seen_repos at start
     if chunk_offset > 0 and os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
                 historical_rows = json.load(db_f)
                 if isinstance(historical_rows, list):
                     for r in historical_rows:
+                        # Extract the exact repository text name field matching your layout keys
                         hist_repo = r.get('repo_name', r.get('repo', '')).strip()
                         if hist_repo:
                             seen_repos.add(hist_repo)
-                    print(f"📥 [CROSS-BATCH SNAPSHOT LOADED] Pre-loaded {len(seen_repos)} unique repositories from master database memory.")
+                    print(f"📥 Loaded {len(seen_repos)} unique repositories from master database memory.")
         except Exception as cache_err:
             print(f"⚠️ Warning: Could not hydrate cross-batch deduplication memory: {cache_err}")
     else:
@@ -70,7 +71,11 @@ def main():
 
     print(f"--- Starting Discovery (Offset: {chunk_offset} | Target Limit: {SCAN_LIMIT} PRs) ---")
     for _, row in df.iterrows():
-        # 🚀 CHUNK GUARD CONTEXT SLICER
+        # 🚀 THE CRITICAL STOP FIX: If we successfully reached 5 items, stop loop execution IMMEDIATELY!
+        if stats["added"] >= SCAN_LIMIT: 
+            break
+        
+        # CHUNK GUARD SLICER: Skips rows belonging to previous batch execution runs
         if processed_count < chunk_offset:
             processed_count += 1
             continue
@@ -88,25 +93,18 @@ def main():
             stats["excluded"] += 1
             continue
 
-        # 🎯 EXCLUSION GUARD: Checks if this repository has been successfully scanned in a past run
+        # 🎯 THE DEDUPLICATION FILTER: If PR repo is already in seen_repos, skip it!
         if repo in seen_repos:
-            print(f"SKIP: {repo} #{num} (Duplicate repository already assigned to scan matrix)")
+            print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
             stats["duplicates"] += 1
             continue
-            
-        # 🎯 MATRIX CAPACITY LIMIT CHECK: 
-        # If your 5 chunks are filled, continue looping to step pointer indices,
-        # but do NOT add this repository to your seen_repos filter! 
-        # This keeps it completely free to be picked up by your next batch run pass.
-        if stats["added"] >= SCAN_LIMIT:
-            continue
 
-        # 🚀 YOUR RULES PASS CHECKS CONTINUE BELOW (Size checks, API view checks...)
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
             data_res = json.loads(lines_res.stdout)
             total = data_res.get("additions", 0) + data_res.get("deletions", 0)
             
+            # ZERO-CHANGE EXCLUSION GUARD: Drops any PR that has 0 modifications
             if total == 0:
                 print(f"SKIP: {repo} #{num} (Empty PR: 0 files/lines change)")
                 stats["empty"] += 1
@@ -121,8 +119,7 @@ def main():
             stats["api_error"] += 1
             continue
 
-        # 🎯 THE PLACEMENT FIX: Only track the repo in memory once it is completely successful!
-        # This prevents un-scanned or broken rows from locking out the entire codebase.
+        # 🎯 MARK AS SEEN: Add the repo to our set only upon a completely successful scan extraction
         seen_repos.add(repo)
 
         matrix_include.append({
@@ -137,16 +134,16 @@ def main():
         print(f"ADDED: {repo} #{num} ({total} lines)")
         stats["added"] += 1
 
-    # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC (Tracks literal row cursor layout indices)
+    # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC (For sliding window calculation)
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
     
-    # 🎯 Calculate the TRUE accumulated total count of PRs added to scan matrix
+    # Calculate the true accumulated total count of PRs added to scan matrix across runs
     total_extracted = past_extracted + stats["added"]
 
     # Check if there are physical rows remaining in your CSV data list
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
-    # 🎯 TARGET TRACKING GRADUATION: Stops looping ONLY when you hit your exact extraction target milestone goal of 10 PRs!
+    # TARGET TRACKING GRADUATION: Stops looping ONLY when you hit your exact extraction target milestone goal of 10 PRs!
     if total_extracted >= 10:
         print(f"🧪 [TEST CHAIN] Target total goal of 10 PR extractions reached. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
@@ -155,7 +152,7 @@ def main():
 
     output = json.dumps({"include": matrix_include})
     
-    # 🚀 EXPORT SIGNAL METRICS DIRECTLY TO JOB CONTEXT BOUNDARIES
+    # EXPORT SIGNAL METRICS DIRECTLY TO JOB CONTEXT BOUNDARIES
     if 'GITHUB_OUTPUT' in os.environ:
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f: 
             f.write(f'matrix_data={output}\n')
