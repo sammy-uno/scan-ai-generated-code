@@ -52,6 +52,8 @@ def main():
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
     print(f"🔍 Deep scanning {len(downloaded_slices)} fresh file artifact fragments...")
     
+    gh_token = os.environ.get("GH_TOKEN", "")
+
     for filepath in downloaded_slices:
         if "accumulated_database" in filepath or "ai_accumulated_database" in filepath: 
             continue
@@ -82,13 +84,28 @@ def main():
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
                 
+                # 🎯 LIVE LIFECYCLE STATUS FETCH: Queries GitHub API for the true current state
+                live_status = "🟣 Merged"
+                if gh_token:
+                    try:
+                        status_cmd = ["gh", "pr", "view", pr_clean, "--repo", repo_clean, "--json", "state", "--jq", ".state"]
+                        raw_state = subprocess.check_output(status_cmd, text=True, errors="ignore").strip().upper()
+                        if "OPEN" in raw_state:
+                            live_status = "🟢 Open"
+                        elif "CLOSED" in raw_state:
+                            live_status = "🔴 Closed"
+                        elif "MERGED" in raw_state:
+                            live_status = "🟣 Merged"
+                    except Exception:
+                        pass
+
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
                     "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
                     "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
-                    "status": "🟣 Merged", "has_issues_bool": tot > 0, "pr_num": pr_clean,
+                    "status": live_status, "has_issues_bool": tot > 0, "pr_num": pr_clean,
                     "findings_details": embedded_details
                 }
         except Exception as e:
@@ -96,7 +113,6 @@ def main():
 
     # 🔍 STEP 2: FALLBACK EXTRACTOR WITH TRUE PR LINE FILTERING
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
-    gh_token = os.environ.get("GH_TOKEN", "")
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
@@ -173,7 +189,6 @@ def main():
                                 "description": msg
                             })
                     
-                    # 🎯 CRITICAL MATH RESET: Force counts to reflect strictly filtered issues
                     total_filtered_issues = filtered_h + filtered_m + filtered_l
                     pr_lookup[lookup_key]['findings_details'] = extracted_findings
                     pr_lookup[lookup_key]['h'] = filtered_h
@@ -183,7 +198,6 @@ def main():
                     files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                     pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
                     
-                    # 🎯 FIXED: A row is ONLY marked true if total filtered issues is greater than zero!
                     pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
                     if total_filtered_issues == 0:
                         pr_lookup[lookup_key]['cwes'] = "None"
@@ -196,7 +210,6 @@ def main():
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # Global Metric Summary Calculation
     total_scanned = len(data)
     vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
@@ -257,10 +270,10 @@ def main():
     <div class="metrics-card">
         <h3>📈 Executive Summary</h3>
         <ul>
-            <li><strong>Total Accumulated PRs Parsed:</strong> {total_scanned}</li>
-            <li><strong>Total Accumulated LOC Scanned:</strong> {total_loc_scanned} lines</li>
-            <li><strong>Security Review Bounds:</strong> <span class="badge badge-vuln">{vulnerable_count} ⚠️ Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} ✅ Clean</span></li>
-            <li><strong>Lifecycle Status Breakdown:</strong> {green_emoji} Open: {open_count} | {purple_emoji} Merged: {merged_count} | {red_emoji} Closed: {closed_count}</li>
+            <li><strong>Total PRs Parsed in This Run:</strong> {total_scanned}</li>
+            <li><strong>Total LOC Scanned in This Run:</strong> {total_loc_scanned} lines</li>
+            <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} ⚠️ Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean PRs ✅</span></li>
+            <li><strong>Lifecycle Breakdown:</strong> {green_emoji} Open: {open_count} | {purple_emoji} Merged: {merged_count} | {red_emoji} Closed: {closed_count}</li>
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
@@ -279,7 +292,7 @@ def main():
                     <th>🔴 H</th>
                     <th>🟡 M</th>
                     <th>🔵 L</th>
-                    <th>Total Issues (Files)</th>
+                    <th>Total Security Issues (Files)</th>
                 </tr>
             </thead>
             <tbody>
@@ -291,18 +304,10 @@ def main():
         clean_repo = str(r.get('repo', 'None')).strip('/')
         clean_pr = str(r.get('pr_num', '0')).strip()
         
-        # 🎯 EXPLICIT SLASH INJECTION: Retains identical syntax signatures safely
         html_link = '<a href="https://github.com' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
-
-        status_raw = str(r.get('status', '🟣 Merged')).strip().lower()
-        if "open" in status_raw or "🟢" in status_raw: 
-            status_display = f"{green_emoji} Open"
-        elif "closed" in status_raw or "🔴" in status_raw: 
-            status_display = f"{red_emoji} Closed"
-        else: 
-            status_display = f"{purple_emoji} Merged"
-
-        has_flaw = r.get('has_issues_bool', False)
+        status_display = r.get('status', '🟣 Merged')
+        
+        has_flaw = (int(r.get('h', 0)) + int(r.get('m', 0)) + int(r.get('l', 0))) > 0
         cwes_found = r.get('cwes', 'None')
         row_id = f"details_{index}"
 
