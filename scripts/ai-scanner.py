@@ -62,13 +62,9 @@ def main():
         print("🧼 [CLEAN INITIAL PASS] Starting clean discovery session without old historical cache injections.")
 
     processed_count = 0
-
+    
     print(f"--- Starting Discovery (Offset: {chunk_offset} | Target Limit: {SCAN_LIMIT} PRs) ---")
     for _, row in df.iterrows():
-        # Stop building the active chunk once we hit our max concurrent runner matrix ceiling
-        if stats["added"] >= SCAN_LIMIT: 
-            break
-        
         # 🚀 CHUNK GUARD CONTEXT SLICER
         # Skips rows belonging to previous batch execution runs
         if processed_count < chunk_offset:
@@ -88,15 +84,23 @@ def main():
             stats["excluded"] += 1
             continue
 
-        # 🎯 REPOSITORY LEVEL EXCLUSION GUARD: Maintained exactly as requested
+        # 🎯 THE PRODUCTION BATCH FIX: Blanket exclude repositories scanned in past run passes
         if repo in seen_repos:
             print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
             stats["duplicates"] += 1
+            # 🎯 CRITICAL CEILING ADJUSTMENT: If we skip a duplicate repo, we push the chunk_offset pointer 
+            # forward by 1 right now to ensure the next batch pass jumps past this line cleanly!
+            chunk_offset += 1
             continue
             
+        # 🎯 FIX PART 2b: Stop building the active chunk ONLY after evaluating duplicate skips!
+        # This guarantees we extract 5 completely fresh repositories every pass.
+        if stats["added"] >= SCAN_LIMIT: 
+            break
+
         # Track immediately to block duplicates inside the current fanned execution row loop
         seen_repos.add(repo)
-
+        
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
             data_res = json.loads(lines_res.stdout)
