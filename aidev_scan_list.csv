@@ -6,4 +6,43 @@ BlueSkyXN/WorkerJS_CloudFlare_ImageBed,4,Update README.md with comprehensive and
 Pimzino/claude-code-spec-workflow,27,Fix docs and tests for updated command set,javascript,OpenAI_Codex,869
 reown-com/appkit,4741,feat: add native SOL payment asset for Solana network,javascript,Devin,5202
 mendableai/firecrawl,1894,fix: convert timeout from milliseconds to seconds in Python SDK,javascript,Devin,43970
+mendableai/firecrawl,1895,feat(crawler): replace robotstxt library with texting_robots for ENG-3016,javascript,Devin,43970
+neondatabase/website,3730,docs: highlight Neon Local Connect option on connection pages,javascript,Devin,261
+MontrealAI/AGI-Alpha-Agent-v0,3924,[alpha_factory] Add Python 3.13 to CI,python,OpenAI_Codex,251
+prebid/Prebid.js,13695,e2e tests: extend webdriver session timeouts,javascript,OpenAI_Codex,1467
+crewAIInc/crewAI,3243,Fix #3242: Add reasoning parameter to LLM class to disable reasoning mode,python,Devin,35096
+sugyan/claude-code-webui,219,fix: add Windows .cmd parsing fallback for node.exe colocated environments,javascript,Claude_Code,367
+MontrealAI/AGI-Alpha-Agent-v0,3923,Fix test logging offline handling,python,OpenAI_Codex,251
+Pimzino/claude-code-spec-workflow,27,Fix docs and tests for updated command set,javascript,OpenAI_Codex,869
+reown-com/appkit,4741,feat: add native SOL payment asset for Solana network,javascript,Devin,5202
+mendableai/firecrawl,1894,fix: convert timeout from milliseconds to seconds in Python SDK,javascript,Devin,43970
+Pimzino/claude-code-spec-workflow,26,Fix setup command test list,javascript,OpenAI_Codex,869
+taiga-family/taiga-ui,11485,fix(kit): combo box stringify function not being called after update,javascript,Copilot,3672
+MontrealAI/AGI-Alpha-Agent-v0,3920,[alpha_factory] Add Python 3.13 to CI matrix,python,OpenAI_Codex,251
+mendableai/firecrawl,1893,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus (ENG-3029),javascript,Devin,43970
+zwave-js/zwave-js,8020,Fix: Mark node as asleep when compat query times out,javascript,Copilot,826
+elementary-data/dbt-data-reliability,835,Add disable_samples column configuration flag,python,Devin,452
+microsoft/genaiscript,1808,Fix generateImage returning undefined and enable Azure OpenAI image editing with proper URL construction,javascript,Copilot,2742
+zwave-js/zwave-js,8019,Fix throttled firmware update progress events jumping back and forth,javascript,Copilot,826
+zwave-js/zwave-js,8018,feat: Add configuration parameter support to SmartStart provisioning entries,javascript,Copilot,826
+zwave-js/zwave-js,8017,Disable SmartStart provisioning entries after 5 failed inclusion attempts,javascript,Copilot,826
+MontrealAI/AGI-Alpha-Agent-v0,3919,Improve owner check in CI workflow,python,OpenAI_Codex,251
+mendableai/firecrawl,1892,fix(js-sdk): add retry logic for socket hang up errors in monitorJobStatus,javascript,Devin,43970
+calcom/cal.com,22814,refactor: convert getShouldServeCache to CacheService with dependency injection,javascript,Devin,37399
+streamich/memfs,1124,feat: refactor core classes to src/core/ directory,javascript,Copilot,1919
+3rdIteration/btcrecover,617,Add OpenCL Multibit test,python,OpenAI_Codex,742
+taiga-family/taiga-ui,11478,fix(experimental): `TuiExpand` double content projection causing duplicate child instantiations,javascript,Copilot,3672
+MontrealAI/AGI-Alpha-Agent-v0,3917,Update CI Python matrix,python,OpenAI_Codex,251
+BerriAI/litellm,13125,feat(helm): Enhance Helm chart for ArgoCD integration and external resources,python,Claude_Code,26663
+liam-hq/liam,2790,Improve deepModeling.ts error handling: implement immediate error recording and workflow stopping,javascript,Devin,4194
+liam-hq/liam,2789,feat: unify WorkflowState type with createAnnotations,javascript,Devin,4194
+microsoft/vscode-pull-request-github,7466,Add loading spinner to Cancel Coding Agent button,javascript,Copilot,2421
+microsoft/vscode-pull-request-github,7465,Show loading indicator when clicking on commits in timeline,javascript,Copilot,2421
+liam-hq/liam,2788,Replace dummy 'User Name' with real user data in timeline items,javascript,Devin,4194
+valkey-io/valkey-glide,4515,Fix resource leak in TLS test teardown by properly resetting client references,java,Copilot,538
+microsoft/vscode-pull-request-github,7464,Fix unexpected cursor icon for commit links in PR webview,javascript,Copilot,2421
+crewAIInc/crewAI,3241,Add LangDB AI Gateway documentation to observability section,python,Devin,35096
+liam-hq/liam,2786,feat: refactor CopyButton component to be reusable and apply to SQL tab,javascript,Devin,4194
+liam-hq/liam,2782,Rename Schema Updates tab to SQL tab,javascript,Devin,4194
+djlint/djLint,1354,Add support for `.djlint.toml` configuration files,python,Copilot,810
 
