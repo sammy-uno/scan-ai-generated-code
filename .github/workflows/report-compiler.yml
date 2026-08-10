@@ -13,24 +13,40 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Repository Data Tree
+      # 🎯 STEP 1: Pull your python scripts down from your MAIN branch first
+      - name: Checkout Code Scripts from Main
         uses: actions/checkout@v4
         with:
-          # 🎯 THE CLOUD FIX: Explicitly points the checkout engine to your data branch instead of main!
+          ref: main
+
+      # 🎯 STEP 2: Pull your real scan results down from your DATABASE branch into all-results/
+      - name: Checkout Scan Data Tree from Database Branch
+        uses: actions/checkout@v4
+        with:
           ref: database
+          path: database-data
+
+      # 🎯 STEP 3: Move the database file to the right spot so your script can read it
+      - name: ⚙️ Prepare Integrated Data Workspace
+        run: |
+          mkdir -p all-results
+          if [ -f "database-data/all-results/ai_accumulated_database.json" ]; then
+            cp database-data/all-results/ai_accumulated_database.json all-results/ai_accumulated_database.json
+          elif [ -f "database-data/all-results/accumulated_database.json" ]; then
+            cp database-data/all-results/accumulated_database.json all-results/ai_accumulated_database.json
+          fi
+          rm -rf database-data
 
       - name: Setup Python environment
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # 🎯 TARGETED RUN STREAMING: Grabs any intermediate parallel slice files from your last execution
+      # 🎯 STEP 4: Grab any intermediate parallel slice files from your last execution summary
       - name: Download Scan Artifact Slices from Latest Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
-          mkdir -p all-results
-          
           echo "🔍 Searching for the most recent scanning workflow run..."
           LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" \
             --jq '.workflow_runs[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
