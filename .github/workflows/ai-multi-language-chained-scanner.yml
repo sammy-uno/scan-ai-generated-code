@@ -7,6 +7,10 @@ on:
         description: 'CSV Line Data Offset Pointer'
         required: false
         default: '0'
+      extracted_count:
+        description: 'Total PRs successfully extracted so far'
+        required: false
+        default: '0'
   repository_dispatch:
     types: [Scan_Next_Chained_Batch]
 
@@ -28,6 +32,7 @@ jobs:
       matrix: ${{ steps.detect.outputs.matrix_data }}
       next_offset: ${{ steps.detect.outputs.next_offset }}
       has_more_data: ${{ steps.detect.outputs.has_more_data }}
+      total_extracted: ${{ steps.detect.outputs.total_extracted }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,8 +44,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 THE CROSS-BATCH FIXED TRACKER: Pulls your live data ledger straight from your database storage branch 
-      # so separate repository dispatches can pass cross-batch memory seamlessly!
       - name: Fetch Active Run Chain Deduplication Memory
         run: |
           mkdir -p all-results
@@ -53,6 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
+          CURRENT_EXTRACTED: ${{ github.event.inputs.extracted_count || github.event.client_payload.extracted_count || '0' }}
         run: |
           pip install pandas
           python scripts/ai-scanner.py
@@ -60,7 +64,6 @@ jobs:
   analyze:
     name: Scan ${{ matrix.repo_name }} (#${{ matrix.pr_num }}) - [${{ matrix.language }}]
     needs: discover
-    # Validates that elements exist inside the array schema before mapping runners
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && toJson(fromJson(needs.discover.outputs.matrix).include) != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -113,6 +116,7 @@ jobs:
           upload-database: false
           wait-for-processing: false 
           threads: 2
+
       - name: Create Summary
         if: always()
         run: |
@@ -187,7 +191,7 @@ jobs:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
           SCAN_TYPE: "automated"
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
-          CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
+          CHUNK_OFFSET: ${{ github.event.inputs.offset || '0' }}
         run: |
           python scripts/consolidate-report.py
 
@@ -207,8 +211,6 @@ jobs:
             done
           fi
 
-      # 🎯 THE CLOUD FIX: Commits the updated tracking array right back to your tracking branch 
-      # the exact split second the active batch report finishes compiling!
       - name: Save Updated State to Shared Database Branch
         if: success()
         run: |
@@ -235,10 +237,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
           NEXT_OFFSET: ${{ needs.discover.outputs.next_offset }}
+          TOTAL_EXTRACTED: ${{ needs.discover.outputs.total_extracted }}
         run: |
-          echo "🔄 Loop transition verified. Data remains in CSV input queue."
-          echo "Advancing AI Multi-Language Chained Scanner to next chunk offset: $NEXT_OFFSET"
+          echo "🔄 Chaining next batch of 5. CSV Cursor Position: $NEXT_OFFSET | Total Extracted PRs: $TOTAL_EXTRACTED"
           
           gh api repos/${{ github.repository }}/dispatches \
             -F event_type="Scan_Next_Chained_Batch" \
-            -F client_payload[offset]="$NEXT_OFFSET"
+            -F client_payload[offset]="$NEXT_OFFSET" \
+            -F client_payload[extracted_count]="$TOTAL_EXTRACTED"
