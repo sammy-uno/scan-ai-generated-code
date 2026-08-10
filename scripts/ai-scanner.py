@@ -1,4 +1,8 @@
-import subprocess, json, os, time, pandas as pd
+import subprocess
+import json
+import os
+import time
+import pandas as pd
 
 def run_command(command, max_retries=2):
     for attempt in range(max_retries):
@@ -25,8 +29,11 @@ def main():
     
     # --- TRACKING ---
     stats = {"added": 0, "too_big": 0, "excluded": 0, "api_error": 0, "duplicates": 0, "empty": 0}
-    EXCLUDE_REPOS = ["BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG", "Azure/azure-sdk-for-js", 
-"typehero/typehero", "ruvnet/claude-flow"]
+    EXCLUDE_REPOS = [
+        "BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", 
+        "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG", "Azure/azure-sdk-for-js", 
+        "typehero/typehero", "ruvnet/claude-flow"
+    ]
     
     if not os.path.exists(INPUT_CSV):
         print('matrix_data={"include":[]}')
@@ -35,12 +42,9 @@ def main():
     df = pd.read_csv(INPUT_CSV)
     matrix_include = []
     
-    # 🚀 THE HARDENED RESET FILTER LAYER:
-    # Only load previous memory records if the offset pointer is greater than 0.
-    # If the user starts at 0, ignore any hidden cached files to force a clean pass from the top!
+    # 🎯 BLANKET REPOSITORY DEDUPLICATOR INDICES MAINTAINED NATIVELY
     seen_repos = set()
     accumulated_db_path = "all-results/accumulated_database.json"
-    
     if chunk_offset > 0 and os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as db_f:
@@ -49,12 +53,13 @@ def main():
                     for r in historical_rows:
                         hist_repo = r.get('repo', '').strip()
                         if hist_repo:
+                            # 🎯 REPOSITORY LEVEL RETENTION: Blanket flags the repository root string
                             seen_repos.add(hist_repo)
                     print(f"📥 [CROSS-BATCH SNAPSHOT LOADED] Pre-loaded {len(seen_repos)} unique repositories from master database memory.")
         except Exception as cache_err:
             print(f"⚠️ Warning: Could not hydrate cross-batch deduplication memory: {cache_err}")
     else:
-        print("🧼 [CLEAN INITIAL PASS] Offset is 0. Discarding all cross-batch data caches to start fresh from row 1.")
+        print("🧼 [CLEAN INITIAL PASS] Starting clean discovery session without old historical cache injections.")
 
     processed_count = 0
 
@@ -83,7 +88,7 @@ def main():
             stats["excluded"] += 1
             continue
 
-        # 🚀 ACTIVATED CROSS-BATCH DEDUPLICATION FILTER
+        # 🎯 REPOSITORY LEVEL EXCLUSION GUARD: Maintained exactly as requested
         if repo in seen_repos:
             print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
             stats["duplicates"] += 1
@@ -91,11 +96,11 @@ def main():
             
         # Track immediately to block duplicates inside the current fanned execution row loop
         seen_repos.add(repo)
-        
+
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
-            data = json.loads(lines_res.stdout)
-            total = data.get("additions", 0) + data.get("deletions", 0)
+            data_res = json.loads(lines_res.stdout)
+            total = data_res.get("additions", 0) + data_res.get("deletions", 0)
             
             # ZERO-CHANGE EXCLUSION GUARD: Drops any PR that has 0 modifications
             if total == 0:
@@ -127,22 +132,13 @@ def main():
     # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC
     next_offset = chunk_offset + len(matrix_include) + stats["too_big"] + stats["empty"] + stats["excluded"] + stats["duplicates"] + stats["api_error"]
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
-    #has_more_data = "false"
 
-    #if chunk_offset < 3:
-    #    has_more_data = "true"
-    #    print(f"🧪 [TEST MODE] PR #{chunk_offset + 1} complete. Chaining next chunk at offset: {next_offset}")
-    #else:
-    #    has_more_data = "false"
-    #    print(f"🧪 [TEST MODE] Final PR #{chunk_offset + 1} complete. Terminating the 4-pass test chain.")
-
-    # 🎯 TARGET TRACKING GRADUATION: Stops the loop once you have processed your goal of 20 total items!
+    # Stops the loop once you have processed your goal of 20 total items!
     if next_offset >= 20:
         print(f"🧪 [TEST CHAIN] Target total batch threshold of 20 items hit. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
         print(f"🧪 [TEST CHAIN] Pass complete. Chaining next chunk of 5 at offset: {next_offset}")
-
 
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
