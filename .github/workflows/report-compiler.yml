@@ -1,7 +1,12 @@
 name: "📊 Universal HTML Report Deployer"
 
 on:
-  workflow_dispatch:  # Purely human-driven manual button trigger
+  workflow_dispatch:
+    inputs:
+      master_run_id:
+        description: '🎯 Paste the Master Chain Run ID (The Run ID of Batch 1)'
+        required: true
+        default: ''
 
 permissions:
   contents: write
@@ -13,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 🎯 STEP 1: Pull your python scripts down from your main branch
       - name: Checkout Code Scripts from Main
         uses: actions/checkout@v4
         with:
@@ -24,60 +28,39 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 STEP 2: RUN-ID COMPLIANCE LAYER
-      # Locates the SINGLE most recent run ID of your scanning workflow 
-      # to guarantee zero historical or duplicate files leak into your HTML folder view!
-      - name: Download Scan Artifact Slices from Latest Run
+      # 🎯 STEP 2: SCANNER RUN ID MATCHING LAYER
+      # Searches your whole repository history and extracts packages matching your unique master key!
+      - name: Download Scan Artifact Slices from Target Chain Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
+          TARGET_KEY: "sarif-${{ github.event.inputs.master_run_id }}-"
         run: |
           mkdir -p all-results
-          echo "🔍 Finding the most recent run of the Chained Scanner workflow..."
+          echo "📥 Fetching scan artifact lists matching chain key: $TARGET_KEY"
           
-          # 🎯 THE CLOUD FIX: Fetches the single newest Run ID from your active scanning workflow
-          LATEST_SCAN_RUN_ID=$(gh run list --workflow "AI Multi-Language Chained Scanner" --limit 1 --json databaseId --jq '.[0].databaseId')
-          
-          if [ -z "$LATEST_SCAN_RUN_ID" ] || [ "$LATEST_SCAN_RUN_ID" = "null" ]; then
-            echo "⚠️ Could not locate a specific scanning workflow run. Falling back to global lookup..."
-            LATEST_SCAN_RUN_ID="${{ github.run_id }}"
-          fi
-          
-          echo "📥 Fetching scan artifact lists straight from isolated Run ID: $LATEST_SCAN_RUN_ID"
-          
-          # Query and extract matching artifacts belonging ONLY to that specific latest run pass!
-          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/runs/$LATEST_SCAN_RUN_ID/artifacts" \
-            --jq '.artifacts[] | select(.name | contains("sarif")) | .id')
+          # Query the repository's artifacts and filter strictly by your custom master key string name pattern
+          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq --arg key "$TARGET_KEY" '.artifacts[] | select(.expired == false and (.name | contains($key))) | .id')
           
           if [ -z "$ART_IDS" ]; then
-            echo "❌ No matching sarif containers found inside the latest run."
+            echo "❌ Error: No matching artifact packages found for Master Run ID: ${{ github.event.inputs.master_run_id }}"
             exit 1
           fi
           
           for ART_ID in $ART_IDS; do
-            echo "⚡ Extracting artifact package chunk ID: $ART_ID"
+            echo "⚡ Extracting synchronized chunk ID: $ART_ID"
             gh api "repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > chunk.zip
             unzip -o chunk.zip -d all-results/ 2>/dev/null || true
             rm -f chunk.zip
           done
-          
-      # 🎯 STEP 3: Fallback extraction step if CodeQL generated nested raw sarif findings
+
       - name: ⚙️ Extract Internal SARIF Records
         run: |
           cd all-results
           if ls *.zip 1> /dev/null 2>&1; then
             for f in *.zip; do unzip -o "$f" 2>/dev/null || true; done
           fi
-          
-          # 🎯 THE CLOUD FIX: Deletes intermediate matrix duplicates so we keep EXACTLY your 20 unique items
-          rm -f *--*--*--*--*.success.json 2>/dev/null || true
-          rm -f *--*--*--*--*.failed.json 2>/dev/null || true
           cd ..
-
-      - name: 🔍 Debug Path Inspection
-        run: |
-          echo "=== VERIFYING INTEGRATED DIRECTORY CONTROLLERS ==="
-          ls -R all-results
-          echo "=================================================="
 
       - name: Compile HTML Master Dashboard
         env:
