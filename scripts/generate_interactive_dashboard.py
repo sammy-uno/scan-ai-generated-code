@@ -37,7 +37,6 @@ def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
         except Exception: 
             pass
     return []
-
 def main():
     global data
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
@@ -45,7 +44,7 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # 🎯 PRISTINE SINGLE RUN BUFFER (Bypasses old history files entirely!)
+    # Pristine single run tracking cache buffer
     pr_lookup = {}
 
     # 🔍 STEP 1: Deep scan all artifact slices matching your fresh cloud run
@@ -113,7 +112,6 @@ def main():
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
         
         if lookup_key in pr_lookup:
-            # 🎯 DYNAMIC LINE DIFF MAPPER: Pulls down the exact line changes of the PR
             valid_pr_lines = {} # Maps filename -> set of integer line numbers added
             
             if gh_token:
@@ -123,18 +121,15 @@ def main():
                     diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
                     
                     current_file = None
-                    # Parse standard unified diff patch patterns
+                    line_cursor = 0
                     for line in diff_output.splitlines():
                         if line.startswith("+++ b/"):
                             current_file = line[6:].strip()
                             valid_pr_lines[current_file] = set()
                         elif line.startswith("@@ ") and current_file:
-                            # Extract starting line line and counts (e.g., @@ -1,4 +5,12 @@)
                             match = re.search(r"\+(\d+),?(\d+)?", line)
                             if match:
-                                start_line = int(match.group(1))
-                                # Keep an active pointer tracker for code positions
-                                line_cursor = start_line
+                                line_cursor = int(match.group(1))
                         elif current_file and line.startswith("+") and not line.startswith("+++"):
                             if current_file in valid_pr_lines:
                                 valid_pr_lines[current_file].add(line_cursor)
@@ -148,8 +143,6 @@ def main():
                 with open(s_path, "r", encoding="utf-8") as s_f:
                     s_data = json.load(s_f)
                     extracted_findings = []
-                    
-                    # Target severity counts to re-compute after filtering out un-related lines
                     filtered_h, filtered_m, filtered_l = 0, 0, 0
 
                     for run in s_data.get('runs', []):
@@ -165,17 +158,12 @@ def main():
                                 f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
                                 line_num = int(p_loc.get('region', {}).get('startLine', 0))
                             
-                            # 🎯 THE FILTER GATE: If line tracking is active, ensure this issue falls strictly inside the PR lines!
                             if valid_pr_lines:
                                 file_key = str(f_path).strip()
-                                # Fallback match for subfolder string configurations
                                 matched_file = next((k for k in valid_pr_lines if file_key in k or k in file_key), None)
-                                
                                 if matched_file and line_num not in valid_pr_lines[matched_file]:
-                                    # Skip this finding entirely—it sits on lines of code that the PR didn't touch!
                                     continue
 
-                            # Update severity metrics for matched code lines
                             if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
                                 filtered_h += 1
                             elif "low" in v_id.lower():
@@ -189,20 +177,34 @@ def main():
                                 "description": msg
                             })
                     
-                    # Update row tracking summary metrics to display accurately in the main table layout
                     total_filtered_issues = filtered_h + filtered_m + filtered_l
                     pr_lookup[lookup_key]['findings_details'] = extracted_findings
                     pr_lookup[lookup_key]['h'] = filtered_h
                     pr_lookup[lookup_key]['m'] = filtered_m
                     pr_lookup[lookup_key]['l'] = filtered_l
                     
-                    # Recalculate cell tracking summaries
                     files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                     pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
                     pr_lookup[lookup_key]['has_issues_bool'] = total_filtered_issues > 0
                     
             except Exception as e:
                 print(f"⚠️ Error filtering vulnerabilities for {s_path}: {e}")
+
+    compiled_fresh_list = list(pr_lookup.values())
+    data = compiled_fresh_list
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    # Global Metric Summary Calculation
+    total_scanned = len(data)
+    vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
+    total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
+    open_count = sum(1 for r in data if "Open" in r.get('status', ''))
+    merged_count = sum(1 for r in data if "Merged" in r.get('status', ''))
+    closed_count = sum(1 for r in data if "Closed" in r.get('status', ''))
+
+    green_emoji, purple_emoji, red_emoji, check_emoji, alert_tag = "🟢", "🟣", "🔴", "✅", "🚨"
+    print(f"📊 Compiling {total_scanned} records into an interactive HTML dashboard...")
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -287,7 +289,7 @@ def main():
         clean_repo = str(r.get('repo', 'None')).strip('/')
         clean_pr = str(r.get('pr_num', '0')).strip()
         
-        # 🎯 EXPLICIT FORWARD SLASH RENDER: Locks down your explicit syntax choice securely
+        # 🎯 EXPLICIT SLASH INJECTION: Retains identical syntax signatures safely
         html_link = '<a href="https://github.com' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
 
         status_raw = str(r.get('status', '🟣 Merged')).strip().lower()
@@ -330,7 +332,10 @@ def main():
                 </tr>"""
 
         if has_flaw:
-            findings_list = fetch_historical_artifact_data(clean_repo, clean_pr, cwes_found)
+            findings_list = r.get('findings_details', [])
+            if not findings_list:
+                findings_list = fetch_historical_artifact_data(clean_repo, clean_pr, cwes_found)
+                
             sub_table_rows = ""
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Static Analysis Issue')
