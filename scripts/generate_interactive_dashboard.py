@@ -45,54 +45,53 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
+    # 🎯 PRISTINE MEMORY TRACKING LAYER
+    pr_lookup = {}
     compiled_fresh_list = []
+
+    # 🔍 STEP 1: Scan all individual file slices (*--*.json) from the CURRENT cloud run first!
+    downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
+    print(f"🔍 Deep scanning {len(downloaded_slices)} fresh file artifact fragments...")
     
-    # 🎯 STEP 1: If the unified database file exists, load records directly from it first!
-    if os.path.exists(json_path):
-        print(f"📖 Found unified database at {json_path}. Ingesting tracking matrix rows...")
+    for filepath in downloaded_slices:
+        if "accumulated_database" in filepath or "ai_accumulated_database" in filepath: 
+            continue
         try:
-            with open(json_path, "r", encoding="utf-8") as f_db:
-                db_data = json.load(f_db)
-                if isinstance(db_data, list):
-                    compiled_fresh_list = db_data
-                elif isinstance(db_data, dict) and "link" in db_data:
-                    compiled_fresh_list = db_data.get("rows", [db_data])
-        except Exception as e:
-            print(f"⚠️ Unified database ingestion notice: {e}")
-
-    # 🎯 STEP 2: Fallback to scanning individual file slices if the array list is still empty
-    if not compiled_fresh_list:
-        downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
-        for filepath in downloaded_slices:
-            if "accumulated_database" in filepath: 
-                continue
-            try:
-                with open(filepath, "r", encoding="utf-8") as f_slice:
-                    slice_data = json.load(f_slice)
-                    filename = os.path.basename(filepath).replace(".json", "")
-                    parts = filename.split("--")
-                    if len(parts) < 5: 
-                        continue
-                    
-                    repo_clean = parts.replace("_SLASH_", "/")
-                    pr_clean = parts
-                    lang_clean = parts
-                    tool_clean = parts.replace("_", " ")
-                    raw_size  = parts
-                    loc_clean = int(raw_size) if raw_size.isdigit() else 100
-                    
-                    h = int(slice_data.get('high', 0))
-                    m = int(slice_data.get('medium', 0))
-                    l = int(slice_data.get('low', 0))
-                    tot = int(slice_data.get('total_issues', h + m + l))
-                    cwes = slice_data.get('cwes_discovered', "None")
-                    if isinstance(cwes, list): 
-                        cwes = ", ".join(cwes)
-                    files_impacted = int(slice_data.get('files_changed', 1))
-                    
-                    embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
-
-                    compiled_fresh_list.append({
+            with open(filepath, "r", encoding="utf-8") as f_slice:
+                slice_data = json.load(f_slice)
+                filename = os.path.basename(filepath).replace(".json", "")
+                parts = filename.split("--")
+                if len(parts) < 5: 
+                    continue
+                
+                repo_clean = parts[0].replace("_SLASH_", "/")
+                pr_clean = parts[1]
+                lang_clean = parts[2]
+                tool_clean = parts[3].replace("_", " ")
+                raw_size  = parts[4]
+                loc_clean = int(raw_size) if raw_size.isdigit() else 100
+                
+                h = int(slice_data.get('high', 0))
+                m = int(slice_data.get('medium', 0))
+                l = int(slice_data.get('low', 0))
+                tot = int(slice_data.get('total_issues', h + m + l))
+                cwes = slice_data.get('cwes_discovered', "None")
+                if isinstance(cwes, list): 
+                    cwes = ", ".join(cwes)
+                files_impacted = int(slice_data.get('files_changed', 1))
+                
+                # Extract line-filtered drawer findings natively
+                embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
+                
+                lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
+                
+                # Map or update the fresh cloud run items directly
+                if lookup_key in pr_lookup:
+                    pr_lookup[lookup_key]['findings_details'] = embedded_details
+                    if embedded_details and not pr_lookup[lookup_key].get('has_issues_bool'):
+                        pr_lookup[lookup_key]['has_issues_bool'] = True
+                else:
+                    pr_lookup[lookup_key] = {
                         "repo": repo_clean,
                         "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
                         "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
@@ -100,18 +99,36 @@ def main():
                         "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
                         "status": "🟣 Merged", "has_issues_bool": tot > 0, "pr_num": pr_clean,
                         "findings_details": embedded_details
-                    })
-            except Exception:
-                pass
+                    }
+        except Exception as e:
+            print(f"⚠️ Error parsing slice {filepath}: {e}")
 
-    # Ensure all row metrics have valid string fallback keys for pull request links
-    for r in compiled_fresh_list:
-        if 'pr_num' not in r or str(r['pr_num']) == '0':
-            link_str = r.get('link', '')
-            digits = "".join(c for c in link_str.split(']') if c.isdigit())
-            r['pr_num'] = digits if digits else "0"
+    # 🔍 STEP 2: Only ingest old historical tracking data if it doesn't override your fresh run slices!
+    if os.path.exists(json_path):
+        print(f"📖 Merging historical baseline rows from: {json_path}")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f_db:
+                db_data = json.load(f_db)
+                records = db_data if isinstance(db_data, list) else db_data.get("rows", [])
+                
+                for r in records:
+                    link_str = r.get('link', '')
+                    digits = "".join(c for c in link_str.split(']') if c.isdigit())
+                    p_num = r.get('pr_num', digits if digits else "0")
+                    repo_key = str(r.get('repo', '')).strip('/')
+                    
+                    lookup_key = (repo_key, str(p_num))
+                    # Prevent old historical cache data from trampling over your brand new cloud scan details!
+                    if lookup_key not in pr_lookup:
+                        r['pr_num'] = p_num
+                        pr_lookup[lookup_key] = r
+        except Exception as e:
+            print(f"⚠️ History integration notice: {e}")
 
+    # Finalize data tracking ledger out to memory arrays
+    compiled_fresh_list = list(pr_lookup.values())
     data = compiled_fresh_list
+    
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
