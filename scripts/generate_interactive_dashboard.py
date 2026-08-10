@@ -45,11 +45,10 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # 🎯 PRISTINE MEMORY TRACKING LAYER
+    # 🎯 PRISTINE SINGLE RUN BUFFER (Bypasses old history files entirely!)
     pr_lookup = {}
-    compiled_fresh_list = []
 
-    # 🔍 STEP 1: Scan all individual file slices (*--*.json) from the CURRENT cloud run first!
+    # 🔍 STEP 1: Deep scan all artifact slices matching your fresh cloud run
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
     print(f"🔍 Deep scanning {len(downloaded_slices)} fresh file artifact fragments...")
     
@@ -80,15 +79,12 @@ def main():
                     cwes = ", ".join(cwes)
                 files_impacted = int(slice_data.get('files_changed', 1))
                 
-                # Extract line-filtered drawer findings natively
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
-                
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
                 
-                # Map or update the fresh cloud run items directly
                 if lookup_key in pr_lookup:
-                    pr_lookup[lookup_key]['findings_details'] = embedded_details
-                    if embedded_details and not pr_lookup[lookup_key].get('has_issues_bool'):
+                    if embedded_details:
+                        pr_lookup[lookup_key]['findings_details'] = embedded_details
                         pr_lookup[lookup_key]['has_issues_bool'] = True
                 else:
                     pr_lookup[lookup_key] = {
@@ -103,32 +99,45 @@ def main():
         except Exception as e:
             print(f"⚠️ Error parsing slice {filepath}: {e}")
 
-    # 🔍 STEP 2: Only ingest old historical tracking data if it doesn't override your fresh run slices!
-    if os.path.exists(json_path):
-        print(f"📖 Merging historical baseline rows from: {json_path}")
-        try:
-            with open(json_path, "r", encoding="utf-8") as f_db:
-                db_data = json.load(f_db)
-                records = db_data if isinstance(db_data, list) else db_data.get("rows", [])
-                
-                for r in records:
-                    link_str = r.get('link', '')
-                    digits = "".join(c for c in link_str.split(']') if c.isdigit())
-                    p_num = r.get('pr_num', digits if digits else "0")
-                    repo_key = str(r.get('repo', '')).strip('/')
-                    
-                    lookup_key = (repo_key, str(p_num))
-                    # Prevent old historical cache data from trampling over your brand new cloud scan details!
-                    if lookup_key not in pr_lookup:
-                        r['pr_num'] = p_num
-                        pr_lookup[lookup_key] = r
-        except Exception as e:
-            print(f"⚠️ History integration notice: {e}")
+    # 🔍 STEP 2: FALLBACK EXTRACTOR - If details drawers are still empty, parse raw .sarif logs directly!
+    sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
+    for s_path in sarif_logs:
+        filename = os.path.basename(s_path).replace(".sarif", "")
+        parts = filename.split("--")
+        if len(parts) < 2: continue
+        repo_clean = parts[0].replace("_SLASH_", "/")
+        pr_clean = parts[1]
+        lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
+        
+        if lookup_key in pr_lookup and not pr_lookup[lookup_key]['findings_details']:
+            try:
+                with open(s_path, "r", encoding="utf-8") as s_f:
+                    s_data = json.load(s_f)
+                    extracted_findings = []
+                    for run in s_data.get('runs', []):
+                        for res in run.get('results', []):
+                            v_id = res.get('ruleId', 'Static Code Defect')
+                            msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
+                            f_line = "Unknown"
+                            for loc in res.get('locations', []):
+                                p_loc = loc.get('physicalLocation', {})
+                                f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
+                                line_num = p_loc.get('region', {}).get('startLine', 0)
+                                f_line = f"{f_path}#L{line_num}"
+                            
+                            extracted_findings.append({
+                                "vulnerability": v_id,
+                                "file_line": f_line,
+                                "description": msg
+                            })
+                    if extracted_findings:
+                        pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                        pr_lookup[lookup_key]['has_issues_bool'] = True
+            except Exception:
+                pass
 
-    # Finalize data tracking ledger out to memory arrays
     compiled_fresh_list = list(pr_lookup.values())
     data = compiled_fresh_list
-    
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
