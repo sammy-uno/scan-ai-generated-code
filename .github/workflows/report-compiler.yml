@@ -38,9 +38,10 @@ jobs:
           mkdir -p all-results
           echo "📥 Fetching scan artifact lists matching chain key: $TARGET_KEY"
           
-          # Query the repository's artifacts and filter strictly by your custom master key string name pattern
+          # 🎯 THE PRODUCTION FIX: Explicitly encapsulates the full jq block in single quotes 
+          # to prevent the shell console from misinterpreting spacing boundaries!
           ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq --arg key "$TARGET_KEY" '.artifacts[] | select(.expired == false and (.name | contains($key))) | .id')
+            --jq '.artifacts[] | select(.expired == false and (.name != null) and (.name | contains("'""$TARGET_KEY""'"))) | .id')
           
           if [ -z "$ART_IDS" ]; then
             echo "❌ Error: No matching artifact packages found for Master Run ID: ${{ github.event.inputs.master_run_id }}"
