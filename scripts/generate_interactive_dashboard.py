@@ -316,7 +316,7 @@ def main():
         clean_repo = str(r.get('repo', 'None')).strip('/')
         clean_pr = str(r.get('pr_num', '0')).strip()
         
-        html_link = '<a href="https://github.com' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
+        html_link = '<a href="https://github.com/' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
         status_display = r.get('status', '🟣 Merged')
         
         # Row coloring matches filtered issue density calculations strictly
