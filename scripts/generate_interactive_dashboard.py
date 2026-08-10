@@ -101,7 +101,7 @@ def main():
 
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
-                    "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
+                    "link": f"[#{pr_clean}](https://github.com/{repo_clean}/pull/{pr_clean})",
                     "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
                     "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
