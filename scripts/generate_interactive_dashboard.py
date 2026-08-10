@@ -16,7 +16,7 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # Restored your original dictionary mapping engine
+    # Restored original dictionary mapping engine natively
     pr_lookup = {}
 
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
@@ -35,7 +35,7 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                # Restored your original parsing indices perfectly
+                # Restored original string boundary parsing configurations perfectly
                 repo_clean = parts[0].replace("_SLASH_", "/")
                 pr_clean = parts[1]
                 lang_clean = parts[2]
@@ -54,8 +54,7 @@ def main():
                 
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 
-                # 🎯 THE COMPLIANCE FIX: Add the tool name to the lookup key combo!
-                # This perfectly preserves your original code while stopping duplicate PR rows from overwriting each other.
+                # Aligned lookup mapping index key to keep rows independent across separate runs
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
                 
                 live_status = "🟣 Merged"
@@ -67,7 +66,7 @@ def main():
                         elif "CLOSED" in raw_state: live_status = "🔴 Closed"
                     except Exception: pass
 
-                # Restored your original clean HTML link parsing format
+                # Restored native clickable anchor element HTML layout configurations
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
@@ -80,7 +79,7 @@ def main():
         except Exception as e:
             print(f"⚠️ Error parsing slice file {filepath}: {e}")
 
-    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR
+    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR (WITH CWE BIND FIX)
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
 
     for s_path in sarif_logs:
@@ -91,7 +90,6 @@ def main():
         repo_clean = parts[0].replace("_SLASH_", "/")
         pr_clean = parts[1]
         
-        # 🎯 RESTORED LOOKUP MATRIX ALIGNMENT
         lang_clean = parts[2] if len(parts) > 2 else "Unknown"
         tool_clean = parts[3].replace("_", " ") if len(parts) > 3 else "Static Engine"
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
@@ -125,6 +123,8 @@ def main():
                 with open(s_path, "r", encoding="utf-8") as s_f:
                     s_data = json.load(s_f)
                     extracted_findings = []
+                    # 🎯 TRACKER: Gathers unique CWE IDs found in this specific file slice
+                    unique_cwes = set()
                     filtered_h, filtered_m, filtered_l = 0, 0, 0
 
                     for run in s_data.get('runs', []):
@@ -153,6 +153,11 @@ def main():
                                 if valid_pr_lines:
                                     continue
 
+                            # 🎯 EXTRACTOR: Captures CWE labels directly from the Rule ID name string
+                            cwe_matches = re.findall(r'(cwe-\d+)', v_id.lower())
+                            for match in cwe_matches:
+                                unique_cwes.add(match.upper())
+
                             if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
                                 filtered_h += 1
                             elif "low" in v_id.lower():
@@ -172,11 +177,15 @@ def main():
                     pr_lookup[lookup_key]['m'] = filtered_m
                     pr_lookup[lookup_key]['l'] = filtered_l
                     
+                    # 🎯 FIXED: Assigns the string list of unique CWEs back to the column slot
+                    if unique_cwes:
+                        pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
+                    else:
+                        pr_lookup[lookup_key]['cwes'] = "None" if total_filtered_issues == 0 else "Detected"
+                    
                     files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                     pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
                     pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
-                    if total_filtered_issues == 0:
-                        pr_lookup[lookup_key]['cwes'] = "None"
                     
             except Exception:
                 pass
@@ -273,7 +282,6 @@ def main():
 
     for index, r in enumerate(data):
         clean_repo = r.get('repo', 'None')
-        # 🎯 RESTORED NATIVE PARSING: Leverages the verified HTML string wrapper from Part 1
         html_link = r.get('link', '#')
         status_display = r.get('status', '🟣 Merged')
         cwes_found = r.get('cwes', 'None')
