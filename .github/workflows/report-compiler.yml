@@ -24,24 +24,26 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 STEP 2: DYNAMICS SCANNER FETCHING - Pulls ALL raw slice artifacts from your last scan run
+      # 🎯 THE FIX: Direct array evaluation syntax to safely grab the correct master execution Run ID
       - name: Download Scan Artifact Slices from Latest Run
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
         run: |
           mkdir -p all-results
           echo "🔍 Searching for the most recent scanning workflow run..."
-          LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" \
-            --jq '.workflow_runs[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
+          
+          # 🎯 CHANGED: Parses the flat array output securely by evaluating the root elements directly
+          LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=20" \
+            --jq '.[] | select(.name | contains("Scanner") or contains("AI")) | .id' | head -n 1)
           
           if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=1" --jq '.workflow_runs.id')
+            echo "⚠️ Direct run lookup failed. Falling back to the most recent run ID element..."
+            LATEST_RUN_ID=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=1" --jq '.[0].id')
           fi
           
           echo "🎯 Target Master Run ID Isolated: $LATEST_RUN_ID"
           
           echo "📥 Extracting all artifact packages..."
-          # Pull down every artifact zip container registered under that single execution run
           ART_IDS=$(gh api "repos/${{ github.repository }}/actions/runs/$LATEST_RUN_ID/artifacts?per_page=100" --jq '.artifacts[] | .id')
           
           for ART_ID in $ART_IDS; do
