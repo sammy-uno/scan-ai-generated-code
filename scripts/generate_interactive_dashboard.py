@@ -1,43 +1,3 @@
-import os
-import json
-import base64
-import subprocess
-import re
-import glob
-import zipfile
-from datetime import datetime, timedelta, timezone
-
-# Global list holder referenced across script blocks to pass detail matrix payloads
-data = []
-
-def fetch_historical_artifact_data(repo_owner_path, pr_number, cwes_fallback):
-    """
-    🎯 LINE-FILTERED COUPLING LAYER: Prioritizes data matrices pre-bound inside global memory.
-    """
-    global data
-    clean_repo = str(repo_owner_path).strip('/')
-    clean_pr = str(pr_number).strip()
-    
-    # Locates active dictionary context rows to dump detailed file lines instantly
-    for row in data:
-        if str(row.get('repo')).strip('/') == clean_repo and str(row.get('pr_num')).strip() == clean_pr:
-            if 'findings_details' in row and row['findings_details']:
-                return row['findings_details']
-                
-    clean_repo_file = repo_owner_path.replace('/', '_SLASH_')
-    json_pattern = f"all-results/{clean_repo_file}--{clean_pr}--*.json"
-    matched_jsons = glob.glob(json_pattern)
-    
-    if matched_jsons:
-        try:
-            with open(matched_jsons, "r", encoding="utf-8") as f_meta:
-                meta_details = json.load(f_meta)
-                if 'findings_details' in meta_details and meta_details['findings_details']:
-                    return meta_details['findings_details']
-        except Exception: 
-            pass
-    return []
-
 def main():
     global data
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
@@ -45,12 +5,13 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # Pristine single-run tracking cache buffer
-    pr_lookup = {}
+    # 🎯 THE PRODUCTION FIX: Completely wipe out the dictionary blocker!
+    # Using a flat list ensures that every file maps 1-to-1 to a table row.
+    pr_list = []
 
-    # 🔍 STEP 1: Deep scan all artifact slices matching your fresh cloud run
+    # Deep scan your run-isolated data slices folder
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
-    print(f"🔍 Deep scanning {len(downloaded_slices)} fresh file artifact fragments...")
+    print(f"🔍 Processing {len(downloaded_slices)} scan files into the HTML report...")
     
     gh_token = os.environ.get("GH_TOKEN", "")
 
@@ -78,40 +39,37 @@ def main():
                 tot = int(slice_data.get('total_issues', h + m + l))
                 cwes = slice_data.get('cwes_discovered', "None")
                 if isinstance(cwes, list): 
-                    cwes = ", ".join(cwes)
+                    cwes = ", ".join(cwes) if cwes else "None"
                 files_impacted = int(slice_data.get('files_changed', 1))
                 
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
-                lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
                 
-                # LIVE LIFECYCLE STATUS FETCH: Queries GitHub API for the true current state
+                # Live Lifecycle Status Check
                 live_status = "🟣 Merged"
                 if gh_token:
                     try:
                         status_cmd = ["gh", "pr", "view", pr_clean, "--repo", repo_clean, "--json", "state", "--jq", ".state"]
                         raw_state = subprocess.check_output(status_cmd, text=True, errors="ignore").strip().upper()
-                        if "OPEN" in raw_state:
-                            live_status = "🟢 Open"
-                        elif "CLOSED" in raw_state:
-                            live_status = "🔴 Closed"
-                        elif "MERGED" in raw_state:
-                            live_status = "🟣 Merged"
-                    except Exception:
-                        pass
+                        if "OPEN" in raw_state: live_status = "🟢 Open"
+                        elif "CLOSED" in raw_state: live_status = "🔴 Closed"
+                        elif "MERGED" in raw_state: live_status = "🟣 Merged"
+                    except Exception: pass
 
-                pr_lookup[lookup_key] = {
+                # 🎯 THE PRODUCTION FIX: Append directly to your flat array list.
+                # This guarantees zero data filtering or deduplication happens inside the report script!
+                pr_list.append({
                     "repo": repo_clean,
-                    "link": f"[#{pr_clean}](https://github.com/{repo_clean}/pull/{pr_clean})",
+                    "link": f"[#{pr_clean}](https://github.com{repo_clean}/pull/{pr_clean})",
                     "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
                     "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
                     "status": live_status, "has_issues_bool": tot > 0, "pr_num": pr_clean,
                     "findings_details": embedded_details
-                }
+                })
         except Exception as e:
-            print(f"⚠️ Error parsing slice {filepath}: {e}")
+            print(f"⚠️ Error parsing slice file {filepath}: {e}")
 
-    # 🔍 STEP 2: FALLBACK EXTRACTOR WITH ROBUST LOOSE PATH MATCHING
+    # 🔍 STEP 2: PARSE RELEVANCIES STRAIGHT FROM SARIF ATTACHMENTS
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
 
     for s_path in sarif_logs:
@@ -121,123 +79,112 @@ def main():
             continue
         repo_clean = parts[0].replace("_SLASH_", "/")
         pr_clean = parts[1]
-        lookup_key = (str(repo_clean).strip('/'), str(pr_clean))
         
-        if lookup_key in pr_lookup:
-            valid_pr_lines = {}
-            
-            if gh_token:
+        # Match data straight by array indexes to avoid dictionary constraints
+        for entry in pr_list:
+            if entry["repo"] == repo_clean and entry["pr_num"] == pr_clean:
+                valid_pr_lines = {}
+                if gh_token:
+                    try:
+                        diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
+                        diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
+                        current_file = None
+                        line_cursor = 0
+                        for line in diff_output.splitlines():
+                            if line.startswith("+++ b/"):
+                                current_file = line[6:].strip()
+                                valid_pr_lines[current_file] = set()
+                            elif line.startswith("@@ ") and current_file:
+                                match = re.search(r"\+(\d+),?(\d+)?", line)
+                                if match:
+                                    line_cursor = int(match.group(1))
+                            elif current_file and line.startswith("+") and not line.startswith("+++"):
+                                if current_file in valid_pr_lines:
+                                    valid_pr_lines[current_file].add(line_cursor)
+                                line_cursor += 1
+                            elif current_file and not line.startswith("-"):
+                                line_cursor += 1
+                    except Exception:
+                        pass
+
                 try:
-                    print(f"🕵️ Mapping live PR code line bounds for {repo_clean} #{pr_clean}...")
-                    diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
-                    diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
-                    
-                    current_file = None
-                    line_cursor = 0
-                    for line in diff_output.splitlines():
-                        if line.startswith("+++ b/"):
-                            current_file = line[6:].strip()
-                            valid_pr_lines[current_file] = set()
-                        elif line.startswith("@@ ") and current_file:
-                            match = re.search(r"\+(\d+),?(\d+)?", line)
-                            if match:
-                                line_cursor = int(match.group(1))
-                        elif current_file and line.startswith("+") and not line.startswith("+++"):
-                            if current_file in valid_pr_lines:
-                                valid_pr_lines[current_file].add(line_cursor)
-                            line_cursor += 1
-                        elif current_file and not line.startswith("-"):
-                            line_cursor += 1
-                except Exception as e:
-                    print(f"⚠️ Could not pull line diff bounds via GitHub API: {e}")
+                    with open(s_path, "r", encoding="utf-8") as s_f:
+                        s_data = json.load(s_f)
+                        extracted_findings = []
+                        filtered_h, filtered_m, filtered_l = 0, 0, 0
 
-            try:
-                with open(s_path, "r", encoding="utf-8") as s_f:
-                    s_data = json.load(s_f)
-                    extracted_findings = []
-                    filtered_h, filtered_m, filtered_l = 0, 0, 0
+                        for run in s_data.get('runs', []):
+                            for res in run.get('results', []):
+                                v_id = res.get('ruleId', 'Static Code Defect')
+                                msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
+                                f_path = "Unknown"
+                                line_num = 0
+                                for loc in res.get('locations', []):
+                                    p_loc = loc.get('physicalLocation', {})
+                                    f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
+                                    line_num = int(p_loc.get('region', {}).get('startLine', 0))
+                                
+                                file_key = str(f_path).strip().strip('/')
+                                matched_file = None
+                                for diff_file in valid_pr_lines.keys():
+                                    clean_diff_file = str(diff_file).strip().strip('/')
+                                    if file_key in clean_diff_file or clean_diff_file in file_key:
+                                        matched_file = diff_file
+                                        break
+                                
+                                if matched_file:
+                                    if line_num not in valid_pr_lines[matched_file]:
+                                        continue
+                                else:
+                                    if valid_pr_lines:
+                                        continue
 
-                    for run in s_data.get('runs', []):
-                        for res in run.get('results', []):
-                            v_id = res.get('ruleId', 'Static Code Defect')
-                            msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
-                            
-                            f_path = "Unknown"
-                            line_num = 0
-                            
-                            for loc in res.get('locations', []):
-                                p_loc = loc.get('physicalLocation', {})
-                                f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
-                                line_num = int(p_loc.get('region', {}).get('startLine', 0))
-                            
-                            # 🎯 LOOSE PATH CHECK: Safely matches files regardless of leading slashes
-                            file_key = str(f_path).strip().strip('/')
-                            matched_file = None
-                            
-                            for diff_file in valid_pr_lines.keys():
-                                clean_diff_file = str(diff_file).strip().strip('/')
-                                if file_key in clean_diff_file or clean_diff_file in file_key:
-                                    matched_file = diff_file
-                                    break
-                            
-                            if matched_file:
-                                if line_num not in valid_pr_lines[matched_file]:
-                                    continue  # Skip historical flaws outside the PR code changes!
-                            else:
-                                if valid_pr_lines:
-                                    continue  # Skip if file didn't receive additions in this PR
+                                if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
+                                    filtered_h += 1
+                                elif "low" in v_id.lower():
+                                    filtered_l += 1
+                                else:
+                                    filtered_m += 1
 
-                            if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
-                                filtered_h += 1
-                            elif "low" in v_id.lower():
-                                filtered_l += 1
-                            else:
-                                filtered_m += 1
+                                extracted_findings.append({
+                                    "vulnerability": v_id,
+                                    "file_line": f"{f_path}#L{line_num}",
+                                    "description": msg
+                                })
+                        
+                        total_filtered_issues = filtered_h + filtered_m + filtered_l
+                        entry['findings_details'] = extracted_findings
+                        entry['h'] = filtered_h
+                        entry['m'] = filtered_m
+                        entry['l'] = filtered_l
+                        
+                        files_changed_count = entry['issues_files'].split('(')[-1].replace(')', '')
+                        entry['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+                        entry['has_issues_bool'] = (total_filtered_issues > 0)
+                        if total_filtered_issues == 0:
+                            entry['cwes'] = "None"
+                        
+                except Exception:
+                    pass
 
-                            extracted_findings.append({
-                                "vulnerability": v_id,
-                                "file_line": f"{f_path}#L{line_num}",
-                                "description": msg
-                            })
-                    
-                    total_filtered_issues = filtered_h + filtered_m + filtered_l
-                    pr_lookup[lookup_key]['findings_details'] = extracted_findings
-                    pr_lookup[lookup_key]['h'] = filtered_h
-                    pr_lookup[lookup_key]['m'] = filtered_m
-                    pr_lookup[lookup_key]['l'] = filtered_l
-                    
-                    files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
-                    pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-                    
-                    # 🎯 SYNC BOUNDS: Safe triage to turn the row white if zero items remain after filtering
-                    pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
-                    if total_filtered_issues == 0:
-                        pr_lookup[lookup_key]['cwes'] = "None"
-                    
-            except Exception as e:
-                print(f"⚠️ Error filtering vulnerabilities for {s_path}: {e}")
-
-    compiled_fresh_list = list(pr_lookup.values())
-    data = compiled_fresh_list
+    # Save to your database path
+    data = pr_list
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-
-    # Global Metric Summary Calculation
+        
+    # 📊 HTML DASHBOARD CONSTRUCTION RENDERER
     total_scanned = len(data)
-    vulnerable_count = sum(1 for r in data if r.get('has_issues_bool', False))
-    total_loc_scanned = sum(int(r.get('loc', 0)) for r in data)
-    open_count = sum(1 for r in data if "Open" in r.get('status', '') or '🟢' in r.get('status', ''))
-    merged_count = sum(1 for r in data if "Merged" in r.get('status', '') or '🟣' in r.get('status', ''))
-    closed_count = sum(1 for r in data if "Closed" in r.get('status', '') or '🔴' in r.get('status', ''))
-
-    green_emoji, purple_emoji, red_emoji, check_emoji, alert_tag = "🟢", "🟣", "🔴", "✅", "🚨"
-    print(f"📊 Compiling {total_scanned} records into an interactive HTML dashboard...")
+    vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
+    total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
+    open_count = sum(1 for x in data if "Open" in x.get('status', ''))
+    merged_count = sum(1 for x in data if "Merged" in x.get('status', ''))
+    closed_count = sum(1 for x in data if "Closed" in x.get('status', ''))
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AI Scanner - Global Analysis Summary</title>
+    <title>AI Scanner - Consolidated Summary Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; margin: 0; padding: 40px; color: #24292f; }}
         h1 {{ color: #1f2328; border-bottom: 1px solid #d0d7de; padding-bottom: 10px; margin-bottom: 20px; }}
@@ -278,14 +225,14 @@ def main():
     </script>
 </head>
 <body>
-    <h1>📊 Global Analysis Summary</h1>
+    <h1>📊 Consolidated Summary Report</h1>
     <div class="metrics-card">
         <h3>📈 Executive Summary</h3>
         <ul>
-            <li><strong>Total PRs Parsed in This Run:</strong> {total_scanned}</li>
-            <li><strong>Total LOC Scanned in This Run:</strong> {total_loc_scanned} lines</li>
-            <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} ⚠️ Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean PRs ✅</span></li>
-            <li><strong>Lifecycle Breakdown:</strong> {green_emoji} Open: {open_count} | {purple_emoji} Merged: {merged_count} | {red_emoji} Closed: {closed_count}</li>
+            <li><strong>Total PRs Compiled in This Report:</strong> {total_scanned}</li>
+            <li><strong>Total LOC Scanned in This Report:</strong> {total_loc_scanned} lines</li>
+            <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean PRs</span></li>
+            <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}</li>
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
@@ -310,27 +257,21 @@ def main():
             <tbody>
 """
 
-    sorted_rows = sorted(data, key=lambda x: (x.get("repo", ""), x.get("link", "")))
-
-    for index, r in enumerate(sorted_rows):
-        clean_repo = str(r.get('repo', 'None')).strip('/')
-        clean_pr = str(r.get('pr_num', '0')).strip()
-        
-        html_link = '<a href="https://github.com/' + clean_repo + '/pull/' + clean_pr + '" target="_blank">#' + clean_pr + '</a>'
+    for index, r in enumerate(data):
+        clean_repo = r.get('repo', 'None')
+        html_link = r.get('link', '#')
         status_display = r.get('status', '🟣 Merged')
-        
-        # Row coloring matches filtered issue density calculations strictly
-        has_flaw = (int(r.get('h', 0)) + int(r.get('m', 0)) + int(r.get('l', 0))) > 0
         cwes_found = r.get('cwes', 'None')
         row_id = f"details_{index}"
-
+        
+        has_flaw = r.get('has_issues_bool', False)
         if has_flaw:
             row_class = ' class="main-row vulnerable-row"'
-            alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">{alert_tag} VULNERABLE</span>'
+            alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>'
             cwe_display = f"<code>{cwes_found}</code>"
         else:
             row_class = ' class="main-row"'
-            alert_prefix = f'<span class="badge badge-clean">{check_emoji} Clean</span>'
+            alert_prefix = f'<span class="badge badge-clean">✅ Clean</span>'
             cwe_display = cwes_found if cwes_found == "None" else f"<code>{cwes_found}</code>"
 
         density_val = r.get('density', 0.0)
@@ -353,9 +294,6 @@ def main():
 
         if has_flaw:
             findings_list = r.get('findings_details', [])
-            if not findings_list:
-                findings_list = fetch_historical_artifact_data(clean_repo, clean_pr, cwes_found)
-                
             sub_table_rows = ""
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Static Analysis Issue')
@@ -406,7 +344,7 @@ def main():
 
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write(html_content)
-    print(f"✨ SUCCESS: Advanced Interactive HTML data dashboard report generated at: {output_path}")
+    print(f"✨ SUCCESS: Report dashboard report generated at: {output_path}")
 
 if __name__ == "__main__":
     main()
