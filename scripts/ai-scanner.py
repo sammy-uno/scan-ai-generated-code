@@ -15,7 +15,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 30     # Scaled ceiling capacity allocation bounds
+    SCAN_LIMIT = 5     # Scaled ceiling capacity allocation bounds
     
     # 🚀 CHUNK OFFSET INGESTION LAYER
     try:
@@ -135,6 +135,14 @@ def main():
     #else:
     #    has_more_data = "false"
     #    print(f"🧪 [TEST MODE] Final PR #{chunk_offset + 1} complete. Terminating the 4-pass test chain.")
+
+    # 🎯 TARGET TRACKING GRADUATION: Stops the loop once you have processed your goal of 20 total items!
+    if next_offset >= 20:
+        print(f"🧪 [TEST CHAIN] Target total batch threshold of 20 items hit. Terminating chaining loop sequence gracefully.")
+        has_more_data = "false"
+    elif has_more_data == "true":
+        print(f"🧪 [TEST CHAIN] Pass complete. Chaining next chunk of 5 at offset: {next_offset}")
+
 
     print("\n--- Discovery Summary ---")
     print(f"✅ Total Added to Matrix: {stats['added']}")
