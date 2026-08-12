@@ -16,7 +16,6 @@ def main():
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
-    # Restored original dictionary mapping engine natively
     pr_lookup = {}
 
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
@@ -35,7 +34,6 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                # Restored original string boundary parsing configurations perfectly
                 repo_clean = parts[0].replace("_SLASH_", "/")
                 pr_clean = parts[1]
                 lang_clean = parts[2]
@@ -47,14 +45,12 @@ def main():
                 m = int(slice_data.get('medium', 0))
                 l = int(slice_data.get('low', 0))
                 tot = int(slice_data.get('total_issues', h + m + l))
-                cwes = slice_data.get('cwes_discovered', "None")
-                if isinstance(cwes, list): 
-                    cwes = ", ".join(cwes) if cwes else "None"
-                files_impacted = int(slice_data.get('files_changed', 1))
                 
+                # Base tracker initialization - placeholder value will be overwritten by direct SARIF values below
+                cwes = "None"
+                files_impacted = int(slice_data.get('files_changed', 1))
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 
-                # Aligned lookup mapping index key to keep rows independent across separate runs
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
                 
                 live_status = "🟣 Merged"
@@ -66,7 +62,6 @@ def main():
                         elif "CLOSED" in raw_state: live_status = "🔴 Closed"
                     except Exception: pass
 
-                # Restored native clickable anchor element HTML layout configurations
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
@@ -79,7 +74,7 @@ def main():
         except Exception as e:
             print(f"⚠️ Error parsing slice file {filepath}: {e}")
 
-    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR
+    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR (WITH SEVERITY & CWE BIND ALIGNMENT)
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
 
     for s_path in sarif_logs:
@@ -127,6 +122,9 @@ def main():
                     filtered_h, filtered_m, filtered_l = 0, 0, 0
 
                     for run in s_data.get('runs', []):
+                        # Pre-cache rules metadata tracking indices to verify true tool level ratings
+                        rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
+                        
                         for res in run.get('results', []):
                             v_id = res.get('ruleId', 'Static Code Defect')
                             msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
@@ -156,15 +154,29 @@ def main():
                             for match in cwe_matches:
                                 unique_cwes.add(match.upper())
 
-                            if "high" in v_id.lower() or "cwe-79" in v_id.lower() or "cwe-89" in v_id.lower():
+                            # 🎯 DYNAMIC SEVERITY EXTRACTION: Resolves true grading profiles natively from tool tags
+                            rule_obj = rules_meta.get(v_id, {})
+                            sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
+                            security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
+                            
+                            try:
+                                severity_score = float(security_severity)
+                            except ValueError:
+                                severity_score = 5.0
+
+                            if sarif_level == "error" or severity_score >= 7.0:
+                                bug_icon = "🔴 High"
                                 filtered_h += 1
-                            elif "low" in v_id.lower():
+                            elif sarif_level == "note" or severity_score < 4.0:
+                                bug_icon = "🔵 Low"
                                 filtered_l += 1
                             else:
+                                bug_icon = "🟡 Medium"
                                 filtered_m += 1
 
                             extracted_findings.append({
                                 "vulnerability": v_id,
+                                "severity_label": bug_icon,
                                 "file_line": f"{f_path}#L{line_num}",
                                 "description": msg
                             })
@@ -175,6 +187,7 @@ def main():
                     pr_lookup[lookup_key]['m'] = filtered_m
                     pr_lookup[lookup_key]['l'] = filtered_l
                     
+                    # 🎯 FIXED COLUMN CAPTURE: Overwrites the table cell directly with the complete string list of unique CWEs
                     if unique_cwes:
                         pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
                     else:
@@ -192,7 +205,7 @@ def main():
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # 📊 RESTORED ORIGINAL HTML DASHBOARD CONSTRUCTION RENDERER
+    # 📊 HTML DASHBOARD BASELINE METRICS CALCULATOR
     total_scanned = len(data)
     vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
     total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
@@ -317,13 +330,13 @@ def main():
             sub_table_rows = ""
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Static Analysis Issue')
+                bug_icon = bug.get('severity_label', '🟡 Medium')
                 file_line  = bug.get('file_line', 'Unknown File Location')
                 desc       = bug.get('description', 'No details provided.')
                 
-                # 🎯 THE PRODUCTION FIX: Appends explicit CWE identifiers next to rules on each line entry
+                # Maps static code rules straight to their explicit CWE tags on each line entry
                 display_rule_text = vuln_title
                 lower_title = vuln_title.lower()
-                
                 if "xss" in lower_title or "through-dom" in lower_title:
                     display_rule_text = f"{vuln_title} (CWE-79)"
                 elif "untrusted-source" in lower_title or "integrity" in lower_title:
@@ -336,10 +349,6 @@ def main():
                     cwe_match = re.search(r'(cwe-\d+)', lower_title)
                     if cwe_match:
                         display_rule_text = f"{vuln_title} ({cwe_match.group(1).upper()})"
-
-                bug_icon = "🟡 Medium"
-                if "cwe-79" in display_rule_text.lower() or "cwe-89" in display_rule_text.lower() or "high" in lower_title:
-                    bug_icon = "🔴 High"
                 
                 sub_table_rows += f"""
                             <tr>
