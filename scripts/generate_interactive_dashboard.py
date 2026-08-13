@@ -209,22 +209,41 @@ def main():
     for item in data:
         active_findings = item.get('findings_details', [])
         
+
+
+#######################
         if active_findings:
             row_cwes = set()
-            for bug in active_findings:
-                # Read the structural tool tags we saved during the SARIF parse step
-                for cwe_tag in bug.get('rule_metadata_cwes', []):
+            for bug_idx, bug in enumerate(active_findings):
+                vuln_id = bug.get('vulnerability', 'Unknown-Rule')
+                meta_cwes = bug.get('rule_metadata_cwes', [])
+                desc_text = bug.get('description', '')
+                
+                print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
+                print(f"     ├── Cached rule_metadata_cwes tags: {meta_cwes}")
+                
+                # Read the structural tool tags saved during the SARIF parse step
+                for cwe_tag in meta_cwes:
                     row_cwes.add(cwe_tag)
                 
                 # Fallback to checking description strings if metadata arrays are empty
-                desc_text = bug.get('description', '').lower()
-                for match in re.findall(r'cwe-(\d+)', desc_text):
-                    row_cwes.add(f"CWE-{int(match)}")
+                desc_matches = re.findall(r'cwe-(\d+)', desc_text.lower())
+                print(f"     ├── Extracted regex matches from description text: {desc_matches}")
+                for match in desc_matches:
+                    normalized_match = f"CWE-{int(match)}"
+                    row_cwes.add(normalized_match)
             
             # Map sorted codes if found, else label as generic untagged vulnerability
-            item['cwes'] = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
+            final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
+            item['cwes'] = final_cwe_string
+            print(f"  🎯 [ROW RESULT -> {repo_name}]: Final 'cwes' ledger string assigned: '{final_cwe_string}'")
         else:
             item['cwes'] = "None"
+            print(f"  ✅ [ROW RESULT -> {repo_name}]: No findings present. Assigned: 'None'")
+    print("============================================================================\n")
+#######################
+
+        
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
