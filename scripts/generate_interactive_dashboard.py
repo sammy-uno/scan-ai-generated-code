@@ -28,7 +28,7 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                # Direct array indexing avoids list-vs-string object reference errors
+                # Safe individual index access from split list array elements
                 repo_clean = parts[0].replace("_SLASH_", "/")
                 pr_clean = parts[1]
                 lang_clean = parts[2]
@@ -76,7 +76,7 @@ def main():
 
     # --- STEP 2: PARSE SARIF LOGS & OVERWRITE WITH REAL CWEs / SEVERITIES ---
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
-    print(f"🔍 Correlating with {len(sarif_logs)} SARIF files for precise severities and CWE lists...")
+    print(f"🔍 Correlating with {len(sarif_logs)} SARIF log files for precise severities and CWE lists...")
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
@@ -90,7 +90,9 @@ def main():
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
         
         if lookup_key in pr_lookup:
+            sarif_rule_cwe_map = {}
             valid_pr_lines = {}
+            
             if gh_token:
                 try:
                     diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
@@ -111,8 +113,8 @@ def main():
                             line_cursor += 1
                         elif current_file and not line.startswith("-"):
                             line_cursor += 1
-                except Exception:
-                    pass
+                except Exception as diff_ex:
+                    print(f"   ⚠️ [ARTIFACT LOG]: Failed parsing live PR diff boundary lines: {diff_ex}")
 
             try:
                 with open(s_path, "r", encoding="utf-8") as s_f:
@@ -122,6 +124,20 @@ def main():
 
                     for run in s_data.get('runs', []):
                         rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
+                        
+                        # 🎯 ARTIFACT LOG SWEEP: Extract tool configurations directly from the static schema rules mapping definitions block
+                        print(f"   ⚙️ [ARTIFACT LOG]: Processing rules definition map from file -> {filename}.sarif")
+                        for rule_id, rule_obj in rules_meta.items():
+                            found_cwes = []
+                            for match in re.findall(r'cwe-(\d+)', rule_id.lower()):
+                                found_cwes.append(f"CWE-{int(match)}")
+                            for tag in rule_obj.get('properties', {}).get('tags', []):
+                                for match in re.findall(r'cwe-(\d+)', tag.lower()):
+                                    found_cwes.append(f"CWE-{int(match)}")
+                            if found_cwes:
+                                clean_cwes = sorted(list(set(found_cwes)))
+                                sarif_rule_cwe_map[rule_id] = clean_cwes
+                                print(f"      ├── Rule '{rule_id}' matched static weakness metadata tags: {clean_cwes}")
                         
                         for res in run.get('results', []):
                             v_id = res.get('ruleId', 'Static Code Defect')
@@ -148,16 +164,6 @@ def main():
 
                             rule_obj = rules_meta.get(v_id, {})
 
-                            # 🎯 EXTRACT CWE FROM SARIF RULE METADATA TAGS AT SCAN TIME
-                            detected_rule_cwes = []
-                            # Look inside rule ID string
-                            for digit_match in re.findall(r'cwe-(\d+)', v_id.lower()):
-                                detected_rule_cwes.append(f"CWE-{int(digit_match)}")
-                            # Look inside rule properties tags array
-                            for tag in rule_obj.get('properties', {}).get('tags', []):
-                                for digit_match in re.findall(r'cwe-(\d+)', tag.lower()):
-                                    detected_rule_cwes.append(f"CWE-{int(digit_match)}")
-
                             # NATIVE SEVERITY LEVEL EVALUATION
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
                             security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
@@ -181,10 +187,12 @@ def main():
                                 "vulnerability": v_id,
                                 "severity_label": bug_icon,
                                 "file_line": f"{f_path}#L{line_num}",
-                                "description": msg,
-                                "rule_metadata_cwes": detected_rule_cwes # Pass the structural tags along safely
+                                "description": msg
                             })
                     
+                    # Secure references inside row memory indices
+                    pr_lookup[lookup_key]['sarif_definitions_map'] = sarif_rule_cwe_map
+
                     if extracted_findings:
                         total_filtered_issues = filtered_h + filtered_m + filtered_l
                         pr_lookup[lookup_key]['findings_details'] = extracted_findings
@@ -196,44 +204,43 @@ def main():
                         files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                         pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
             except Exception as e:
-                print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
+                print(f"⚠️ Error compiling SARIF payload template index {s_path}: {e}")
 
-    data = list(pr_lookup.values())
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-        
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
     
-    # 🎯 CLEAN BINDING: One single condition to check if findings exist and bind their true metadata tags
+    # 🎯 CENTRALIZED RESOLVER: Sweeps the final active findings with robust multi-pass extraction
+    print("\n======================= 🛠️ CWE RESOLUTION DEBUG LOGS =======================")
     for item in data:
         active_findings = item.get('findings_details', [])
+        definitions_map = item.get('sarif_definitions_map', {})
         
-
-
-#######################
+        print(f"📁 [ROW START] Evaluating -> {item.get('repo', 'Unknown')} #{item.get('pr_num', 'Unknown')} | Total findings found in memory: {len(active_findings)}")
+        
         if active_findings:
             row_cwes = set()
             for bug_idx, bug in enumerate(active_findings):
-                vuln_id = bug.get('vulnerability', 'Unknown-Rule')
-                meta_cwes = bug.get('rule_metadata_cwes', [])
-                desc_text = bug.get('description', '')
+                vuln_id = str(bug.get('vulnerability', 'Unknown-Rule'))
+                desc_text = str(bug.get('description', ''))
                 
                 print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
-                print(f"     ├── Cached rule_metadata_cwes tags: {meta_cwes}")
                 
-                # Read the structural tool tags saved during the SARIF parse step
-                for cwe_tag in meta_cwes:
-                    row_cwes.add(cwe_tag)
+                # Check 1: Extract any matching tags correlated from the global SARIF file rule metadata definition maps
+                if vuln_id in definitions_map:
+                    print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
+                    for mapping in definitions_map[vuln_id]:
+                        row_cwes.add(mapping)
                 
-                # Fallback to checking description strings if metadata arrays are empty
+                # Check 2: Raw string matching fallback against rule name text blocks
+                for match in re.findall(r'cwe-(\d+)', vuln_id.lower()):
+                    row_cwes.add(f"CWE-{int(match)}")
+                
+                # Check 3: Raw string matching fallback against defect description text blocks
                 desc_matches = re.findall(r'cwe-(\d+)', desc_text.lower())
-                print(f"     ├── Extracted regex matches from description text: {desc_matches}")
                 for match in desc_matches:
-                    normalized_match = f"CWE-{int(match)}"
-                    row_cwes.add(normalized_match)
+                    row_cwes.add(f"CWE-{int(match)}")
             
-            # Map sorted codes if found, else label as generic untagged vulnerability
+            # Map sorted codes if found, else label cleanly as Vulnerability Detected
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
             item['cwes'] = final_cwe_string
             print(f"  🎯 [ROW RESULT -> {item.get('repo', 'Unknown')}]: Final 'cwes' ledger string assigned: '{final_cwe_string}'")
@@ -241,9 +248,6 @@ def main():
             item['cwes'] = "None"
             print(f"  ✅ [ROW RESULT -> {item.get('repo', 'Unknown')}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
-#######################
-
-        
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -284,7 +288,7 @@ def main():
         .details-table {{ width: 100%; margin: 5px 0; font-size: 13px; border: 1px solid #e1e4e8; border-collapse: collapse; }}
         .details-table th {{ background-color: #eaecef; padding: 6px 12px; border: 1px solid #e1e4e8; color: #24292f; }}
         .details-table td {{ padding: 8px 12px; background-color: #ffffff; border: 1px solid #e1e4e8; }}
-        .toggle-btn {{ pointer: cursor; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }}
+        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }}
     </style>
     <script>
         function toggleDetails(rowId, btnElement) {{
@@ -330,8 +334,6 @@ def main():
                 </tr>
             </thead>
             <tbody>
-"""
-
     for index, r in enumerate(data):
         clean_repo = r.get('repo', 'None')
         html_link = r.get('link', '#')
