@@ -92,7 +92,6 @@ def main():
         parts = filename.split("--")
         if len(parts) < 4: 
             continue
-            
         repo_clean = parts[0].replace("_SLASH_", "/")
         pr_clean = parts[1]
         tool_clean = parts[3].replace("_", " ")
@@ -121,15 +120,13 @@ def main():
                             line_cursor += 1
                         elif current_file and not line.startswith("-"):
                             line_cursor += 1
-                    print(f"   ⚙️ [DEBUG - {repo_clean} #{pr_clean}]: Captured changed files diff scope: {list(valid_pr_lines.keys())}")
-                except Exception as diff_err:
-                    print(f"   ⚠️ [DEBUG - DIFF ERROR]: Failed parsing gh pr diff: {diff_err}")
+                except Exception:
+                    pass
 
             try:
                 with open(s_path, "r", encoding="utf-8") as s_f:
                     s_data = json.load(s_f)
                     extracted_findings = []
-                    unique_cwes = set()
                     filtered_h, filtered_m, filtered_l = 0, 0, 0
 
                     for run in s_data.get('runs', []):
@@ -153,25 +150,12 @@ def main():
                                     matched_file = diff_file
                                     break
                             
-                            # STRICT FILTER CHECK: Must match the specific lines changed inside the PR
                             if matched_file and line_num not in valid_pr_lines[matched_file]:
                                 continue
                             elif valid_pr_lines and not matched_file:
                                 continue
 
-                            print(f"   🎯 [DEBUG MATCH - {repo_clean}]: Found issue on PR line -> {f_path}#L{line_num} (Rule: {v_id})")
-
-                            # COLLECT CWEs ONLY FROM MATCHED LINES
                             rule_obj = rules_meta.get(v_id, {})
-                            
-                            # Scan rule ID string
-                            for digit_match in re.findall(r'cwe-(\d+)', v_id.lower()):
-                                unique_cwes.add(f"CWE-{int(digit_match)}")
-                                
-                            # Scan rule tags array
-                            for tag in rule_obj.get('properties', {}).get('tags', []):
-                                for digit_match in re.findall(r'cwe-(\d+)', tag.lower()):
-                                    unique_cwes.add(f"CWE-{int(digit_match)}")
 
                             # NATIVE SEVERITY LEVEL EVALUATION
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
@@ -200,25 +184,35 @@ def main():
                             })
                     
                     total_filtered_issues = filtered_h + filtered_m + filtered_l
-                    print(f"   📊 [DEBUG SUMMARY - {repo_clean}]: Valid PR line total count: {total_filtered_issues} | Matched CWEs: {list(unique_cwes)}")
+                    pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                    pr_lookup[lookup_key]['h'] = filtered_h
+                    pr_lookup[lookup_key]['m'] = filtered_m
+                    pr_lookup[lookup_key]['l'] = filtered_l
                     
-                    if extracted_findings:
-                        pr_lookup[lookup_key]['findings_details'] = extracted_findings
-                        pr_lookup[lookup_key]['h'] = filtered_h
-                        pr_lookup[lookup_key]['m'] = filtered_m
-                        pr_lookup[lookup_key]['l'] = filtered_l
-                        pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
-                        
-                        files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
-                        pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+                    # 🎯 DYNAMIC EXTRACTOR: Look directly inside the filtered PR findings list
+                    final_cwes = set()
+                    for bug in extracted_findings:
+                        title_text = bug.get('vulnerability', '').lower()
+                        for cwe_digit in re.findall(r'cwe-(\d+)', title_text):
+                            final_cwes.add(f"CWE-{int(cwe_digit)}")
+                    
+                    # If the vulnerability title text rules don't name the CWE directly, pull from rule metadata tags
+                    if not final_cwes and extracted_findings:
+                        for bug in extracted_findings:
+                            rule_obj = rules_meta.get(bug.get('vulnerability'), {})
+                            for tag in rule_obj.get('properties', {}).get('tags', []):
+                                for cwe_digit in re.findall(r'cwe-(\d+)', tag.lower()):
+                                    final_cwes.add(f"CWE-{int(cwe_digit)}")
 
-                    # DIRECT BINDING: Map unique line-filtered CWEs to table column
-                    if unique_cwes:
-                        pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
+                    # Write the real, unique list values straight to the report data structure
+                    if final_cwes:
+                        pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(final_cwes))
                     else:
-                        # Fallback calculation if zero filter entries match
                         pr_lookup[lookup_key]['cwes'] = "None"
-                        
+                    
+                    files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
+                    pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+                    pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
             except Exception as e:
                 print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
 
