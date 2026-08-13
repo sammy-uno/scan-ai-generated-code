@@ -55,13 +55,22 @@ def main():
                     except Exception: 
                         pass
 
+                # Initialize with any CWEs found inside embedded json details
+                initial_cwes = set()
+                for f in embedded_details:
+                    vuln_id = f.get('vulnerability', '')
+                    for c_match in re.findall(r'cwe-(\d+)', vuln_id.lower()):
+                        initial_cwes.add(f"CWE-{int(c_match)}")
+                
+                cwe_str = ", ".join(sorted(initial_cwes)) if initial_cwes else "None"
+
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
                     "tool": tool_clean, 
                     "lang": lang_clean, 
                     "loc": loc_clean, 
-                    "cwes": "None",
+                    "cwes": cwe_str,
                     "h": h, "m": m, "l": l, 
                     "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
@@ -82,9 +91,9 @@ def main():
         parts = filename.split("--")
         if len(parts) < 4: 
             continue
-        repo_clean = parts[1].replace("_SLASH_", "/")
-        pr_clean = parts[2]
-        tool_clean = parts[3].replace("_", " ")
+        repo_clean = parts.replace("_SLASH_", "/")
+        pr_clean = parts
+        tool_clean = parts.replace("_", " ")
         
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
         
@@ -146,17 +155,14 @@ def main():
                             elif valid_pr_lines and not matched_file:
                                 continue
 
-                            # Collect all matching CWE structures from rule ID or metadata tags
-                            cwe_matches = re.findall(r'(cwe-\d+)', v_id.lower())
+                            # DYNAMIC NORMALIZATION: strips leading padding to merge CWE-079 and CWE-79 automatically
+                            for digit_match in re.findall(r'cwe-(\d+)', v_id.lower()):
+                                unique_cwes.add(f"CWE-{int(digit_match)}")
+                                
                             rule_obj = rules_meta.get(v_id, {})
-                            
-                            # Fallback check against rule properties tags for any associated CWE entries
                             for tag in rule_obj.get('properties', {}).get('tags', []):
-                                tag_matches = re.findall(r'(cwe-\d+)', tag.lower())
-                                cwe_matches.extend(tag_matches)
-
-                            for match in cwe_matches:
-                                unique_cwes.add(match.upper())
+                                for digit_match in re.findall(r'cwe-(\d+)', tag.lower()):
+                                    unique_cwes.add(f"CWE-{int(digit_match)}")
 
                             # NATIVE SEVERITY LEVEL EVALUATION
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
@@ -185,24 +191,35 @@ def main():
                             })
                     
                     total_filtered_issues = filtered_h + filtered_m + filtered_l
-                    pr_lookup[lookup_key]['findings_details'] = extracted_findings
-                    pr_lookup[lookup_key]['h'] = filtered_h
-                    pr_lookup[lookup_key]['m'] = filtered_m
-                    pr_lookup[lookup_key]['l'] = filtered_l
                     
-                    # DIRECT INJECTION: Explicit list assignments fixed to bind to tracking structure
+                    # Update findings details if any matched your diff boundaries
+                    if extracted_findings:
+                        pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                        pr_lookup[lookup_key]['h'] = filtered_h
+                        pr_lookup[lookup_key]['m'] = filtered_m
+                        pr_lookup[lookup_key]['l'] = filtered_l
+                        pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                        
+                        files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
+                        pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+
+                    # FALLBACK INJECTION: If SARIF loops did not yield findings, check pre-existing data array objects
+                    if not unique_cwes:
+                        for existing_bug in pr_lookup[lookup_key].get('findings_details', []):
+                            existing_id = existing_bug.get('vulnerability', '')
+                            for digit_match in re.findall(r'cwe-(\d+)', existing_id.lower()):
+                                unique_cwes.add(f"CWE-{int(digit_match)}")
+
+                    # Direct ledger string mapping
                     if unique_cwes:
                         pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
                     else:
-                        pr_lookup[lookup_key]['cwes'] = "None" if total_filtered_issues == 0 else "Detected"
-                    
-                    files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
-                    pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-                    pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                        pr_lookup[lookup_key]['cwes'] = "None" if not pr_lookup[lookup_key]['has_issues_bool'] else "Detected"
+                        
             except Exception as e:
                 print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
 
-    # Compile the clean dictionary values down to our database array
+    # Compile down to your tracking engine file database
     data = list(pr_lookup.values())
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -336,21 +353,23 @@ def main():
                 file_line  = bug.get('file_line', 'Unknown File Location')
                 desc       = bug.get('description', 'No details provided.')
                 
+                # CLEAN REFACTOR: Dynamically normalizes title text tokens without hardcoded checks
                 display_rule_text = vuln_title
-                lower_title = vuln_title.lower()
-                if "xss" in lower_title or "through-dom" in lower_title:
-                    display_rule_text = f"{vuln_title} (CWE-79)"
-                elif "untrusted-source" in lower_title or "integrity" in lower_title:
-                    display_rule_text = f"{vuln_title} (CWE-829)"
-                elif "sql-injection" in lower_title or "sqli" in lower_title:
-                    display_rule_text = f"{vuln_title} (CWE-89)"
-                elif "command-injection" in lower_title or "path-injection" in lower_title:
-                    display_rule_text = f"{vuln_title} (CWE-78)"
-                else:
-                    cwe_match = re.search(r'(cwe-\d+)', lower_title)
-                    if cwe_match:
-                        display_rule_text = f"{vuln_title} ({cwe_match.group(1).upper()})"
+                found_digits = re.findall(r'cwe-(\d+)', vuln_title.lower())
                 
+                if found_digits:
+                    # Clear out raw unpadded variations (like CWE-079) if they appear directly in the raw title
+                    cleaned_title = vuln_title
+                    for d in found_digits:
+                        cleaned_title = re.sub(rf'(?i)\(?cwe-0*{d}\b\)?', '', cleaned_title)
+                    cleaned_title = cleaned_title.strip(" ,()[]-")
+                    
+                    # Generate a unique, normalized string set of labels (e.g., CWE-79, CWE-116)
+                    normalized_labels = sorted(list(set(f"CWE-{int(d)}" for d in found_digits)))
+                    label_suffix = ", ".join(normalized_labels)
+                    
+                    display_rule_text = f"{cleaned_title} ({label_suffix})" if cleaned_title else label_suffix
+
                 sub_table_rows += f"""
                             <tr>
                                 <td><strong>{bug_icon}</strong></td>
