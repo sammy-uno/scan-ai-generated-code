@@ -28,7 +28,7 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                # 🎯 FIXED: Extracted elements by index from the list before replacing
+                # Direct array indexing avoids list-vs-string object reference errors
                 repo_clean = parts[0].replace("_SLASH_", "/")
                 pr_clean = parts[1]
                 lang_clean = parts[2]
@@ -56,22 +56,13 @@ def main():
                     except Exception: 
                         pass
 
-                # Initialize with any CWEs found inside embedded json details
-                initial_cwes = set()
-                for f in embedded_details:
-                    vuln_id = f.get('vulnerability', '')
-                    for c_match in re.findall(r'cwe-(\d+)', vuln_id.lower()):
-                        initial_cwes.add(f"CWE-{int(c_match)}")
-                
-                cwe_str = ", ".join(sorted(initial_cwes)) if initial_cwes else "None"
-
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
                     "tool": tool_clean, 
                     "lang": lang_clean, 
                     "loc": loc_clean, 
-                    "cwes": cwe_str,
+                    "cwes": "None",
                     "h": h, "m": m, "l": l, 
                     "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
@@ -183,44 +174,46 @@ def main():
                                 "description": msg
                             })
                     
-                    total_filtered_issues = filtered_h + filtered_m + filtered_l
-                    pr_lookup[lookup_key]['findings_details'] = extracted_findings
-                    pr_lookup[lookup_key]['h'] = filtered_h
-                    pr_lookup[lookup_key]['m'] = filtered_m
-                    pr_lookup[lookup_key]['l'] = filtered_l
-                    
-                    # 🎯 DYNAMIC EXTRACTOR: Look directly inside the filtered PR findings list
-                    final_cwes = set()
-                    for bug in extracted_findings:
-                        title_text = bug.get('vulnerability', '').lower()
-                        for cwe_digit in re.findall(r'cwe-(\d+)', title_text):
-                            final_cwes.add(f"CWE-{int(cwe_digit)}")
-                    
-                    # If the vulnerability title text rules don't name the CWE directly, pull from rule metadata tags
-                    if not final_cwes and extracted_findings:
-                        for bug in extracted_findings:
-                            rule_obj = rules_meta.get(bug.get('vulnerability'), {})
-                            for tag in rule_obj.get('properties', {}).get('tags', []):
-                                for cwe_digit in re.findall(r'cwe-(\d+)', tag.lower()):
-                                    final_cwes.add(f"CWE-{int(cwe_digit)}")
-
-                    # Write the real, unique list values straight to the report data structure
-                    if final_cwes:
-                        pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(final_cwes))
-                    else:
-                        pr_lookup[lookup_key]['cwes'] = "None"
-                    
-                    files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
-                    pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-                    pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                    # Map findings over ONLY if we matched them within this loop
+                    if extracted_findings:
+                        total_filtered_issues = filtered_h + filtered_m + filtered_l
+                        pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                        pr_lookup[lookup_key]['h'] = filtered_h
+                        pr_lookup[lookup_key]['m'] = filtered_m
+                        pr_lookup[lookup_key]['l'] = filtered_l
+                        pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                        
+                        files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
+                        pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
             except Exception as e:
                 print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
 
+    # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
+    
+    # 🎯 CLEAN BINDING: Evaluates a single condition to assign the proper ledger string
+    for item in data:
+        # Pulls active findings array list directly
+        active_findings = item.get('findings_details', [])
+        
+        if active_findings:
+            row_cwes = set()
+            for bug in active_findings:
+                title_text = bug.get('vulnerability', '').lower()
+                desc_text = bug.get('description', '').lower()
+                
+                # Dynamically extract rule digits from the text strings
+                for match in re.findall(r'cwe-(\d+)', title_text + " " + desc_text):
+                    row_cwes.add(f"CWE-{int(match)}")
+            
+            # Map sorted codes if regex caught anything, else report vulnerability status
+            item['cwes'] = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
+        else:
+            item['cwes'] = "None"
+
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # --- STEP 3: CALCULATE METRICS & WRITE HTML REPORT ---
     total_scanned = len(data)
     vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
     total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
@@ -349,6 +342,7 @@ def main():
                 file_line  = bug.get('file_line', 'Unknown File Location')
                 desc       = bug.get('description', 'No details provided.')
                 
+                # Dynamic normalization to prevent unpadded string duplicates (e.g. CWE-079 vs CWE-79)
                 display_rule_text = vuln_title
                 found_digits = re.findall(r'cwe-(\d+)', vuln_title.lower())
                 
@@ -379,7 +373,7 @@ def main():
                             <table class="details-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 15%;">Severity</th>
+                                        <th style="width: 15%;">Security</th>
                                         <th style="width: 20%;">Vulnerability Rule</th>
                                         <th style="width: 25%;">File Location & Line Number</th>
                                         <th style="width: 40%;">Defect Context Description</th>
