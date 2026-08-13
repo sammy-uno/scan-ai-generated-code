@@ -13,9 +13,9 @@ def main():
     pr_lookup = {}
     gh_token = os.environ.get("GH_TOKEN", "")
 
-    # --- STEP 1: PARSE ALL JSON SLICES ---
+    print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
     downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
-    print(f"🔍 Processing {len(downloaded_slices)} JSON raw scan metadata files...")
+    print(f"📁 Found {len(downloaded_slices)} metadata slice files in workspace.")
     
     for filepath in downloaded_slices:
         if "accumulated_database" in filepath or "ai_accumulated_database" in filepath: 
@@ -25,14 +25,17 @@ def main():
                 slice_data = json.load(f_slice)
                 filename = os.path.basename(filepath).replace(".json", "")
                 parts = filename.split("--")
-                if len(parts) < 5: 
+                if len(parts) < 4: 
+                    print(f"  ⚠️ Skipping malformed slice filename format: {filename}")
                     continue
                 
-                repo_clean = parts[0].replace("_SLASH_", "/")
+                repo_raw = parts[0]
+                repo_clean = repo_raw.replace("_SLASH_", "/")
                 pr_clean = parts[1]
-                lang_clean = parts[2]
-                tool_clean = parts[3].replace("_", " ")
-                raw_size  = parts[4]
+                lang_clean = parts[2] if len(parts) > 2 else "Unknown"
+                tool_clean = parts[3].replace("_", " ") if len(parts) > 3 else "Static Tool"
+                
+                raw_size = parts[4] if len(parts) > 4 else "100"
                 loc_clean = int(raw_size) if raw_size.isdigit() else 100
                 
                 h = int(slice_data.get('high', 0))
@@ -42,6 +45,10 @@ def main():
                 
                 files_impacted = int(slice_data.get('files_changed', 1))
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
+                
+                print(f"  📄 File parsed: '{filename}.json'")
+                print(f"     ├── Repo correlated: {repo_clean} | PR Number: #{pr_clean} | Scan Engine: {tool_clean}")
+                print(f"     └── Base Counts from JSON slice -> Total: {tot} (High: {h}, Med: {m}, Low: {l})")
                 
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
                 
@@ -71,24 +78,31 @@ def main():
                     "findings_details": embedded_details
                 }
         except Exception as e:
-            print(f"⚠️ Error parsing slice file {filepath}: {e}")
+            print(f"  ⚠️ Error parsing slice file {filepath}: {e}")
 
     # --- STEP 2: PARSE SARIF LOGS & OVERWRITE WITH REAL CWEs / SEVERITIES ---
+    print("\n=== 🔍 STEP 2: CORRELATING WITH DOWNLOADED RAW SARIF ARTIFACTS ===")
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
-    print(f"🔍 Correlating with {len(sarif_logs)} SARIF log files...")
+    print(f"📁 Found {len(sarif_logs)} SARIF data tracking files in workspace.")
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
         parts = filename.split("--")
         if len(parts) < 4: 
+            print(f"  ⚠️ Skipping malformed SARIF filename format: {filename}")
             continue
-        repo_clean = parts[0].replace("_SLASH_", "/")
+            
+        repo_raw = parts[0]
+        repo_clean = repo_raw.replace("_SLASH_", "/")
         pr_clean = parts[1]
-        tool_clean = parts[3].replace("_", " ")
+        tool_clean = parts[3].replace("_", " ") if len(parts) > 3 else "Static Tool"
         
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
+        print(f"\n📂 Analyzing Log: '{filename}.sarif'")
+        print(f"   ├── Target Core Mapping Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
         
         if lookup_key in pr_lookup:
+            print("   ├── ✅ Matching row profile discovered in database.")
             sarif_rule_cwe_map = {}
             valid_pr_lines = {}
             
@@ -112,8 +126,9 @@ def main():
                             line_cursor += 1
                         elif current_file and not line.startswith("-"):
                             line_cursor += 1
-                except Exception:
-                    pass
+                    print(f"   ├── ✂️ Git PR diff tracking mapped: {len(valid_pr_lines)} altered code file boundaries loaded.")
+                except Exception as diff_err:
+                    print(f"   ├── ⚠️ Warning: Failed running gh pr diff boundary analysis: {diff_err}")
 
             try:
                 with open(s_path, "r", encoding="utf-8") as s_f:
@@ -124,6 +139,7 @@ def main():
                     for run in s_data.get('runs', []):
                         rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
                         
+                        print("   ├── 🛠️ [GLOBAL SARIF RULES METADATA SWEEP]:")
                         for rule_id, rule_obj in rules_meta.items():
                             found_cwes = []
                             for match in re.findall(r'cwe-(\d+)', rule_id.lower()):
@@ -132,9 +148,14 @@ def main():
                                 for match in re.findall(r'cwe-(\d+)', tag.lower()):
                                     found_cwes.append(f"CWE-{int(match)}")
                             if found_cwes:
-                                sarif_rule_cwe_map[rule_id] = sorted(list(set(found_cwes)))
+                                clean_cwes = sorted(list(set(found_cwes)))
+                                sarif_rule_cwe_map[rule_id] = clean_cwes
+                                print(f"   │   ├── Rule '{rule_id}' structurally defines static CWE tags: {clean_cwes}")
                         
-                        for res in run.get('results', []):
+                        results_list = run.get('results', [])
+                        print(f"   ├── 📊 Total vulnerability instances recorded inside this artifact file: {len(results_list)}")
+                        
+                        for res_idx, res in enumerate(results_list):
                             v_id = res.get('ruleId', 'Static Code Defect')
                             msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
                             f_path = "Unknown"
@@ -152,10 +173,13 @@ def main():
                                     matched_file = diff_file
                                     break
                             
+                            # Strict filtration logging outputs
                             if matched_file and line_num not in valid_pr_lines[matched_file]:
                                 continue
                             elif valid_pr_lines and not matched_file:
                                 continue
+
+                            print(f"   │   🎯 [PR DIFF LINE MATCH]: Finding #{res_idx+1} passed diff boundary check -> {f_path}#L{line_num} (Rule: {v_id})")
 
                             rule_obj = rules_meta.get(v_id, {})
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
@@ -187,6 +211,7 @@ def main():
 
                     if extracted_findings:
                         total_filtered_issues = filtered_h + filtered_m + filtered_l
+                        print(f"   └── 📊 File Sync Completed: {total_filtered_issues} issues matched line boundaries (H: {filtered_h}, M: {filtered_m}, L: {filtered_l})")
                         pr_lookup[lookup_key]['findings_details'] = extracted_findings
                         pr_lookup[lookup_key]['h'] = filtered_h
                         pr_lookup[lookup_key]['m'] = filtered_m
@@ -195,9 +220,12 @@ def main():
                         
                         files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                         pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-            # 🎯 STRUCTURAL CLOSURE: Correctly balances the nested indentation lines 
+                    else:
+                        print("   └── ⚪ File Sync Completed: Zero vulnerability occurrences matched your strict PR diff line changes.")
             except Exception as e:
-                print(f"⚠️ Error compiling SARIF payload template index {s_path}: {e}")
+                print(f"   ⚠️ Error compiling SARIF payload template index {s_path}: {e}")
+        else:
+            print("   ├── ❌ Profile skipped: No matching repository row initialized from JSON step.")
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
