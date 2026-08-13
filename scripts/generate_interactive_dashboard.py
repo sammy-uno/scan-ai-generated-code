@@ -28,7 +28,6 @@ def main():
                 if len(parts) < 5: 
                     continue
                 
-                # Safe individual index access from split list array elements
                 repo_clean = parts[0].replace("_SLASH_", "/")
                 pr_clean = parts[1]
                 lang_clean = parts[2]
@@ -76,7 +75,7 @@ def main():
 
     # --- STEP 2: PARSE SARIF LOGS & OVERWRITE WITH REAL CWEs / SEVERITIES ---
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
-    print(f"🔍 Correlating with {len(sarif_logs)} SARIF log files for precise severities and CWE lists...")
+    print(f"🔍 Correlating with {len(sarif_logs)} SARIF log files...")
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
@@ -113,8 +112,8 @@ def main():
                             line_cursor += 1
                         elif current_file and not line.startswith("-"):
                             line_cursor += 1
-                except Exception as diff_ex:
-                    print(f"   ⚠️ [ARTIFACT LOG]: Failed parsing live PR diff boundary lines: {diff_ex}")
+                except Exception:
+                    pass
 
             try:
                 with open(s_path, "r", encoding="utf-8") as s_f:
@@ -125,8 +124,6 @@ def main():
                     for run in s_data.get('runs', []):
                         rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
                         
-                        # 🎯 ARTIFACT LOG SWEEP: Extract tool configurations directly from the static schema rules mapping definitions block
-                        print(f"   ⚙️ [ARTIFACT LOG]: Processing rules definition map from file -> {filename}.sarif")
                         for rule_id, rule_obj in rules_meta.items():
                             found_cwes = []
                             for match in re.findall(r'cwe-(\d+)', rule_id.lower()):
@@ -135,9 +132,7 @@ def main():
                                 for match in re.findall(r'cwe-(\d+)', tag.lower()):
                                     found_cwes.append(f"CWE-{int(match)}")
                             if found_cwes:
-                                clean_cwes = sorted(list(set(found_cwes)))
-                                sarif_rule_cwe_map[rule_id] = clean_cwes
-                                print(f"      ├── Rule '{rule_id}' matched static weakness metadata tags: {clean_cwes}")
+                                sarif_rule_cwe_map[rule_id] = sorted(list(set(found_cwes)))
                         
                         for res in run.get('results', []):
                             v_id = res.get('ruleId', 'Static Code Defect')
@@ -164,7 +159,6 @@ def main():
 
                             rule_obj = rules_meta.get(v_id, {})
 
-                            # NATIVE SEVERITY LEVEL EVALUATION
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
                             security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
                             
@@ -190,7 +184,6 @@ def main():
                                 "description": msg
                             })
                     
-                    # Secure references inside row memory indices
                     pr_lookup[lookup_key]['sarif_definitions_map'] = sarif_rule_cwe_map
 
                     if extracted_findings:
@@ -203,19 +196,18 @@ def main():
                         
                         files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                         pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-            except Exception as e:
-                print(f"⚠️ Error compiling SARIF payload template index {s_path}: {e}")
+        except Exception as e:
+            print(f"⚠️ Error compiling SARIF payload template index {s_path}: {e}")
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
     
-    # 🎯 CENTRALIZED RESOLVER: Sweeps the final active findings with robust multi-pass extraction
     print("\n======================= 🛠️ CWE RESOLUTION DEBUG LOGS =======================")
     for item in data:
         active_findings = item.get('findings_details', [])
         definitions_map = item.get('sarif_definitions_map', {})
         
-        print(f"📁 [ROW START] Evaluating -> {item.get('repo', 'Unknown')} #{item.get('pr_num', 'Unknown')} | Total findings found in memory: {len(active_findings)}")
+        print(f"📁 [ROW START] Evaluating -> {item.get('repo')} #{item.get('pr_num')} | Total findings: {len(active_findings)}")
         
         if active_findings:
             row_cwes = set()
@@ -225,28 +217,23 @@ def main():
                 
                 print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
                 
-                # Check 1: Extract any matching tags correlated from the global SARIF file rule metadata definition maps
                 if vuln_id in definitions_map:
                     print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
                     for mapping in definitions_map[vuln_id]:
                         row_cwes.add(mapping)
                 
-                # Check 2: Raw string matching fallback against rule name text blocks
                 for match in re.findall(r'cwe-(\d+)', vuln_id.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
                 
-                # Check 3: Raw string matching fallback against defect description text blocks
-                desc_matches = re.findall(r'cwe-(\d+)', desc_text.lower())
-                for match in desc_matches:
+                for match in re.findall(r'cwe-(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
             
-            # Map sorted codes if found, else label cleanly as Vulnerability Detected
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
             item['cwes'] = final_cwe_string
-            print(f"  🎯 [ROW RESULT -> {item.get('repo', 'Unknown')}]: Final 'cwes' ledger string assigned: '{final_cwe_string}'")
+            print(f"  🎯 [ROW RESULT -> {item.get('repo')}]: Final 'cwes' string assigned: '{final_cwe_string}'")
         else:
             item['cwes'] = "None"
-            print(f"  ✅ [ROW RESULT -> {item.get('repo', 'Unknown')}]: No findings present. Assigned: 'None'")
+            print(f"  ✅ [ROW RESULT -> {item.get('repo')}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
 
     with open(json_path, "w", encoding="utf-8") as f:
@@ -259,181 +246,105 @@ def main():
     merged_count = sum(1 for x in data if "Merged" in x.get('status', ''))
     closed_count = sum(1 for x in data if "Closed" in x.get('status', ''))
 
-    html_content = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>AI Scanner - Consolidated Summary Report</title>
+    # Generate Top-Level static boilerplate HTML framework block strings
+    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Summary Report</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; margin: 0; padding: 40px; color: #24292f; }}
-        h1 {{ color: #1f2328; border-bottom: 1px solid #d0d7de; padding-bottom: 10px; margin-bottom: 20px; }}
-        h3 {{ margin-top: 30px; margin-bottom: 15px; color: #1f2328; }}
-        .metrics-card {{ background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 30px; }}
-        .metrics-card ul {{ list-style-type: none; padding: 0; margin: 0; }}
-        .metrics-card li {{ padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 15px; }}
-        .table-container {{ background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
-        table {{ width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }}
-        th {{ background-color: #f6f8fa; color: #57606a; padding: 12px 16px; font-weight: 600; border-bottom: 2px solid #d0d7de; }}
-        td {{ padding: 12px 16px; border-bottom: 1px solid #d0d7de; vertical-align: middle; }}
-        tr.main-row:hover {{ background-color: #f3f4f6 !important; }}
-        .vulnerable-row {{ background-color: #ffebe9 !important; color: #82071e; }}
-        .badge {{ display: inline-block; padding: 2px 8px; font-size: 12px; font-weight: 500; border-radius: 2em; text-decoration: none; }}
-        .badge-vuln {{ background-color: #cf222e; color: #ffffff; }}
-        .badge-clean {{ background-color: #2da44e; color: #ffffff; }}
-        a {{ color: #0969da; text-decoration: none; font-weight: 600; }}
-        code {{ background-color: rgba(175,184,193,0.2); padding: 0.2em 0.4em; border-radius: 6px; font-family: monospace; font-size: 85%; }}
-        .details-row {{ background-color: #fafafa; display: none; }}
-        .details-container {{ padding: 15px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e; margin: 5px 0; }}
-        .details-container h4 {{ margin-top: 0; color: #cf222e; }}
-        .details-table {{ width: 100%; margin: 5px 0; font-size: 13px; border: 1px solid #e1e4e8; border-collapse: collapse; }}
-        .details-table th {{ background-color: #eaecef; padding: 6px 12px; border: 1px solid #e1e4e8; color: #24292f; }}
-        .details-table td {{ padding: 8px 12px; background-color: #ffffff; border: 1px solid #e1e4e8; }}
-        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
+        h1 {{ border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }}
+        .card {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 20px; margin-bottom: 30px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border: 1px solid #d0d7de; border-radius: 6px; }}
+        th {{ background: #f6f8fa; padding: 12px; font-weight: 600; border-bottom: 2px solid #d0d7de; text-align: left; }}
+        td {{ padding: 12px; border-bottom: 1px solid #d0d7de; }}
+        .vulnerable-row {{ background-color: #ffebe9 !important; }}
+        .badge {{ display: inline-block; padding: 2px 8px; font-size: 12px; font-weight: 500; border-radius: 2em; }}
+        .badge-vuln {{ background-color: #cf222e; color: #fff; }}
+        .badge-clean {{ background-color: #2da44e; color: #fff; }}
+        .details-row {{ display: none; background: #fafafa; }}
+        .details-container {{ padding: 15px 30px; background: #fff8f8; border-left: 4px solid #cf222e; }}
+        .details-table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }}
+        .details-table th {{ background: #eaecef; }}
+        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }}
     </style>
     <script>
-        function toggleDetails(rowId, btnElement) {{
-            var element = document.getElementById(rowId);
-            if (element.style.display === "table-row") {{
-                element.style.display = "none";
-                if(btnElement) btnElement.innerHTML = "▶ View Details";
-            }} else {{
-                element.style.display = "table-row";
-                if(btnElement) btnElement.innerHTML = "▼ View Details";
-            }}
+        function toggleDetails(rowId, btn) {{
+            var el = document.getElementById(rowId);
+            if (el.style.display === "table-row") {{ el.style.display = "none"; btn.innerHTML = "▶ View Details"; }}
+            else {{ el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }}
         }}
-    </script>
-</head>
-<body>
+    </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
-    <div class="metrics-card">
+    <div class="card">
         <h3>📈 Executive Summary</h3>
         <ul>
-            <li><strong>Total PRs Compiled in This Report:</strong> {total_scanned}</li>
-            <li><strong>Total LOC Scanned in This Report:</strong> {total_loc_scanned} lines</li>
-            <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean PRs</span></li>
+            <li><strong>Total PRs Compiled:</strong> {total_scanned}</li>
+            <li><strong>Total LOC Scanned:</strong> {total_loc_scanned} lines</li>
+            <li><strong>Status:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean</span></li>
             <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}</li>
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Security Alert Status</th>
-                    <th>Repository Target</th>
-                    <th>PR Reference Link</th>
-                    <th>Status</th>
-                    <th>AI Tool Engine</th>
-                    <th>Language</th>
-                    <th>LOC</th>
-                    <th>CWE Discovered</th>
-                    <th>🔴 H</th>
-                    <th>🟡 M</th>
-                    <th>🔵 L</th>
-                    <th>Total Security Issues (Files)</th>
-                </tr>
-            </thead>
-            <tbody>
+    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th>CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody>"""
+
+    body_html = ""
     for index, r in enumerate(data):
-        clean_repo = r.get('repo', 'None')
-        html_link = r.get('link', '#')
-        status_display = r.get('status', '🟣 Merged')
-        cwes_found = r.get('cwes', 'None')
         row_id = f"details_{index}"
-        
         has_flaw = r.get('has_issues_bool', False)
-        if has_flaw:
-            row_class = ' class="main-row vulnerable-row"'
-            alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>'
-            cwe_display = f"<code>{cwes_found}</code>"
-        else:
-            row_class = ' class="main-row"'
-            alert_prefix = f'<span class="badge badge-clean">✅ Clean</span>'
-            cwe_display = cwes_found if cwes_found == "None" else f"<code>{cwes_found}</code>"
+        cwes_found = r.get('cwes', 'None')
+        
+        row_class = ' class="vulnerable-row"' if has_flaw else ''
+        alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
+        cwe_display = f"<code>{cwes_found}</code>" if has_flaw else (cwes_found if cwes_found == "None" else f"<code>{cwes_found}</code>")
 
-        density_val = r.get('density', 0.0)
-
-        html_content += f"""
-                <tr{row_class}>
-                    <td>{alert_prefix}</td>
-                    <td>{clean_repo}</td>
-                    <td>{html_link}</td>
-                    <td>{status_display}</td>
-                    <td>{r.get('tool', 'None')}</td>
-                    <td>{r.get('lang', 'None')}</td>
-                    <td>{r.get('loc', 0)}</td>
-                    <td>{cwe_display}</td>
-                    <td>{r.get('h', 0)}</td>
-                    <td>{r.get('m', 0)}</td>
-                    <td>{r.get('l', 0)}</td>
-                    <td>{r.get('issues_files', '0 (0)')}</td>
-                </tr>"""
+        body_html += f"""
+        <tr{row_class}>
+            <td>{alert_prefix}</td>
+            <td>{r.get('repo', 'None')}</td>
+            <td>{r.get('link', '#')}</td>
+            <td>{r.get('status', '🟣 Merged')}</td>
+            <td>{r.get('tool', 'None')}</td>
+            <td>{r.get('lang', 'None')}</td>
+            <td>{r.get('loc', 0)}</td>
+            <td>{cwe_display}</td>
+            <td>{r.get('h', 0)}</td>
+            <td>{r.get('m', 0)}</td>
+            <td>{r.get('l', 0)}</td>
+            <td>{r.get('issues_files', '0 (0)')}</td>
+        </tr>"""
 
         if has_flaw:
-            findings_list = r.get('findings_details', [])
             sub_table_rows = ""
-            for bug in findings_list:
+            for bug in r.get('findings_details', []):
                 vuln_title = bug.get('vulnerability', 'Static Analysis Issue')
-                bug_icon = bug.get('severity_label', '🟡 Medium')
-                file_line  = bug.get('file_line', 'Unknown File Location')
-                desc       = bug.get('description', 'No details provided.')
                 
-                # Dynamic normalization to prevent unpadded string duplicates (e.g. CWE-079 vs CWE-79)
                 display_rule_text = vuln_title
                 found_digits = re.findall(r'cwe-(\d+)', vuln_title.lower())
-                
                 if found_digits:
                     cleaned_title = vuln_title
                     for d in found_digits:
                         cleaned_title = re.sub(rf'(?i)\(?cwe-0*{d}\b\)?', '', cleaned_title)
                     cleaned_title = cleaned_title.strip(" ,()[]-")
-                    
                     normalized_labels = sorted(list(set(f"CWE-{int(d)}" for d in found_digits)))
-                    label_suffix = ", ".join(normalized_labels)
-                    
-                    display_rule_text = f"{cleaned_title} ({label_suffix})" if cleaned_title else label_suffix
+                    display_rule_text = f"{cleaned_title} ({', '.join(normalized_labels)})" if cleaned_title else ", ".join(normalized_labels)
 
                 sub_table_rows += f"""
-                            <tr>
-                                <td><strong>{bug_icon}</strong></td>
-                                <td><strong>{display_rule_text}</strong></td>
-                                <td><code>{file_line}</code></td>
-                                <td>{desc}</td>
-                            </tr>"""
-
-            html_content += f"""
-                <tr id="{row_id}" class="details-row">
-                    <td colspan="12">
-                        <div class="details-container">
-                            <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {density_val}):</h4>
-                            <table class="details-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width: 15%;">Security</th>
-                                        <th style="width: 20%;">Vulnerability Rule</th>
-                                        <th style="width: 25%;">File Location & Line Number</th>
-                                        <th style="width: 40%;">Defect Context Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {sub_table_rows}
-                                </tbody>
-                            </table>
-                        </div>
-                    </td>
+                <tr>
+                    <td><strong>{bug.get('severity_label', '🟡 Medium')}</strong></td>
+                    <td><strong>{display_rule_text}</strong></td>
+                    <td><code>{bug.get('file_line', 'Unknown')}</code></td>
+                    <td>{bug.get('description', 'No details provided.')}</td>
                 </tr>"""
 
-    html_content += """
-            </tbody>
-        </table>
-    </div>
-</body>
-</html>
-"""
+            body_html += f"""
+            <tr id="{row_id}" class="details-row"><td colspan="12"><div class="details-container">
+                <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
+                <table class="details-table"><thead><tr><th style="width:15%;">Security</th><th style="width:20%;">Vulnerability Rule</th><th style="width:25%;">File Location & Line</th><th style="width:40%;">Defect Context Description</th></tr></thead><tbody>
+                {sub_table_rows}
+                </tbody></table></div></td></tr>"""
 
-####
+    footer_html = "</tbody></table></body></html>"
+
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
-        out.write(html_content)
+        out.write(header_html + body_html + footer_html)
     print(f"✨ SUCCESS: HTML Reporting dashboard compiled at: {output_path}")
 
 if __name__ == "__main__":
