@@ -236,10 +236,10 @@ def main():
             # Map sorted codes if found, else label as generic untagged vulnerability
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
             item['cwes'] = final_cwe_string
-            print(f"  🎯 [ROW RESULT -> {repo_name}]: Final 'cwes' ledger string assigned: '{final_cwe_string}'")
+            print(f"  🎯 [ROW RESULT -> {item.get('repo', 'Unknown')}]: Final 'cwes' ledger string assigned: '{final_cwe_string}'")
         else:
             item['cwes'] = "None"
-            print(f"  ✅ [ROW RESULT -> {repo_name}]: No findings present. Assigned: 'None'")
+            print(f"  ✅ [ROW RESULT -> {item.get('repo', 'Unknown')}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
 #######################
 
