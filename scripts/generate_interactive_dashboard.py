@@ -1,28 +1,22 @@
 import os
 import json
-import base64
 import subprocess
 import re
 import glob
-import time
-from datetime import datetime, timedelta, timezone
-
-data = []
 
 def main():
-    global data
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
     json_path = "all-results/ai_accumulated_database.json"
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
     pr_lookup = {}
-
-    downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
-    print(f"🔍 Processing {len(downloaded_slices)} raw scan files using restored dashboard engine...")
-    
     gh_token = os.environ.get("GH_TOKEN", "")
 
+    # --- STEP 1: PARSE ALL JSON SLICES ---
+    downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
+    print(f"🔍 Processing {len(downloaded_slices)} JSON raw scan metadata files...")
+    
     for filepath in downloaded_slices:
         if "accumulated_database" in filepath or "ai_accumulated_database" in filepath: 
             continue
@@ -46,8 +40,6 @@ def main():
                 l = int(slice_data.get('low', 0))
                 tot = int(slice_data.get('total_issues', h + m + l))
                 
-                # Base tracker initialization - placeholder value will be overwritten by direct SARIF values below
-                cwes = "None"
                 files_impacted = int(slice_data.get('files_changed', 1))
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 
@@ -60,33 +52,40 @@ def main():
                         raw_state = subprocess.check_output(status_cmd, text=True, errors="ignore").strip().upper()
                         if "OPEN" in raw_state: live_status = "🟢 Open"
                         elif "CLOSED" in raw_state: live_status = "🔴 Closed"
-                    except Exception: pass
+                    except Exception: 
+                        pass
 
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
-                    "tool": tool_clean, "lang": lang_clean, "loc": loc_clean, "cwes": cwes,
-                    "h": h, "m": m, "l": l, "issues_files": f"{tot} ({files_impacted})",
+                    "tool": tool_clean, 
+                    "lang": lang_clean, 
+                    "loc": loc_clean, 
+                    "cwes": "None",
+                    "h": h, "m": m, "l": l, 
+                    "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
-                    "status": live_status, "has_issues_bool": tot > 0, "pr_num": pr_clean,
+                    "status": live_status, 
+                    "has_issues_bool": tot > 0, 
+                    "pr_num": pr_clean,
                     "findings_details": embedded_details
                 }
         except Exception as e:
             print(f"⚠️ Error parsing slice file {filepath}: {e}")
 
-    # 🔍 STEP 2: RESTORED ORIGINAL SARIF LOG COMPARATOR (WITH SEVERITY & CWE BIND ALIGNMENT)
+    # --- STEP 2: PARSE SARIF LOGS & OVERWRITE WITH REAL CWEs / SEVERITIES ---
     sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
+    print(f"🔍 Correlating with {len(sarif_logs)} SARIF files for precise severities and CWE lists...")
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
         parts = filename.split("--")
-        if len(parts) < 2: 
+        if len(parts) < 4: 
             continue
-        repo_clean = parts[0].replace("_SLASH_", "/")
-        pr_clean = parts[1]
+        repo_clean = parts[1].replace("_SLASH_", "/")
+        pr_clean = parts[2]
+        tool_clean = parts[3].replace("_", " ")
         
-        lang_clean = parts[2] if len(parts) > 2 else "Unknown"
-        tool_clean = parts[3].replace("_", " ") if len(parts) > 3 else "Static Engine"
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
         
         if lookup_key in pr_lookup:
@@ -122,7 +121,6 @@ def main():
                     filtered_h, filtered_m, filtered_l = 0, 0, 0
 
                     for run in s_data.get('runs', []):
-                        # Pre-cache rules metadata tracking indices to verify true tool level ratings
                         rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
                         
                         for res in run.get('results', []):
@@ -143,19 +141,24 @@ def main():
                                     matched_file = diff_file
                                     break
                             
-                            if matched_file:
-                                if line_num not in valid_pr_lines[matched_file]:
-                                    continue
-                            else:
-                                if valid_pr_lines:
-                                    continue
+                            if matched_file and line_num not in valid_pr_lines[matched_file]:
+                                continue
+                            elif valid_pr_lines and not matched_file:
+                                continue
 
+                            # Collect all matching CWE structures from rule ID or metadata tags
                             cwe_matches = re.findall(r'(cwe-\d+)', v_id.lower())
+                            rule_obj = rules_meta.get(v_id, {})
+                            
+                            # Fallback check against rule properties tags for any associated CWE entries
+                            for tag in rule_obj.get('properties', {}).get('tags', []):
+                                tag_matches = re.findall(r'(cwe-\d+)', tag.lower())
+                                cwe_matches.extend(tag_matches)
+
                             for match in cwe_matches:
                                 unique_cwes.add(match.upper())
 
-                            # 🎯 DYNAMIC SEVERITY EXTRACTION: Resolves true grading profiles natively from tool tags
-                            rule_obj = rules_meta.get(v_id, {})
+                            # NATIVE SEVERITY LEVEL EVALUATION
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
                             security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
                             
@@ -187,7 +190,7 @@ def main():
                     pr_lookup[lookup_key]['m'] = filtered_m
                     pr_lookup[lookup_key]['l'] = filtered_l
                     
-                    # 🎯 FIXED COLUMN CAPTURE: Overwrites the table cell directly with the complete string list of unique CWEs
+                    # DIRECT INJECTION: Explicit list assignments fixed to bind to tracking structure
                     if unique_cwes:
                         pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
                     else:
@@ -196,16 +199,15 @@ def main():
                     files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                     pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
                     pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
-                    
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
 
-    compiled_fresh_list = list(pr_lookup.values())
-    data = compiled_fresh_list
+    # Compile the clean dictionary values down to our database array
+    data = list(pr_lookup.values())
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # 📊 HTML DASHBOARD BASELINE METRICS CALCULATOR
+    # --- STEP 3: CALCULATE METRICS & WRITE HTML REPORT ---
     total_scanned = len(data)
     vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
     total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
@@ -334,7 +336,6 @@ def main():
                 file_line  = bug.get('file_line', 'Unknown File Location')
                 desc       = bug.get('description', 'No details provided.')
                 
-                # Maps static code rules straight to their explicit CWE tags on each line entry
                 display_rule_text = vuln_title
                 lower_title = vuln_title.lower()
                 if "xss" in lower_title or "through-dom" in lower_title:
