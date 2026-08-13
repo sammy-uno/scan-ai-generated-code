@@ -158,7 +158,6 @@ def main():
                                 continue
 
                             rule_obj = rules_meta.get(v_id, {})
-
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
                             security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
                             
@@ -196,8 +195,9 @@ def main():
                         
                         files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                         pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-        except Exception as e:
-            print(f"⚠️ Error compiling SARIF payload template index {s_path}: {e}")
+            # 🎯 STRUCTURAL CLOSURE: Correctly balances the nested indentation lines 
+            except Exception as e:
+                print(f"⚠️ Error compiling SARIF payload template index {s_path}: {e}")
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
