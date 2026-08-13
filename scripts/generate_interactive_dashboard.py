@@ -148,6 +148,16 @@ def main():
 
                             rule_obj = rules_meta.get(v_id, {})
 
+                            # 🎯 EXTRACT CWE FROM SARIF RULE METADATA TAGS AT SCAN TIME
+                            detected_rule_cwes = []
+                            # Look inside rule ID string
+                            for digit_match in re.findall(r'cwe-(\d+)', v_id.lower()):
+                                detected_rule_cwes.append(f"CWE-{int(digit_match)}")
+                            # Look inside rule properties tags array
+                            for tag in rule_obj.get('properties', {}).get('tags', []):
+                                for digit_match in re.findall(r'cwe-(\d+)', tag.lower()):
+                                    detected_rule_cwes.append(f"CWE-{int(digit_match)}")
+
                             # NATIVE SEVERITY LEVEL EVALUATION
                             sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
                             security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
@@ -171,10 +181,10 @@ def main():
                                 "vulnerability": v_id,
                                 "severity_label": bug_icon,
                                 "file_line": f"{f_path}#L{line_num}",
-                                "description": msg
+                                "description": msg,
+                                "rule_metadata_cwes": detected_rule_cwes # Pass the structural tags along safely
                             })
                     
-                    # Map findings over ONLY if we matched them within this loop
                     if extracted_findings:
                         total_filtered_issues = filtered_h + filtered_m + filtered_l
                         pr_lookup[lookup_key]['findings_details'] = extracted_findings
@@ -188,25 +198,31 @@ def main():
             except Exception as e:
                 print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
 
+    data = list(pr_lookup.values())
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
     
-    # 🎯 CLEAN BINDING: Evaluates a single condition to assign the proper ledger string
+    # 🎯 CLEAN BINDING: One single condition to check if findings exist and bind their true metadata tags
     for item in data:
         active_findings = item.get('findings_details', [])
         
         if active_findings:
             row_cwes = set()
             for bug in active_findings:
-                title_text = bug.get('vulnerability', '').lower()
-                desc_text = bug.get('description', '').lower()
+                # Read the structural tool tags we saved during the SARIF parse step
+                for cwe_tag in bug.get('rule_metadata_cwes', []):
+                    row_cwes.add(cwe_tag)
                 
-                # Dynamically extract rule digits from the text strings
-                for match in re.findall(r'cwe-(\d+)', title_text + " " + desc_text):
+                # Fallback to checking description strings if metadata arrays are empty
+                desc_text = bug.get('description', '').lower()
+                for match in re.findall(r'cwe-(\d+)', desc_text):
                     row_cwes.add(f"CWE-{int(match)}")
             
-            # 🎯 NO GUESSING: If the tool didn't output a numerical code, display empty or standard blank space
-            item['cwes'] = ", ".join(sorted(row_cwes)) if row_cwes else ""
+            # Map sorted codes if found, else label as generic untagged vulnerability
+            item['cwes'] = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
         else:
             item['cwes'] = "None"
 
@@ -249,7 +265,7 @@ def main():
         .details-table {{ width: 100%; margin: 5px 0; font-size: 13px; border: 1px solid #e1e4e8; border-collapse: collapse; }}
         .details-table th {{ background-color: #eaecef; padding: 6px 12px; border: 1px solid #e1e4e8; color: #24292f; }}
         .details-table td {{ padding: 8px 12px; background-color: #ffffff; border: 1px solid #e1e4e8; }}
-        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }}
+        .toggle-btn {{ pointer: cursor; color: #0969da; font-weight: bold; background: none; border: none; padding: 4px 8px; font-size: 12px; }}
     </style>
     <script>
         function toggleDetails(rowId, btnElement) {{
