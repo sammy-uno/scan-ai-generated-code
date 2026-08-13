@@ -93,7 +93,6 @@ def main():
         if len(parts) < 4: 
             continue
             
-        # 🎯 FIXED: Extracted elements by index from the list here too
         repo_clean = parts[0].replace("_SLASH_", "/")
         pr_clean = parts[1]
         tool_clean = parts[3].replace("_", " ")
@@ -122,8 +121,9 @@ def main():
                             line_cursor += 1
                         elif current_file and not line.startswith("-"):
                             line_cursor += 1
-                except Exception:
-                    pass
+                    print(f"   ⚙️ [DEBUG - {repo_clean} #{pr_clean}]: Captured changed files diff scope: {list(valid_pr_lines.keys())}")
+                except Exception as diff_err:
+                    print(f"   ⚠️ [DEBUG - DIFF ERROR]: Failed parsing gh pr diff: {diff_err}")
 
             try:
                 with open(s_path, "r", encoding="utf-8") as s_f:
@@ -153,16 +153,22 @@ def main():
                                     matched_file = diff_file
                                     break
                             
+                            # STRICT FILTER CHECK: Must match the specific lines changed inside the PR
                             if matched_file and line_num not in valid_pr_lines[matched_file]:
                                 continue
                             elif valid_pr_lines and not matched_file:
                                 continue
 
-                            # DYNAMIC NORMALIZATION
+                            print(f"   🎯 [DEBUG MATCH - {repo_clean}]: Found issue on PR line -> {f_path}#L{line_num} (Rule: {v_id})")
+
+                            # COLLECT CWEs ONLY FROM MATCHED LINES
+                            rule_obj = rules_meta.get(v_id, {})
+                            
+                            # Scan rule ID string
                             for digit_match in re.findall(r'cwe-(\d+)', v_id.lower()):
                                 unique_cwes.add(f"CWE-{int(digit_match)}")
                                 
-                            rule_obj = rules_meta.get(v_id, {})
+                            # Scan rule tags array
                             for tag in rule_obj.get('properties', {}).get('tags', []):
                                 for digit_match in re.findall(r'cwe-(\d+)', tag.lower()):
                                     unique_cwes.add(f"CWE-{int(digit_match)}")
@@ -194,6 +200,7 @@ def main():
                             })
                     
                     total_filtered_issues = filtered_h + filtered_m + filtered_l
+                    print(f"   📊 [DEBUG SUMMARY - {repo_clean}]: Valid PR line total count: {total_filtered_issues} | Matched CWEs: {list(unique_cwes)}")
                     
                     if extracted_findings:
                         pr_lookup[lookup_key]['findings_details'] = extracted_findings
@@ -205,16 +212,12 @@ def main():
                         files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
                         pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
 
-                    if not unique_cwes:
-                        for existing_bug in pr_lookup[lookup_key].get('findings_details', []):
-                            existing_id = existing_bug.get('vulnerability', '')
-                            for digit_match in re.findall(r'cwe-(\d+)', existing_id.lower()):
-                                unique_cwes.add(f"CWE-{int(digit_match)}")
-
+                    # DIRECT BINDING: Map unique line-filtered CWEs to table column
                     if unique_cwes:
                         pr_lookup[lookup_key]['cwes'] = ", ".join(sorted(unique_cwes))
                     else:
-                        pr_lookup[lookup_key]['cwes'] = "None" if not pr_lookup[lookup_key]['has_issues_bool'] else "Detected"
+                        # Fallback calculation if zero filter entries match
+                        pr_lookup[lookup_key]['cwes'] = "None"
                         
             except Exception as e:
                 print(f"⚠️ Error compiling SARIF payload {s_path}: {e}")
