@@ -431,6 +431,7 @@ def main():
 </html>
 """
 
+####
     with open(output_path, "w", encoding="utf-8", newline="\n") as out:
         out.write(html_content)
     print(f"✨ SUCCESS: HTML Reporting dashboard compiled at: {output_path}")
