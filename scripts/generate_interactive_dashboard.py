@@ -193,7 +193,6 @@ def main():
     
     # 🎯 CLEAN BINDING: Evaluates a single condition to assign the proper ledger string
     for item in data:
-        # Pulls active findings array list directly
         active_findings = item.get('findings_details', [])
         
         if active_findings:
@@ -206,8 +205,8 @@ def main():
                 for match in re.findall(r'cwe-(\d+)', title_text + " " + desc_text):
                     row_cwes.add(f"CWE-{int(match)}")
             
-            # Map sorted codes if regex caught anything, else report vulnerability status
-            item['cwes'] = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
+            # 🎯 NO GUESSING: If the tool didn't output a numerical code, display empty or standard blank space
+            item['cwes'] = ", ".join(sorted(row_cwes)) if row_cwes else ""
         else:
             item['cwes'] = "None"
 
