@@ -128,10 +128,10 @@ def main():
             print(f"❌ CRITICAL FATAL ERROR: SARIF Filename '{filename}.sarif' does not match the mandatory 5-token structural schema layout.")
             sys.exit(1)
             
-        repo_raw = parts
+        repo_raw = parts[0]
         repo_clean = repo_raw.replace("_SLASH_", "/")
-        pr_clean = parts
-        tool_clean = parts.replace("_", " ")
+        pr_clean = parts[1]
+        tool_clean = parts[3].replace("_", " ")
         
         if not pr_clean.isdigit():
             print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.sarif' is non-numeric.")
