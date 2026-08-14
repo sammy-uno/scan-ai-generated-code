@@ -7,22 +7,39 @@ import sys
 
 def main():
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
-    json_path = "all-results/ai_accumulated_database.json"
+    # 🎯 SYNCHRONIZED PATH: Matches the filename managed by your workflow database branch
+    json_path = "all-results/accumulated_database.json"
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
     
     pr_lookup = {}
-    gh_token = os.environ.get("GH_TOKEN", "")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r", encoding="utf-8") as f_db:
+                historical_records = json.load(f_db)
+                for record in historical_records:
+                    # Reconstruct the lowercase index mapping keys safely
+                    repo = record['repo']
+                    pr_num = record['pr_num']
+                    tool = record['tool']
+                    key = (str(repo).strip().lower(), str(pr_num).strip().lower(), str(tool).strip().lower())
+                    pr_lookup[key] = record
+            print(f"📁 [LEDGER LOG]: Successfully loaded {len(pr_lookup)} historical scan profiles from persistent database branch.")
+        except Exception as ledger_ex:
+            print(f"❌ CRITICAL FATAL ERROR: Failed parsing historical ledger records from '{json_path}': {ledger_ex}")
+            sys.exit(1)
+    else:
+        print("📁 [LEDGER LOG]: No historical dataset ledger found. Initializing a fresh multi-batch tracking baseline.")
 
-    print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
+    gh_token = os.environ.get("GH_TOKEN", "")
+    print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED NEW BATCH JSON ARTIFACT SLICES ===")
     downloaded_slices = glob.glob("all-results/*.*") + glob.glob("*.*")
     
-    # Filter strictly for files that are scan artifact results containing the structural separator
     json_slices = [
         f for f in downloaded_slices 
         if f.endswith(".json") and "--" in os.path.basename(f) and "accumulated_database" not in os.path.basename(f)
     ]
-    print(f"📁 Found {len(json_slices)} raw scan data results slices in workspace.")
+    print(f"📁 Found {len(json_slices)} fresh batch scan data results slices in workspace.")
     
     for filepath in json_slices:
         try:
@@ -31,7 +48,6 @@ def main():
                 filename = os.path.basename(filepath).replace(".json", "")
                 
                 parts = [p for p in filename.split("--") if p]
-                
                 if len(parts) < 5:
                     print(f"❌ CRITICAL FATAL ERROR: Result Filename '{filename}.json' does not match the mandatory 5-token structural schema layout.")
                     sys.exit(1)
@@ -46,7 +62,6 @@ def main():
                     print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.json' is non-numeric.")
                     sys.exit(1)
 
-                # Read from payload keys, or strictly pull the raw integer token from the filename layout
                 raw_size = slice_data.get('loc', slice_data.get('lines_of_code', parts[4]))
                 if not str(raw_size).isdigit():
                     print(f"❌ CRITICAL FATAL ERROR: Lines of Code metrics missing or non-numeric inside payload file or name string: '{filename}.json'")
@@ -61,8 +76,8 @@ def main():
                 files_impacted = int(slice_data['files_changed'])
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 
-                print(f"📄 [ARTIFACT LOG]: Successfully parsed metadata layer -> File: '{filename}.json'")
-                print(f"   ├── Target Extracted Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
+                print(f"📄 [ARTIFACT LOG]: Ingesting fresh data slice -> File: '{filename}.json'")
+                print(f"   ├── Target Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
                 
                 lookup_key = (str(repo_clean).strip().lower(), str(pr_clean).strip().lower(), str(tool_clean).strip().lower())
                 
@@ -70,24 +85,18 @@ def main():
                     print(f"❌ CRITICAL FATAL ERROR: GH_TOKEN environment variable is missing. Cannot fetch lifecycle status for PR #{pr_clean}.")
                     sys.exit(1)
                 
-                live_status = ""
+                live_status = "Unknown Status"
                 try:
                     status_cmd = ["gh", "pr", "view", pr_clean, "--repo", repo_clean, "--json", "state", "--jq", ".state"]
                     raw_state = subprocess.check_output(status_cmd, text=True, errors="ignore").strip().upper()
                     
-                    if "OPEN" in raw_state:
-                        live_status = "🟢 Open"
-                    elif "MERGED" in raw_state:
-                        live_status = "🟣 Merged"
-                    elif "CLOSED" in raw_state:
-                        live_status = "🔴 Closed"
-                    else:
-                        print(f"❌ CRITICAL FATAL ERROR: Unrecognized lifecycle status state string '{raw_state}' returned from GitHub CLI API.")
-                        sys.exit(1)
+                    if "OPEN" in raw_state: live_status = "🟢 Open"
+                    elif "MERGED" in raw_state: live_status = "🟣 Merged"
+                    elif "CLOSED" in raw_state: live_status = "🔴 Closed"
                 except Exception as status_ex: 
-                    print(f"❌ CRITICAL FATAL ERROR: GitHub CLI lookup processing failure for {repo_clean} #{pr_clean}: {status_ex}")
-                    sys.exit(1)
+                    print(f"   ⚠️ Notice: GitHub CLI API view lookup dropped out for '{repo_clean}' #{pr_clean}: {status_ex}")
 
+                # Cumulative Upsert: Overwrites match profiles or inserts new entries cleanly
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
                     "link": f'<a href="https://github.com{repo_clean}/pull/{pr_clean}" target="_blank">#{pr_clean}</a>',
@@ -290,24 +299,17 @@ def main():
                 
                 print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
                 
-                # Check 1: Parse from pre-cached global definitions map metadata
                 if vuln_id in definitions_map:
                     print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
                     for mapping in definitions_map[vuln_id]:
                         row_cwes.add(mapping)
+                else:
+                    print(f"     ├── ⚠️ Alert: No static rule definitions metadata array found for '{vuln_id}' inside the SARIF file.")
                 
-                # Check 2: Robust match against rule name (handles cwe-79, cwe_79, cwe/79, cwe79)
                 for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_id.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
-                
-                # Check 3: Robust match against defect description text blocks
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
-                    
-                # Check 4: Dynamic scan fallback for standard url/standalone digit sequences contextually tied to rules
-                if not row_cwes:
-                    for match in re.findall(r'\b79\b|\b116\b|\b78\b|\b88\b', desc_text + " " + vuln_id):
-                        row_cwes.add(f"CWE-{int(match)}")
             
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
@@ -317,9 +319,11 @@ def main():
             print(f"  ✅ [ROW RESULT -> {item['repo']}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
 
+    # Save the expanded historical ledger directly back to the matching database filename
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+    # Global summary calculations across all historical runs combined
     total_scanned = len(data)
     vulnerable_count = sum(1 for x in data if x['has_issues_bool'])
     total_loc_scanned = sum(int(x['loc']) for x in data)
@@ -327,8 +331,8 @@ def main():
     merged_count = sum(1 for x in data if "Merged" in x['status'])
     closed_count = sum(1 for x in data if "Closed" in x['status'])
 
-    # Generate Top-Level static framework block strings
-    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Summary Report</title>
+    # Generate Top-Level framework blocks using the shared multi-run data variables
+    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Multi-Language Chained Scanner - Consolidated Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
         h1 {{ border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }}
@@ -344,7 +348,7 @@ def main():
         .details-container {{ padding: 15px 30px; background: #fff8f8; border-left: 4px solid #cf222e; }}
         .details-table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }}
         .details-table th {{ background: #eaecef; }}
-        .toggle-btn {{ pointer: cursor; color: #0969da; font-weight: bold; background: none; border: none; }}
+        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }}
     </style>
     <script>
         function toggleDetails(rowId, btn) {{
@@ -355,11 +359,11 @@ def main():
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
-        <h3>📈 Executive Summary</h3>
+        <h3>📈 Executive Summary (All Cumulative Batch Runs)</h3>
         <ul>
-            <li><strong>Total PRs Compiled:</strong> {total_scanned}</li>
-            <li><strong>Total LOC Scanned:</strong> {total_loc_scanned} lines</li>
-            <li><strong>Status:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean</span></li>
+            <li><strong>Total PRs Parsed in This Run:</strong> {total_scanned}</li>
+            <li><strong>Total LOC Scanned in This Run:</strong> {total_loc_scanned} lines</li>
+            <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean</span></li>
             <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}</li>
         </ul>
     </div>
@@ -410,12 +414,8 @@ def main():
                     finding_cwes.add(f"CWE-{int(match)}")
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_body.lower()):
                     finding_cwes.add(f"CWE-{int(match)}")
-                    
-                # Explicitly parse out standalone weakness digit strings
-                if not finding_cwes:
-                    for match in re.findall(r'\b79\b|\b116\b|\b78\b|\b88\b', desc_body + " " + vuln_title):
-                        finding_cwes.add(f"CWE-{int(match)}")
                 
+                # Strict enforcement: crash immediately if a finding cannot resolve its tags
                 if not finding_cwes:
                     print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs.")
                     sys.exit(1)
