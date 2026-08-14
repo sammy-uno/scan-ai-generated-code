@@ -312,25 +312,24 @@ def main():
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
                     
-                # Check 3: 🎯 DYNAMIC REMOTE LOOKAHEAD: If local text layers are entirely empty, scrape CodeQL's official documentation
+                # Check 3: DYNAMIC REMOTE LOOKAHEAD: If local text layers are entirely empty, scrape CodeQL's official documentation help page
                 if not row_cwes and "/" in vuln_id:
-                    vuln_parts = [vp for p in vuln_id.split("/") for vp in p.split("-") if vp]
-                    if len(vuln_parts) >= 2:
-                        # Map the language namespace segment dynamically (e.g. 'js' -> 'javascript', 'python' -> 'python')
-                        lang_dir = "javascript" if vuln_parts[0] in ["js", "ts", "javascript"] else "python"
-                        slug = "-".join(vuln_parts[1:])
-                        help_url = f"https://github.com{lang_dir}/{slug}/"
-                        print(f"     ├── 🌐 Local metadata stripped. Scraping live CodeQL query documentation page: {help_url}")
-                        try:
-                            req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
-                            with urllib.request.urlopen(req, timeout=5) as response:
-                                html_page = response.read().decode('utf-8', errors='ignore')
-                                for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
-                                    cwe_val = f"CWE-{int(match)}"
-                                    row_cwes.add(cwe_val)
-                                    print(f"     │   ├── Live Web Catch -> Extracted standard tag: {cwe_val}")
-                        except Exception as web_err:
-                            print(f"     │   ⚠️ Live Documentation web endpoint lookup failure for {slug}: {web_err}")
+                    # 🎯 FIXED SLUG ASSEMBLY: Preserves and formats the official language shortcut flags
+                    raw_slug = vuln_id.replace("/", "-")
+                    lang_dir = "javascript" if vuln_id.startswith("js/") or vuln_id.startswith("ts/") else "python"
+                    
+                    help_url = f"https://github.com{lang_dir}/{raw_slug}/"
+                    print(f"     ├── 🌐 Local metadata stripped. Scraping live CodeQL query documentation page: {help_url}")
+                    try:
+                        req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
+                        with urllib.request.urlopen(req, timeout=5) as response:
+                            html_page = response.read().decode('utf-8', errors='ignore')
+                            for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
+                                cwe_val = f"CWE-{int(match)}"
+                                row_cwes.add(cwe_val)
+                                print(f"     │   ├── Live Web Catch -> Extracted standard tag: {cwe_val}")
+                    except Exception as web_err:
+                        print(f"     │   ⚠️ Live Documentation web endpoint lookup failure for {raw_slug}: {web_err}")
             
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
@@ -343,14 +342,6 @@ def main():
     # Save the expanded historical ledger directly back to the database file paths
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-
-    # Global summary calculations across all historical runs combined
-    total_scanned = len(data)
-    vulnerable_count = sum(1 for x in data if x['has_issues_bool'])
-    total_loc_scanned = sum(int(x['loc']) for x in data)
-    open_count = sum(1 for x in data if "Open" in x['status'])
-    merged_count = sum(1 for x in data if "Merged" in x['status'])
-    closed_count = sum(1 for x in data if "Closed" in x['status'])
 
     # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Multi-Language Chained Scanner - Consolidated Report</title>
@@ -438,19 +429,17 @@ def main():
                 
                 # Mirror identical dynamic remote web endpoint scraper inside the HTML loop compiler
                 if not finding_cwes and "/" in vuln_title:
-                    vuln_parts = [vp for p in vuln_title.split("/") for vp in p.split("-") if vp]
-                    if len(vuln_parts) >= 2:
-                        lang_dir = "javascript" if vuln_parts[0] in ["js", "ts", "javascript"] else "python"
-                        slug = "-".join(vuln_parts[1:])
-                        help_url = f"https://github.com{lang_dir}/{slug}/"
-                        try:
-                            req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
-                            with urllib.request.urlopen(req, timeout=5) as response:
-                                html_page = response.read().decode('utf-8', errors='ignore')
-                                for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
-                                    finding_cwes.add(f"CWE-{int(match)}")
-                        except Exception:
-                            pass
+                    raw_slug = vuln_title.replace("/", "-")
+                    lang_dir = "javascript" if vuln_title.startswith("js/") or vuln_title.startswith("ts/") else "python"
+                    help_url = f"https://github.com{lang_dir}/{raw_slug}/"
+                    try:
+                        req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
+                        with urllib.request.urlopen(req, timeout=5) as response:
+                            html_page = response.read().decode('utf-8', errors='ignore')
+                            for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
+                                finding_cwes.add(f"CWE-{int(match)}")
+                    except Exception:
+                        pass
                 
                 # Strict enforcement: fail immediately if a finding cannot resolve any tags natively across local files or remote lookups
                 if not finding_cwes:
