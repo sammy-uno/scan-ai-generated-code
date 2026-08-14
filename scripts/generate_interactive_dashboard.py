@@ -46,7 +46,7 @@ def main():
                     print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.json' is non-numeric.")
                     sys.exit(1)
 
-                # 🎯 STRICT EXTRACTION: Read from payload keys, or strictly pull the raw integer token from the filename layout
+                # Read from payload keys, or strictly pull the raw integer token from the filename layout
                 raw_size = slice_data.get('loc', slice_data.get('lines_of_code', parts[4]))
                 if not str(raw_size).isdigit():
                     print(f"❌ CRITICAL FATAL ERROR: Lines of Code metrics missing or non-numeric inside payload file or name string: '{filename}.json'")
@@ -63,9 +63,8 @@ def main():
                 
                 print(f"📄 [ARTIFACT LOG]: Successfully parsed metadata layer -> File: '{filename}.json'")
                 print(f"   ├── Target Extracted Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
-                print(f"   └── Scan Counts From Slice -> Total: {tot} (High: {h}, Med: {m}, Low: {l}) | Impacted Files: {files_impacted}")
                 
-                lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
+                lookup_key = (str(repo_clean).strip().lower(), str(pr_clean).strip().lower(), str(tool_clean).strip().lower())
                 
                 if not gh_token:
                     print(f"❌ CRITICAL FATAL ERROR: GH_TOKEN environment variable is missing. Cannot fetch lifecycle status for PR #{pr_clean}.")
@@ -115,7 +114,6 @@ def main():
     print("\n=== 🔍 STEP 2: CORRELATING WITH DOWNLOADED RAW SARIF ARTIFACTS ===")
     downloaded_logs = glob.glob("all-results/*.*") + glob.glob("*.*")
     
-    # Filter strictly for raw tool results containing the structural separator
     sarif_logs = [
         f for f in downloaded_logs 
         if f.endswith(".sarif") and "--" in os.path.basename(f)
@@ -130,21 +128,22 @@ def main():
             print(f"❌ CRITICAL FATAL ERROR: SARIF Filename '{filename}.sarif' does not match the mandatory 5-token structural schema layout.")
             sys.exit(1)
             
-        repo_raw = parts[0]
+        repo_raw = parts
         repo_clean = repo_raw.replace("_SLASH_", "/")
-        pr_clean = parts[1]
-        tool_clean = parts[3].replace("_", " ")
+        pr_clean = parts
+        tool_clean = parts.replace("_", " ")
         
         if not pr_clean.isdigit():
             print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.sarif' is non-numeric.")
             sys.exit(1)
         
-        lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
+        # Ensures key matches Part 1 lower-case tuple structures identically
+        lookup_key = (str(repo_clean).strip().lower(), str(pr_clean).strip().lower(), str(tool_clean).strip().lower())
         print(f"\n📂 Analyzing Log Asset: '{filename}.sarif'")
         print(f"   ├── Target Extracted Lookup Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
         
         if lookup_key not in pr_lookup:
-            print(f"❌ CRITICAL FATAL ERROR: Structural mismatch! The key context {lookup_key} extracted from '{filename}.sarif' does not match any profile ledger row initialized during the JSON slice processing step.")
+            print(f"❌ CRITICAL FATAL ERROR: Structural mismatch! The context {lookup_key} extracted from '{filename}.sarif' does not match any profile ledger row initialized during the JSON slice processing step.")
             sys.exit(1)
             
         print("   ├── ✅ Matrix connection established. Processing tracking payload rules...")
@@ -225,7 +224,6 @@ def main():
 
                         print(f"   │   🎯 [PR DIFF LINE MATCH]: Finding #{res_idx+1} passed diff boundary check -> {f_path}#L{line_num} (Rule: {v_id})")
 
-                        # 🎯 NO FALLBACKS: Safely extract metadata from the instance itself if rule definition is missing
                         sarif_level = str(res.get('level', 'warning')).lower()
                         security_severity = "5.0"
                         
