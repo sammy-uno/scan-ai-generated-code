@@ -401,12 +401,12 @@ def main():
                 for d in re.findall(r'cwe-(\d+)', vuln_title.lower()):
                     finding_cwes.add(f"CWE-{int(d)}")
                 
-                # Append normalized CWE labels if discovered, else flag explicitly as Untagged
-                if finding_cwes:
-                    cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
-                else:
-                    cwe_label_suffix = " (Untagged Flaw)"
+                # 🎯 STRICTION ENFORCEMENT: Fail immediately if data integrity drops out
+                if not finding_cwes:
+                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions.")
+                    sys.exit(1)
                     
+                cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
                 display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
@@ -432,4 +432,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
