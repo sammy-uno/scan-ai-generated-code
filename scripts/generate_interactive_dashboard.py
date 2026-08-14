@@ -282,6 +282,7 @@ def main():
             sys.exit(1)
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
+    import urllib.request
     data = list(pr_lookup.values())
     
     print("\n======================= 🛠️ CWE RESOLUTION DEBUG LOGS =======================")
@@ -299,27 +300,37 @@ def main():
                 
                 print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
                 
-                # Check 1: Parse from pre-cached global definitions map metadata tags if available
+                # Check 1: Parse from pre-cached global definitions map metadata tags if available locally
                 if vuln_id in definitions_map:
                     print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
                     for mapping in definitions_map[vuln_id]:
                         row_cwes.add(mapping)
                 
-                # Check 2: Direct dynamic parsing of standard CodeQL rule identifiers to extract security tags natively
-                if "xss" in vuln_id or "cross-site-scripting" in vuln_id:
-                    row_cwes.add("CWE-79")
-                    row_cwes.add("CWE-116")
-                elif "command-injection" in vuln_id or "os-command" in vuln_id:
-                    row_cwes.add("CWE-78")
-                    row_cwes.add("CWE-88")
-                elif "untrusted-source" in vuln_id:
-                    row_cwes.add("CWE-829")
-                
-                # Check 3: Extract any numeric codes straight from the rule title string matching
+                # Check 2: Pure dynamic regex sweep for any explicit cwe tags inside local rule names or texts
                 for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_id.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
+                    
+                # Check 3: 🎯 DYNAMIC REMOTE LOOKAHEAD: If local text layers are entirely empty, scrape CodeQL's official documentation
+                if not row_cwes and "/" in vuln_id:
+                    vuln_parts = [vp for p in vuln_id.split("/") for vp in p.split("-") if vp]
+                    if len(vuln_parts) >= 2:
+                        # Map the language namespace segment dynamically (e.g. 'js' -> 'javascript', 'python' -> 'python')
+                        lang_dir = "javascript" if vuln_parts[0] in ["js", "ts", "javascript"] else "python"
+                        slug = "-".join(vuln_parts[1:])
+                        help_url = f"https://github.com{lang_dir}/{slug}/"
+                        print(f"     ├── 🌐 Local metadata stripped. Scraping live CodeQL query documentation page: {help_url}")
+                        try:
+                            req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(req, timeout=5) as response:
+                                html_page = response.read().decode('utf-8', errors='ignore')
+                                for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
+                                    cwe_val = f"CWE-{int(match)}"
+                                    row_cwes.add(cwe_val)
+                                    print(f"     │   ├── Live Web Catch -> Extracted standard tag: {cwe_val}")
+                        except Exception as web_err:
+                            print(f"     │   ⚠️ Live Documentation web endpoint lookup failure for {slug}: {web_err}")
             
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
@@ -419,25 +430,31 @@ def main():
                     for tag in definitions_map[vuln_title]:
                         finding_cwes.add(tag)
                 
-                # Direct dynamic parsing of standard rule identifiers
-                if "xss" in vuln_title or "cross-site-scripting" in vuln_title:
-                    finding_cwes.add("CWE-79")
-                    finding_cwes.add("CWE-116")
-                elif "command-injection" in vuln_title or "os-command" in vuln_title:
-                    finding_cwes.add("CWE-78")
-                    finding_cwes.add("CWE-88")
-                elif "untrusted-source" in vuln_title:
-                    finding_cwes.add("CWE-829")
-                
-                # Robust multi-pass regular expression matching
+                # Pure dynamic regex number extraction
                 for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_title.lower()):
                     finding_cwes.add(f"CWE-{int(match)}")
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_body.lower()):
                     finding_cwes.add(f"CWE-{int(match)}")
                 
-                # Strict enforcement: fail immediately if a finding cannot resolve any tags
+                # Mirror identical dynamic remote web endpoint scraper inside the HTML loop compiler
+                if not finding_cwes and "/" in vuln_title:
+                    vuln_parts = [vp for p in vuln_title.split("/") for vp in p.split("-") if vp]
+                    if len(vuln_parts) >= 2:
+                        lang_dir = "javascript" if vuln_parts[0] in ["js", "ts", "javascript"] else "python"
+                        slug = "-".join(vuln_parts[1:])
+                        help_url = f"https://github.com{lang_dir}/{slug}/"
+                        try:
+                            req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
+                            with urllib.request.urlopen(req, timeout=5) as response:
+                                html_page = response.read().decode('utf-8', errors='ignore')
+                                for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
+                                    finding_cwes.add(f"CWE-{int(match)}")
+                        except Exception:
+                            pass
+                
+                # Strict enforcement: fail immediately if a finding cannot resolve any tags natively across local files or remote lookups
                 if not finding_cwes:
-                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs.")
+                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs or remote specifications.")
                     sys.exit(1)
                     
                 cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
