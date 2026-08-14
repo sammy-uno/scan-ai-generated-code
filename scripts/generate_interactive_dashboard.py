@@ -16,8 +16,13 @@ def main():
 
     print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
     downloaded_slices = glob.glob("all-results/*.*") + glob.glob("*.*")
-    json_slices = [f for f in downloaded_slices if f.endswith(".json") and "database" not in f]
-    print(f"📁 Found {len(json_slices)} JSON data slices in workspace.")
+    
+    # 🎯 STRICTION ENFORCEMENT: Filter strictly for files that are scan artifact results containing the structural separator
+    json_slices = [
+        f for f in downloaded_slices 
+        if f.endswith(".json") and "--" in os.path.basename(f) and "database" not in f
+    ]
+    print(f"📁 Found {len(json_slices)} raw scan data results slices in workspace.")
     
     for filepath in json_slices:
         try:
@@ -27,9 +32,8 @@ def main():
                 
                 parts = [p for p in filename.split("--") if p]
                 
-                # 🎯 STRICTION ENFORCEMENT: Structural parsing mapping keys directly from your exact name tokens
                 if len(parts) < 5:
-                    print(f"❌ CRITICAL FATAL ERROR: Filename '{filename}.json' does not match the mandatory 5-token structural schema layout.")
+                    print(f"❌ CRITICAL FATAL ERROR: Result Filename '{filename}.json' does not match the mandatory 5-token structural schema layout.")
                     sys.exit(1)
                 
                 repo_raw = parts[0]
@@ -38,7 +42,6 @@ def main():
                 lang_clean = parts[2]
                 tool_clean = parts[3].replace("_", " ")
                 
-                # Enforce that the PR token must be a clean integer
                 if not pr_clean.isdigit():
                     print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.json' is non-numeric.")
                     sys.exit(1)
@@ -109,14 +112,19 @@ def main():
 
     # --- STEP 2: PARSE SARIF LOGS & OVERWRITE WITH REAL CWEs / SEVERITIES ---
     print("\n=== 🔍 STEP 2: CORRELATING WITH DOWNLOADED RAW SARIF ARTIFACTS ===")
-    sarif_logs = glob.glob("all-results/*--*.sarif") + glob.glob("*.sarif")
-    print(f"📁 Found {len(sarif_logs)} SARIF data tracking files in workspace.")
+    downloaded_logs = glob.glob("all-results/*.*") + glob.glob("*.*")
+    
+    # 🎯 STRICTION ENFORCEMENT: Filter strictly for raw tool results containing the structural separator
+    sarif_logs = [
+        f for f in downloaded_logs 
+        if f.endswith(".sarif") and "--" in os.path.basename(f)
+    ]
+    print(f"📁 Found {len(sarif_logs)} valid SARIF data tracking files in workspace.")
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
         parts = [p for p in filename.split("--") if p]
         
-        # Enforce identical structural token checks to preserve dictionary key matching mapping paths
         if len(parts) < 5:
             print(f"❌ CRITICAL FATAL ERROR: SARIF Filename '{filename}.sarif' does not match the mandatory 5-token structural schema layout.")
             sys.exit(1)
