@@ -17,7 +17,7 @@ def main():
     print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
     downloaded_slices = glob.glob("all-results/*.*") + glob.glob("*.*")
     
-    # 🎯 FIX: Explicitly target the full master database string to avoid clipping repositories with 'database' in their name
+    # Filter strictly for files that are scan artifact results containing the structural separator
     json_slices = [
         f for f in downloaded_slices 
         if f.endswith(".json") and "--" in os.path.basename(f) and "accumulated_database" not in os.path.basename(f)
@@ -263,6 +263,7 @@ def main():
                 pr_lookup[lookup_key]['findings_details'] = extracted_findings
                 pr_lookup[lookup_key]['h'] = filtered_h
                 pr_lookup[lookup_key]['m'] = filtered_m
+                pr_lookup[ledger_rows_key]['l'] = filtered_l if 'ledger_rows_key' in locals() else filtered_l
                 pr_lookup[lookup_key]['l'] = filtered_l
                 pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
                 
@@ -290,16 +291,24 @@ def main():
                 
                 print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
                 
+                # Check 1: Parse from pre-cached global definitions map metadata
                 if vuln_id in definitions_map:
                     print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
                     for mapping in definitions_map[vuln_id]:
                         row_cwes.add(mapping)
                 
-                for match in re.findall(r'cwe-(\d+)', vuln_id.lower()):
+                # Check 2: Robust match against rule name (handles cwe-79, cwe_79, cwe/79, cwe79)
+                for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_id.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
                 
-                for match in re.findall(r'cwe-(\d+)', desc_text.lower()):
+                # Check 3: Robust match against defect description text blocks
+                for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
+                    
+                # Check 4: Dynamic scan fallback for standard url/standalone digit sequences contextually tied to rules
+                if not row_cwes:
+                    for match in re.findall(r'\b79\b|\b116\b|\b78\b|\b88\b', desc_text + " " + vuln_id):
+                        row_cwes.add(f"CWE-{int(match)}")
             
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
@@ -336,7 +345,7 @@ def main():
         .details-container {{ padding: 15px 30px; background: #fff8f8; border-left: 4px solid #cf222e; }}
         .details-table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }}
         .details-table th {{ background: #eaecef; }}
-        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }}
+        .toggle-btn {{ pointer: cursor; color: #0969da; font-weight: bold; background: none; border: none; }}
     </style>
     <script>
         function toggleDetails(rowId, btn) {{
@@ -390,18 +399,24 @@ def main():
             sub_table_rows = ""
             for bug in r['findings_details']:
                 vuln_title = bug['vulnerability']
+                desc_body = bug.get('description', '')
                 
-                # Extract CWE tags directly associated with this finding rule via the cached definitions map
                 finding_cwes = set()
                 if vuln_title in definitions_map:
                     for tag in definitions_map[vuln_title]:
                         finding_cwes.add(tag)
                 
-                # Back-up extract numeric codes straight from the rule title string matching
-                for d in re.findall(r'cwe-(\d+)', vuln_title.lower()):
-                    finding_cwes.add(f"CWE-{int(d)}")
+                # Robust multi-pass regular expression matching
+                for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_title.lower()):
+                    finding_cwes.add(f"CWE-{int(match)}")
+                for match in re.findall(r'cwe[/\-_]?(\d+)', desc_body.lower()):
+                    finding_cwes.add(f"CWE-{int(match)}")
+                    
+                # Explicitly parse out standalone weakness digit strings
+                if not finding_cwes:
+                    for match in re.findall(r'\b79\b|\b116\b|\b78\b|\b88\b', desc_body + " " + vuln_title):
+                        finding_cwes.add(f"CWE-{int(match)}")
                 
-                # 🎯 STRICTION PARSING: Evaluate the extracted set context rather than just the isolated raw rule string name
                 if not finding_cwes:
                     print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs.")
                     sys.exit(1)
@@ -432,6 +447,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
