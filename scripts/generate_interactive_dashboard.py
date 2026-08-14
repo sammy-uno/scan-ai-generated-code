@@ -319,7 +319,7 @@ def main():
     merged_count = sum(1 for x in data if "Merged" in x['status'])
     closed_count = sum(1 for x in data if "Closed" in x['status'])
 
-    # Generate Top-Level static framework block strings
+   # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Summary Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
