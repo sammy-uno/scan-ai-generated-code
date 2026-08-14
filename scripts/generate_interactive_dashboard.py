@@ -3,6 +3,7 @@ import json
 import subprocess
 import re
 import glob
+import sys
 
 def main():
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
@@ -14,53 +15,85 @@ def main():
     gh_token = os.environ.get("GH_TOKEN", "")
 
     print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
-    downloaded_slices = glob.glob("all-results/*--*.json") + glob.glob("*--*.json")
-    print(f"📁 Found {len(downloaded_slices)} metadata slice files in workspace.")
+    downloaded_slices = glob.glob("all-results/*.*") + glob.glob("*.*")
+    json_slices = [f for f in downloaded_slices if f.endswith(".json") and "database" not in f]
+    print(f"📁 Found {len(json_slices)} JSON data slices in workspace.")
     
-    for filepath in downloaded_slices:
-        if "accumulated_database" in filepath or "ai_accumulated_database" in filepath: 
-            continue
+    for filepath in json_slices:
         try:
             with open(filepath, "r", encoding="utf-8") as f_slice:
                 slice_data = json.load(f_slice)
                 filename = os.path.basename(filepath).replace(".json", "")
-                parts = filename.split("--")
-                if len(parts) < 4: 
-                    print(f"  ⚠️ Skipping malformed slice filename format: {filename}")
-                    continue
                 
-                # 🎯 RESTORED: Uses your precise structural array indexes so strings match perfectly
-                repo_clean = parts[2].replace("_SLASH_", "/")
-                pr_clean = parts[3]
+                parts = [p for p in filename.split("--") if p]
                 
-                lang_clean = parts[1] if len(parts) > 1 else "Unknown"
-                tool_clean = parts[0].replace("_", " ") if len(parts) > 0 else "Static Tool"
+                # Identify the structural run ID token dynamically
+                run_id_idx = -1
+                for idx, token in enumerate(parts):
+                    if token.isdigit() and len(token) >= 9:
+                        run_id_idx = idx
+                        break
                 
-                raw_size = parts[4] if len(parts) > 4 else "100"
-                loc_clean = int(raw_size) if raw_size.isdigit() else 100
+                if run_id_idx == -1 or run_id_idx + 2 >= len(parts):
+                    print(f"❌ CRITICAL FATAL ERROR: Failed to isolate structural Run ID and PR anchors from artifact file: '{filename}.json'")
+                    sys.exit(1)
                 
-                h = int(slice_data.get('high', 0))
-                m = int(slice_data.get('medium', 0))
-                l = int(slice_data.get('low', 0))
+                repo_raw = parts[run_id_idx + 1]
+                repo_clean = repo_raw.replace("_SLASH_", "/")
+                pr_clean = parts[run_id_idx + 2]
+                
+                if run_id_idx + 3 >= len(parts):
+                    print(f"❌ CRITICAL FATAL ERROR: Language token missing from artifact file: '{filename}.json'")
+                    sys.exit(1)
+                lang_clean = parts[run_id_idx + 3]
+                
+                if run_id_idx + 4 >= len(parts):
+                    print(f"❌ CRITICAL FATAL ERROR: Engine tool token missing from artifact file: '{filename}.json'")
+                    sys.exit(1)
+                tool_clean = " ".join(parts[run_id_idx + 4:]).replace("_", " ")
+
+                raw_size = slice_data.get('loc', slice_data.get('lines_of_code'))
+                if not raw_size or not str(raw_size).isdigit():
+                    print(f"❌ CRITICAL FATAL ERROR: Lines of Code metrics missing or non-numeric inside payload file: '{filename}.json'")
+                    sys.exit(1)
+                loc_clean = int(raw_size)
+                
+                h = int(slice_data['high']) if 'high' in slice_data else int(slice_data['high_issues'])
+                m = int(slice_data['medium']) if 'medium' in slice_data else int(slice_data['medium_issues'])
+                l = int(slice_data['low']) if 'low' in slice_data else int(slice_data['low_issues'])
                 tot = int(slice_data.get('total_issues', h + m + l))
                 
-                files_impacted = int(slice_data.get('files_changed', 1))
+                files_impacted = int(slice_data['files_changed'])
                 embedded_details = slice_data.get('findings_details', slice_data.get('issues_list', []))
                 
-                print(f"  📄 File parsed: '{filename}.json'")
-                print(f"     ├── Repo: {repo_clean} | PR: #{pr_clean} | Engine: {tool_clean}")
+                print(f"📄 [ARTIFACT LOG]: Successfully parsed metadata layer -> File: '{filename}.json'")
+                print(f"   ├── Target Extracted Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
+                print(f"   └── Scan Counts From Slice -> Total: {tot} (High: {h}, Med: {m}, Low: {l}) | Impacted Files: {files_impacted}")
                 
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
                 
-                live_status = "🟣 Merged"
-                if gh_token:
-                    try:
-                        status_cmd = ["gh", "pr", "view", pr_clean, "--repo", repo_clean, "--json", "state", "--jq", ".state"]
-                        raw_state = subprocess.check_output(status_cmd, text=True, errors="ignore").strip().upper()
-                        if "OPEN" in raw_state: live_status = "🟢 Open"
-                        elif "CLOSED" in raw_state: live_status = "🔴 Closed"
-                    except Exception: 
-                        pass
+                # 🎯 NO FALLBACKS: Force explicit extraction via GH token or instantly exit
+                if not gh_token:
+                    print(f"❌ CRITICAL FATAL ERROR: GH_TOKEN environment variable is missing. Cannot fetch lifecycle status for PR #{pr_clean}.")
+                    sys.exit(1)
+                
+                live_status = ""
+                try:
+                    status_cmd = ["gh", "pr", "view", pr_clean, "--repo", repo_clean, "--json", "state", "--jq", ".state"]
+                    raw_state = subprocess.check_output(status_cmd, text=True, errors="ignore").strip().upper()
+                    
+                    if "OPEN" in raw_state:
+                        live_status = "🟢 Open"
+                    elif "MERGED" in raw_state:
+                        live_status = "🟣 Merged"
+                    elif "CLOSED" in raw_state:
+                        live_status = "🔴 Closed"
+                    else:
+                        print(f"❌ CRITICAL FATAL ERROR: Unrecognized lifecycle status state string '{raw_state}' returned from GitHub CLI API.")
+                        sys.exit(1)
+                except Exception as status_ex: 
+                    print(f"❌ CRITICAL FATAL ERROR: GitHub CLI lookup processing failure for {repo_clean} #{pr_clean}: {status_ex}")
+                    sys.exit(1)
 
                 pr_lookup[lookup_key] = {
                     "repo": repo_clean,
@@ -68,7 +101,7 @@ def main():
                     "tool": tool_clean, 
                     "lang": lang_clean, 
                     "loc": loc_clean, 
-                    "cwes": "None",
+                    "cwes": "",
                     "h": h, "m": m, "l": l, 
                     "issues_files": f"{tot} ({files_impacted})",
                     "density": round(tot / loc_clean, 4) if loc_clean > 0 else 0.0,
@@ -77,8 +110,12 @@ def main():
                     "pr_num": pr_clean,
                     "findings_details": embedded_details
                 }
+        except KeyError as key_err:
+            print(f"❌ CRITICAL FATAL ERROR: Missing required schema property {key_err} inside file: {filepath}")
+            sys.exit(1)
         except Exception as e:
-            print(f"  ⚠️ Error parsing slice file {filepath}: {e}")
+            print(f"❌ CRITICAL FATAL ERROR: Step 1 loop processing failure on file {filepath}: {e}")
+            sys.exit(1)
 
     # --- STEP 2: PARSE SARIF LOGS & OVERWRITE WITH REAL CWEs / SEVERITIES ---
     print("\n=== 🔍 STEP 2: CORRELATING WITH DOWNLOADED RAW SARIF ARTIFACTS ===")
@@ -87,134 +124,169 @@ def main():
 
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
-        parts = filename.split("--")
+        parts = [p for p in filename.split("--") if p]
         if len(parts) < 4: 
-            print(f"  ⚠️ Skipping malformed SARIF filename format: {filename}")
-            continue
+            print(f"❌ CRITICAL FATAL ERROR: Malformed SARIF filename format detected: '{filename}.sarif'")
+            sys.exit(1)
             
-        # 🎯 RESTORED: Kept aligned with Part 1 index maps completely
-        repo_clean = parts[2].replace("_SLASH_", "/")
-        pr_clean = parts[3]
-        tool_clean = parts[0].replace("_", " ") if len(parts) > 0 else "Static Tool"
+        # ANCHOR PARSER: Isolates layout tokens using identical Run ID positioning rules
+        repo_clean = "Unknown"
+        pr_clean = "Unknown"
+        tool_clean = "Static Tool"
+        
+        run_id_idx = -1
+        for idx, token in enumerate(parts):
+            if token.isdigit() and len(token) >= 9:
+                run_id_idx = idx
+                break
+        
+        if run_id_idx == -1 or run_id_idx + 2 >= len(parts):
+            print(f"❌ CRITICAL FATAL ERROR: Failed to isolate structural Run ID and PR anchors from SARIF filename: '{filename}.sarif'")
+            sys.exit(1)
+            
+        repo_clean = parts[run_id_idx + 1].replace("_SLASH_", "/")
+        pr_clean = parts[run_id_idx + 2]
+        
+        if run_id_idx + 4 >= len(parts):
+            print(f"❌ CRITICAL FATAL ERROR: Engine tool token missing from SARIF filename string: '{filename}.sarif'")
+            sys.exit(1)
+        tool_clean = " ".join(parts[run_id_idx + 4:]).replace("_", " ")
         
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
-        print(f"\n📂 Analyzing Log: '{filename}.sarif'")
+        print(f"\n📂 Analyzing Log Asset: '{filename}.sarif'")
+        print(f"   ├── Target Extracted Lookup Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
         
-        if lookup_key in pr_lookup:
-            print("   ├── ✅ Matching row profile discovered in database.")
-            sarif_rule_cwe_map = {}
-            valid_pr_lines = {}
+        # 🎯 NO FALLBACKS: Key alignment must be perfect across data pipelines
+        if lookup_key not in pr_lookup:
+            print(f"❌ CRITICAL FATAL ERROR: Structural mismatch! The key context {lookup_key} extracted from '{filename}.sarif' does not match any profile ledger row initialized during the JSON slice processing step.")
+            sys.exit(1)
             
-            if gh_token:
-                try:
-                    diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
-                    diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
-                    current_file = None
-                    line_cursor = 0
-                    for line in diff_output.splitlines():
-                        if line.startswith("+++ b/"):
-                            current_file = line[6:].strip()
-                            valid_pr_lines[current_file] = set()
-                        elif line.startswith("@@ ") and current_file:
-                            match = re.search(r"\+(\d+),?(\d+)?", line)
-                            if match:
-                                line_cursor = int(match.group(1))
-                        elif current_file and line.startswith("+") and not line.startswith("+++"):
-                            if current_file in valid_pr_lines:
-                                valid_pr_lines[current_file].add(line_cursor)
-                            line_cursor += 1
-                        elif current_file and not line.startswith("-"):
-                            line_cursor += 1
-                except Exception:
-                    pass
+        print("   ├── ✅ Matrix connection established. Processing tracking payload rules...")
+        sarif_rule_cwe_map = {}
+        valid_pr_lines = {}
+        
+        try:
+            diff_cmd = ["gh", "pr", "diff", pr_clean, "--repo", repo_clean]
+            diff_output = subprocess.check_output(diff_cmd, text=True, errors="ignore")
+            current_file = None
+            line_cursor = 0
+            for line in diff_output.splitlines():
+                if line.startswith("+++ b/"):
+                    current_file = line[6:].strip()
+                    valid_pr_lines[current_file] = set()
+                elif line.startswith("@@ ") and current_file:
+                    match = re.search(r"\+(\d+),?(\d+)?", line)
+                    if match:
+                        line_cursor = int(match.group(1))
+                elif current_file and line.startswith("+") and not line.startswith("+++"):
+                    if current_file in valid_pr_lines:
+                        valid_pr_lines[current_file].add(line_cursor)
+                    line_cursor += 1
+                elif current_file and not line.startswith("-"):
+                    line_cursor += 1
+            print(f"   ├── ✂️ Git Diff: Mapped altered lines across {len(valid_pr_lines)} modified file scopes.")
+        except Exception as diff_ex:
+            print(f"❌ CRITICAL FATAL ERROR: Failed compiling GitHub PR diff boundaries for {repo_clean} #{pr_clean}: {diff_ex}")
+            sys.exit(1)
 
-            try:
-                with open(s_path, "r", encoding="utf-8") as s_f:
-                    s_data = json.load(s_f)
-                    extracted_findings = []
-                    filtered_h, filtered_m, filtered_l = 0, 0, 0
+        try:
+            with open(s_path, "r", encoding="utf-8") as s_f:
+                s_data = json.load(s_f)
+                extracted_findings = []
+                filtered_h, filtered_m, filtered_l = 0, 0, 0
 
-                    for run in s_data.get('runs', []):
-                        rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
-                        
-                        print("   ├── 🛠️ [GLOBAL SARIF RULES METADATA SWEEP]:")
-                        for rule_id, rule_obj in rules_meta.items():
-                            found_cwes = []
-                            for match in re.findall(r'cwe-(\d+)', rule_id.lower()):
-                                found_cwes.append(f"CWE-{int(match)}")
-                            for tag in rule_obj.get('properties', {}).get('tags', []):
-                                for match in re.findall(r'cwe-(\d+)', tag.lower()):
-                                    found_cwes.append(f"CWE-{int(match)}")
-                            if found_cwes:
-                                clean_cwes = sorted(list(set(found_cwes)))
-                                sarif_rule_cwe_map[rule_id] = clean_cwes
-                                print(f"   │   ├── Rule '{rule_id}' structurally defines static CWE tags: {clean_cwes}")
-                        
-                        results_list = run.get('results', [])
-                        
-                        for res_idx, res in enumerate(results_list):
-                            v_id = res.get('ruleId', 'Static Code Defect')
-                            msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
-                            f_path = "Unknown"
-                            line_num = 0
-                            for loc in res.get('locations', []):
-                                p_loc = loc.get('physicalLocation', {})
-                                f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
-                                line_num = int(p_loc.get('region', {}).get('startLine', 0))
-                            
-                            file_key = str(f_path).strip().strip('/')
-                            matched_file = None
-                            for diff_file in valid_pr_lines.keys():
-                                clean_diff_file = str(diff_file).strip().strip('/')
-                                if file_key in clean_diff_file or clean_diff_file in file_key:
-                                    matched_file = diff_file
-                                    break
-                            
-                            if matched_file and line_num not in valid_pr_lines[matched_file]:
-                                continue
-                            elif valid_pr_lines and not matched_file:
-                                continue
-
-                            rule_obj = rules_meta.get(v_id, {})
-                            sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
-                            security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
-                            
-                            try:
-                                severity_score = float(security_severity)
-                            except ValueError:
-                                severity_score = 5.0
-
-                            if sarif_level == "error" or severity_score >= 7.0:
-                                bug_icon = "🔴 High"
-                                filtered_h += 1
-                            elif sarif_level == "note" or severity_score < 4.0:
-                                bug_icon = "🔵 Low"
-                                filtered_l += 1
-                            else:
-                                bug_icon = "🟡 Medium"
-                                filtered_m += 1
-
-                            extracted_findings.append({
-                                "vulnerability": v_id,
-                                "severity_label": bug_icon,
-                                "file_line": f"{f_path}#L{line_num}",
-                                "description": msg
-                            })
+                for run in s_data.get('runs', []):
+                    rules_meta = {r.get('id'): r for r in run.get('tool', {}).get('driver', {}).get('rules', [])}
                     
-                    pr_lookup[lookup_key]['sarif_definitions_map'] = sarif_rule_cwe_map
-
-                    if extracted_findings:
-                        total_filtered_issues = filtered_h + filtered_m + filtered_l
-                        pr_lookup[lookup_key]['findings_details'] = extracted_findings
-                        pr_lookup[lookup_key]['h'] = filtered_h
-                        pr_lookup[lookup_key]['m'] = filtered_m
-                        pr_lookup[lookup_key]['l'] = filtered_l
-                        pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                    print("   ├── 🛠️ [GLOBAL SARIF RULES METADATA SWEEP]:")
+                    for rule_id, rule_obj in rules_meta.items():
+                        found_cwes = []
+                        for match in re.findall(r'cwe-(\d+)', rule_id.lower()):
+                            found_cwes.append(f"CWE-{int(match)}")
+                        for tag in rule_obj.get('properties', {}).get('tags', []):
+                            for match in re.findall(r'cwe-(\d+)', tag.lower()):
+                                found_cwes.append(f"CWE-{int(match)}")
+                        if found_cwes:
+                            clean_cwes = sorted(list(set(found_cwes)))
+                            sarif_rule_cwe_map[rule_id] = clean_cwes
+                            print(f"   │   ├── Rule '{rule_id}' structurally defines static CWE tags: {clean_cwes}")
+                    
+                    results_list = run.get('results', [])
+                    print(f"   ├── 📊 Total vulnerability instances recorded inside this artifact file: {len(results_list)}")
+                    
+                    for res_idx, res in enumerate(results_list):
+                        v_id = res.get('ruleId', 'Static Code Defect')
+                        msg = res.get('message', {}).get('text', 'Security vulnerability discovered.')
+                        f_path = "Unknown"
+                        line_num = 0
+                        for loc in res.get('locations', []):
+                            p_loc = loc.get('physicalLocation', {})
+                            f_path = p_loc.get('artifactLocation', {}).get('uri', 'File')
+                            line_num = int(p_loc.get('region', {}).get('startLine', 0))
                         
-                        files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
-                        pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
-            except Exception as e:
-                print(f"   ⚠️ Error compiling SARIF payload template index {s_path}: {e}")
+                        file_key = str(f_path).strip().strip('/')
+                        matched_file = None
+                        for diff_file in valid_pr_lines.keys():
+                            clean_diff_file = str(diff_file).strip().strip('/')
+                            if file_key in clean_diff_file or clean_diff_file in file_key:
+                                matched_file = diff_file
+                                break
+                        
+                        # Strict line filter
+                        if matched_file and line_num not in valid_pr_lines[matched_file]:
+                            continue
+                        elif valid_pr_lines and not matched_file:
+                            continue
+
+                        print(f"   │   🎯 [PR DIFF LINE MATCH]: Finding #{res_idx+1} passed diff boundary check -> {f_path}#L{line_num} (Rule: {v_id})")
+
+                        if v_id not in rules_meta:
+                            print(f"❌ CRITICAL FATAL ERROR: Result entry refers to ruleId '{v_id}' which is entirely missing from the SARIF rules driver configuration directory mapping list.")
+                            sys.exit(1)
+                        rule_obj = rules_meta[v_id]
+                        
+                        sarif_level = res.get('level', rule_obj.get('defaultConfiguration', {}).get('level', 'warning')).lower()
+                        security_severity = str(rule_obj.get('properties', {}).get('security-severity', '5.0'))
+                        
+                        try:
+                            severity_score = float(security_severity)
+                        except ValueError:
+                            print(f"❌ CRITICAL FATAL ERROR: Non-numeric security-severity string value '{security_severity}' generated by tool configuration rules.")
+                            sys.exit(1)
+
+                        if sarif_level == "error" or severity_score >= 7.0:
+                            bug_icon = "🔴 High"
+                            filtered_h += 1
+                        elif sarif_level == "note" or severity_score < 4.0:
+                            bug_icon = "🔵 Low"
+                            filtered_l += 1
+                        else:
+                            bug_icon = "🟡 Medium"
+                            filtered_m += 1
+
+                        extracted_findings.append({
+                            "vulnerability": v_id,
+                            "severity_label": bug_icon,
+                            "file_line": f"{f_path}#L{line_num}",
+                            "description": msg
+                        })
+                
+                pr_lookup[lookup_key]['sarif_definitions_map'] = sarif_rule_cwe_map
+
+                # Force synchronization overwrite of results context parameters safely
+                total_filtered_issues = filtered_h + filtered_m + filtered_l
+                print(f"   └── 📊 File Correlation Completed: {total_filtered_issues} issues matched line boundaries (H: {filtered_h}, M: {filtered_m}, L: {filtered_l})")
+                pr_lookup[lookup_key]['findings_details'] = extracted_findings
+                pr_lookup[lookup_key]['h'] = filtered_h
+                pr_lookup[lookup_key]['m'] = filtered_m
+                pr_lookup[lookup_key]['l'] = filtered_l
+                pr_lookup[lookup_key]['has_issues_bool'] = (total_filtered_issues > 0)
+                
+                files_changed_count = pr_lookup[lookup_key]['issues_files'].split('(')[-1].replace(')', '')
+                pr_lookup[lookup_key]['issues_files'] = f"{total_filtered_issues} ({files_changed_count})"
+        except Exception as e:
+            print(f"❌ CRITICAL FATAL ERROR: Step 2 compilation crash on asset file {s_path}: {e}")
+            sys.exit(1)
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
     data = list(pr_lookup.values())
@@ -245,7 +317,8 @@ def main():
                 for match in re.findall(r'cwe-(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
             
-            final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Vulnerability Detected"
+            # 🎯 CHANGED: Wiped out "Vulnerability Detected" fallback. Explicitly flag as Untagged Flaw.
+            final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
             print(f"  🎯 [ROW RESULT -> {item.get('repo')}]: Final 'cwes' string assigned: '{final_cwe_string}'")
         else:
@@ -263,7 +336,7 @@ def main():
     merged_count = sum(1 for x in data if "Merged" in x.get('status', ''))
     closed_count = sum(1 for x in data if "Closed" in x.get('status', ''))
 
-    # Generate Top-Level static boilerplate HTML framework block strings
+    # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Summary Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
@@ -305,33 +378,35 @@ def main():
     body_html = ""
     for index, r in enumerate(data):
         row_id = f"details_{index}"
-        has_flaw = r.get('has_issues_bool', False)
-        cwes_found = r.get('cwes', 'None')
+        has_flaw = r['has_issues_bool']
+        cwes_found = r['cwes']
         
         row_class = ' class="vulnerable-row"' if has_flaw else ''
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
+        
+        # Enforce strict syntax layout strings
         cwe_display = f"<code>{cwes_found}</code>" if has_flaw else (cwes_found if cwes_found == "None" else f"<code>{cwes_found}</code>")
 
         body_html += f"""
         <tr{row_class}>
             <td>{alert_prefix}</td>
-            <td>{r.get('repo', 'None')}</td>
-            <td>{r.get('link', '#')}</td>
-            <td>{r.get('status', '🟣 Merged')}</td>
-            <td>{r.get('tool', 'None')}</td>
-            <td>{r.get('lang', 'None')}</td>
-            <td>{r.get('loc', 0)}</td>
+            <td>{r['repo']}</td>
+            <td>{r['link']}</td>
+            <td>{r['status']}</td>
+            <td>{r['tool']}</td>
+            <td>{r['lang']}</td>
+            <td>{r['loc']}</td>
             <td>{cwe_display}</td>
-            <td>{r.get('h', 0)}</td>
-            <td>{r.get('m', 0)}</td>
-            <td>{r.get('l', 0)}</td>
-            <td>{r.get('issues_files', '0 (0)')}</td>
+            <td>{r['h']}</td>
+            <td>{r['m']}</td>
+            <td>{r['l']}</td>
+            <td>{r['issues_files']}</td>
         </tr>"""
 
         if has_flaw:
             sub_table_rows = ""
-            for bug in r.get('findings_details', []):
-                vuln_title = bug.get('vulnerability', 'Static Analysis Issue')
+            for bug in r['findings_details']:
+                vuln_title = bug['vulnerability']
                 
                 display_rule_text = vuln_title
                 found_digits = re.findall(r'cwe-(\d+)', vuln_title.lower())
@@ -345,15 +420,15 @@ def main():
 
                 sub_table_rows += f"""
                 <tr>
-                    <td><strong>{bug.get('severity_label', '🟡 Medium')}</strong></td>
+                    <td><strong>{bug['severity_label']}</strong></td>
                     <td><strong>{display_rule_text}</strong></td>
-                    <td><code>{bug.get('file_line', 'Unknown')}</code></td>
-                    <td>{bug.get('description', 'No details provided.')}</td>
+                    <td><code>{bug['file_line']}</code></td>
+                    <td>{bug['description']}</td>
                 </tr>"""
 
             body_html += f"""
             <tr id="{row_id}" class="details-row"><td colspan="12"><div class="details-container">
-                <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
+                <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r['density']}):</h4>
                 <table class="details-table"><thead><tr><th style="width:15%;">Security</th><th style="width:20%;">Vulnerability Rule</th><th style="width:25%;">File Location & Line</th><th style="width:40%;">Defect Context Description</th></tr></thead><tbody>
                 {sub_table_rows}
                 </tbody></table></div></td></tr>"""
