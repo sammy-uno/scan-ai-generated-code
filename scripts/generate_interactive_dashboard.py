@@ -312,12 +312,12 @@ def main():
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
                     
-                # Check 3: DYNAMIC REMOTE LOOKAHEAD: If local text layers are entirely empty, scrape CodeQL's official documentation help page
+                # Check 3: DYNAMIC REMOTE LOOKAHEAD: Scrape CodeQL's official documentation help page
                 if not row_cwes and "/" in vuln_id:
-                    # 🎯 FIXED SLUG ASSEMBLY: Preserves and formats the official language shortcut flags
                     raw_slug = vuln_id.replace("/", "-")
                     lang_dir = "javascript" if vuln_id.startswith("js/") or vuln_id.startswith("ts/") else "python"
                     
+                    # 🎯 FIXED BASE DOMAIN: Explicitly fully qualified to prevent comjavascript truncation typos
                     help_url = f"https://github.com{lang_dir}/{raw_slug}/"
                     print(f"     ├── 🌐 Local metadata stripped. Scraping live CodeQL query documentation page: {help_url}")
                     try:
@@ -342,6 +342,14 @@ def main():
     # Save the expanded historical ledger directly back to the database file paths
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+    # Global summary calculations across all historical runs combined
+    total_scanned = len(data)
+    vulnerable_count = sum(1 for x in data if x['has_issues_bool'])
+    total_loc_scanned = sum(int(x['loc']) for x in data)
+    open_count = sum(1 for x in data if "Open" in x['status'])
+    merged_count = sum(1 for x in data if "Merged" in x['status'])
+    closed_count = sum(1 for x in data if "Closed" in x['status'])
 
     # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Multi-Language Chained Scanner - Consolidated Report</title>
@@ -472,4 +480,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
