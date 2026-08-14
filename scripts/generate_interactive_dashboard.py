@@ -299,13 +299,23 @@ def main():
                 
                 print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
                 
+                # Check 1: Parse from pre-cached global definitions map metadata tags if available
                 if vuln_id in definitions_map:
                     print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
                     for mapping in definitions_map[vuln_id]:
                         row_cwes.add(mapping)
-                else:
-                    print(f"     ├── ⚠️ Alert: No static rule definitions metadata array found for '{vuln_id}' inside the SARIF file.")
                 
+                # Check 2: Direct dynamic parsing of standard CodeQL rule identifiers to extract security tags natively
+                if "xss" in vuln_id or "cross-site-scripting" in vuln_id:
+                    row_cwes.add("CWE-79")
+                    row_cwes.add("CWE-116")
+                elif "command-injection" in vuln_id or "os-command" in vuln_id:
+                    row_cwes.add("CWE-78")
+                    row_cwes.add("CWE-88")
+                elif "untrusted-source" in vuln_id:
+                    row_cwes.add("CWE-829")
+                
+                # Check 3: Extract any numeric codes straight from the rule title string matching
                 for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_id.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
@@ -319,7 +329,7 @@ def main():
             print(f"  ✅ [ROW RESULT -> {item['repo']}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
 
-    # Save the expanded historical ledger directly back to the matching database filename
+    # Save the expanded historical ledger directly back to the database file paths
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -331,7 +341,7 @@ def main():
     merged_count = sum(1 for x in data if "Merged" in x['status'])
     closed_count = sum(1 for x in data if "Closed" in x['status'])
 
-    # Generate Top-Level framework blocks using the shared multi-run data variables
+    # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Multi-Language Chained Scanner - Consolidated Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
@@ -409,13 +419,23 @@ def main():
                     for tag in definitions_map[vuln_title]:
                         finding_cwes.add(tag)
                 
+                # Direct dynamic parsing of standard rule identifiers
+                if "xss" in vuln_title or "cross-site-scripting" in vuln_title:
+                    finding_cwes.add("CWE-79")
+                    finding_cwes.add("CWE-116")
+                elif "command-injection" in vuln_title or "os-command" in vuln_title:
+                    finding_cwes.add("CWE-78")
+                    finding_cwes.add("CWE-88")
+                elif "untrusted-source" in vuln_title:
+                    finding_cwes.add("CWE-829")
+                
                 # Robust multi-pass regular expression matching
                 for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_title.lower()):
                     finding_cwes.add(f"CWE-{int(match)}")
                 for match in re.findall(r'cwe[/\-_]?(\d+)', desc_body.lower()):
                     finding_cwes.add(f"CWE-{int(match)}")
                 
-                # Strict enforcement: crash immediately if a finding cannot resolve its tags
+                # Strict enforcement: fail immediately if a finding cannot resolve any tags
                 if not finding_cwes:
                     print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs.")
                     sys.exit(1)
@@ -446,3 +466,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
