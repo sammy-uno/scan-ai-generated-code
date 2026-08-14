@@ -363,6 +363,7 @@ def main():
         row_id = f"details_{index}"
         has_flaw = r['has_issues_bool']
         cwes_found = r['cwes']
+        definitions_map = r.get('sarif_definitions_map', {})
         
         row_class = ' class="vulnerable-row"' if has_flaw else ''
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
@@ -390,15 +391,23 @@ def main():
             for bug in r['findings_details']:
                 vuln_title = bug['vulnerability']
                 
-                display_rule_text = vuln_title
-                found_digits = re.findall(r'cwe-(\d+)', vuln_title.lower())
-                if found_digits:
-                    cleaned_title = vuln_title
-                    for d in found_digits:
-                        cleaned_title = re.sub(rf'(?i)\(?cwe-0*{d}\b\)?', '', cleaned_title)
-                    cleaned_title = cleaned_title.strip(" ,()[]-")
-                    normalized_labels = sorted(list(set(f"CWE-{int(d)}" for d in found_digits)))
-                    display_rule_text = f"{cleaned_title} ({', '.join(normalized_labels)})" if cleaned_title else ", ".join(normalized_labels)
+                # Extract CWE tags directly associated with this finding rule via the cached definitions map
+                finding_cwes = set()
+                if vuln_title in definitions_map:
+                    for tag in definitions_map[vuln_title]:
+                        finding_cwes.add(tag)
+                
+                # Back-up extract numeric codes straight from the rule title string matching
+                for d in re.findall(r'cwe-(\d+)', vuln_title.lower()):
+                    finding_cwes.add(f"CWE-{int(d)}")
+                
+                # Append normalized CWE labels if discovered, else flag explicitly as Untagged
+                if finding_cwes:
+                    cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
+                else:
+                    cwe_label_suffix = " (Untagged Flaw)"
+                    
+                display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
                 <tr>
@@ -423,3 +432,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
