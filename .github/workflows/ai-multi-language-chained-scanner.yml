@@ -122,6 +122,8 @@ jobs:
           upload-database: false
           wait-for-processing: false 
           threads: 2
+          # 🎯 THE FIX: Forces CodeQL to embed detailed code fragments and full CWE metadata tags
+          add-snippets: true
           
       - name: Create Summary
         if: always()
