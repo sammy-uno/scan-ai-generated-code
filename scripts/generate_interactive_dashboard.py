@@ -17,10 +17,10 @@ def main():
     print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
     downloaded_slices = glob.glob("all-results/*.*") + glob.glob("*.*")
     
-    # Filter strictly for files that are scan artifact results containing the structural separator
+    # 🎯 FIX: Explicitly target the full master database string to avoid clipping repositories with 'database' in their name
     json_slices = [
         f for f in downloaded_slices 
-        if f.endswith(".json") and "--" in os.path.basename(f) and "database" not in f
+        if f.endswith(".json") and "--" in os.path.basename(f) and "accumulated_database" not in os.path.basename(f)
     ]
     print(f"📁 Found {len(json_slices)} raw scan data results slices in workspace.")
     
