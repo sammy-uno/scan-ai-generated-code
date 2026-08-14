@@ -17,7 +17,7 @@ def main():
     print("\n=== ⚙️ STEP 1: PARSING DOWNLOADED JSON ARTIFACT SLICES ===")
     downloaded_slices = glob.glob("all-results/*.*") + glob.glob("*.*")
     
-    # 🎯 STRICTION ENFORCEMENT: Filter strictly for files that are scan artifact results containing the structural separator
+    # Filter strictly for files that are scan artifact results containing the structural separator
     json_slices = [
         f for f in downloaded_slices 
         if f.endswith(".json") and "--" in os.path.basename(f) and "database" not in f
@@ -46,9 +46,10 @@ def main():
                     print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.json' is non-numeric.")
                     sys.exit(1)
 
-                raw_size = slice_data.get('loc', slice_data.get('lines_of_code'))
-                if not raw_size or not str(raw_size).isdigit():
-                    print(f"❌ CRITICAL FATAL ERROR: Lines of Code metrics missing or non-numeric inside payload file: '{filename}.json'")
+                # 🎯 STRICT EXTRACTION: Read from payload keys, or strictly pull the raw integer token from the filename layout
+                raw_size = slice_data.get('loc', slice_data.get('lines_of_code', parts[4]))
+                if not str(raw_size).isdigit():
+                    print(f"❌ CRITICAL FATAL ERROR: Lines of Code metrics missing or non-numeric inside payload file or name string: '{filename}.json'")
                     sys.exit(1)
                 loc_clean = int(raw_size)
                 
