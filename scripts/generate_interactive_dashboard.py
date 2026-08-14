@@ -27,30 +27,21 @@ def main():
                 
                 parts = [p for p in filename.split("--") if p]
                 
-                # Identify the structural run ID token dynamically
-                run_id_idx = -1
-                for idx, token in enumerate(parts):
-                    if token.isdigit() and len(token) >= 9:
-                        run_id_idx = idx
-                        break
-                
-                if run_id_idx == -1 or run_id_idx + 2 >= len(parts):
-                    print(f"❌ CRITICAL FATAL ERROR: Failed to isolate structural Run ID and PR anchors from artifact file: '{filename}.json'")
+                # 🎯 STRICTION ENFORCEMENT: Structural parsing mapping keys directly from your exact name tokens
+                if len(parts) < 5:
+                    print(f"❌ CRITICAL FATAL ERROR: Filename '{filename}.json' does not match the mandatory 5-token structural schema layout.")
                     sys.exit(1)
                 
-                repo_raw = parts[run_id_idx + 1]
+                repo_raw = parts[0]
                 repo_clean = repo_raw.replace("_SLASH_", "/")
-                pr_clean = parts[run_id_idx + 2]
+                pr_clean = parts[1]
+                lang_clean = parts[2]
+                tool_clean = parts[3].replace("_", " ")
                 
-                if run_id_idx + 3 >= len(parts):
-                    print(f"❌ CRITICAL FATAL ERROR: Language token missing from artifact file: '{filename}.json'")
+                # Enforce that the PR token must be a clean integer
+                if not pr_clean.isdigit():
+                    print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.json' is non-numeric.")
                     sys.exit(1)
-                lang_clean = parts[run_id_idx + 3]
-                
-                if run_id_idx + 4 >= len(parts):
-                    print(f"❌ CRITICAL FATAL ERROR: Engine tool token missing from artifact file: '{filename}.json'")
-                    sys.exit(1)
-                tool_clean = " ".join(parts[run_id_idx + 4:]).replace("_", " ")
 
                 raw_size = slice_data.get('loc', slice_data.get('lines_of_code'))
                 if not raw_size or not str(raw_size).isdigit():
@@ -72,7 +63,6 @@ def main():
                 
                 lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
                 
-                # 🎯 NO FALLBACKS: Force explicit extraction via GH token or instantly exit
                 if not gh_token:
                     print(f"❌ CRITICAL FATAL ERROR: GH_TOKEN environment variable is missing. Cannot fetch lifecycle status for PR #{pr_clean}.")
                     sys.exit(1)
@@ -125,38 +115,25 @@ def main():
     for s_path in sarif_logs:
         filename = os.path.basename(s_path).replace(".sarif", "")
         parts = [p for p in filename.split("--") if p]
-        if len(parts) < 4: 
-            print(f"❌ CRITICAL FATAL ERROR: Malformed SARIF filename format detected: '{filename}.sarif'")
+        
+        # Enforce identical structural token checks to preserve dictionary key matching mapping paths
+        if len(parts) < 5:
+            print(f"❌ CRITICAL FATAL ERROR: SARIF Filename '{filename}.sarif' does not match the mandatory 5-token structural schema layout.")
             sys.exit(1)
             
-        # ANCHOR PARSER: Isolates layout tokens using identical Run ID positioning rules
-        repo_clean = "Unknown"
-        pr_clean = "Unknown"
-        tool_clean = "Static Tool"
+        repo_raw = parts[0]
+        repo_clean = repo_raw.replace("_SLASH_", "/")
+        pr_clean = parts[1]
+        tool_clean = parts[3].replace("_", " ")
         
-        run_id_idx = -1
-        for idx, token in enumerate(parts):
-            if token.isdigit() and len(token) >= 9:
-                run_id_idx = idx
-                break
-        
-        if run_id_idx == -1 or run_id_idx + 2 >= len(parts):
-            print(f"❌ CRITICAL FATAL ERROR: Failed to isolate structural Run ID and PR anchors from SARIF filename: '{filename}.sarif'")
+        if not pr_clean.isdigit():
+            print(f"❌ CRITICAL FATAL ERROR: Extracted Pull Request identifier '{pr_clean}' from '{filename}.sarif' is non-numeric.")
             sys.exit(1)
-            
-        repo_clean = parts[run_id_idx + 1].replace("_SLASH_", "/")
-        pr_clean = parts[run_id_idx + 2]
-        
-        if run_id_idx + 4 >= len(parts):
-            print(f"❌ CRITICAL FATAL ERROR: Engine tool token missing from SARIF filename string: '{filename}.sarif'")
-            sys.exit(1)
-        tool_clean = " ".join(parts[run_id_idx + 4:]).replace("_", " ")
         
         lookup_key = (str(repo_clean).strip('/'), str(pr_clean), str(tool_clean))
         print(f"\n📂 Analyzing Log Asset: '{filename}.sarif'")
         print(f"   ├── Target Extracted Lookup Key -> Repo: '{repo_clean}' | PR: #{pr_clean} | Tool: '{tool_clean}'")
         
-        # 🎯 NO FALLBACKS: Key alignment must be perfect across data pipelines
         if lookup_key not in pr_lookup:
             print(f"❌ CRITICAL FATAL ERROR: Structural mismatch! The key context {lookup_key} extracted from '{filename}.sarif' does not match any profile ledger row initialized during the JSON slice processing step.")
             sys.exit(1)
@@ -232,7 +209,6 @@ def main():
                                 matched_file = diff_file
                                 break
                         
-                        # Strict line filter
                         if matched_file and line_num not in valid_pr_lines[matched_file]:
                             continue
                         elif valid_pr_lines and not matched_file:
@@ -273,7 +249,6 @@ def main():
                 
                 pr_lookup[lookup_key]['sarif_definitions_map'] = sarif_rule_cwe_map
 
-                # Force synchronization overwrite of results context parameters safely
                 total_filtered_issues = filtered_h + filtered_m + filtered_l
                 print(f"   └── 📊 File Correlation Completed: {total_filtered_issues} issues matched line boundaries (H: {filtered_h}, M: {filtered_m}, L: {filtered_l})")
                 pr_lookup[lookup_key]['findings_details'] = extracted_findings
@@ -296,7 +271,7 @@ def main():
         active_findings = item.get('findings_details', [])
         definitions_map = item.get('sarif_definitions_map', {})
         
-        print(f"📁 [ROW START] Evaluating -> {item.get('repo')} #{item.get('pr_num')} | Total findings: {len(active_findings)}")
+        print(f"📁 [ROW START] Evaluating -> {item['repo']} #{item['pr_num']} | Total findings: {len(active_findings)}")
         
         if active_findings:
             row_cwes = set()
@@ -317,24 +292,23 @@ def main():
                 for match in re.findall(r'cwe-(\d+)', desc_text.lower()):
                     row_cwes.add(f"CWE-{int(match)}")
             
-            # 🎯 CHANGED: Wiped out "Vulnerability Detected" fallback. Explicitly flag as Untagged Flaw.
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
-            print(f"  🎯 [ROW RESULT -> {item.get('repo')}]: Final 'cwes' string assigned: '{final_cwe_string}'")
+            print(f"  🎯 [ROW RESULT -> {item['repo']}]: Final 'cwes' string assigned: '{final_cwe_string}'")
         else:
             item['cwes'] = "None"
-            print(f"  ✅ [ROW RESULT -> {item.get('repo')}]: No findings present. Assigned: 'None'")
+            print(f"  ✅ [ROW RESULT -> {item['repo']}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     total_scanned = len(data)
-    vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
-    total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
-    open_count = sum(1 for x in data if "Open" in x.get('status', ''))
-    merged_count = sum(1 for x in data if "Merged" in x.get('status', ''))
-    closed_count = sum(1 for x in data if "Closed" in x.get('status', ''))
+    vulnerable_count = sum(1 for x in data if x['has_issues_bool'])
+    total_loc_scanned = sum(int(x['loc']) for x in data)
+    open_count = sum(1 for x in data if "Open" in x['status'])
+    merged_count = sum(1 for x in data if "Merged" in x['status'])
+    closed_count = sum(1 for x in data if "Closed" in x['status'])
 
     # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Summary Report</title>
@@ -384,7 +358,6 @@ def main():
         row_class = ' class="vulnerable-row"' if has_flaw else ''
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
         
-        # Enforce strict syntax layout strings
         cwe_display = f"<code>{cwes_found}</code>" if has_flaw else (cwes_found if cwes_found == "None" else f"<code>{cwes_found}</code>")
 
         body_html += f"""
