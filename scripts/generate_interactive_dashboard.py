@@ -319,7 +319,7 @@ def main():
     merged_count = sum(1 for x in data if "Merged" in x['status'])
     closed_count = sum(1 for x in data if "Closed" in x['status'])
 
-   # Generate Top-Level static framework block strings
+    # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Summary Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
@@ -401,9 +401,9 @@ def main():
                 for d in re.findall(r'cwe-(\d+)', vuln_title.lower()):
                     finding_cwes.add(f"CWE-{int(d)}")
                 
-                # 🎯 STRICTION ENFORCEMENT: Fail immediately if data integrity drops out
+                # 🎯 STRICTION PARSING: Evaluate the extracted set context rather than just the isolated raw rule string name
                 if not finding_cwes:
-                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions.")
+                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs.")
                     sys.exit(1)
                     
                 cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
@@ -432,5 +432,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
