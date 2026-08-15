@@ -47,7 +47,7 @@ def main():
         accumulated_db_path = "all-results/human_accumulated_database.json"
         print("👥 Human auditing track identified. Targeting human_accumulated_database.json.")
     else:
-        accumulated_db_path = "all-results/ai_accumulated_database.json"
+        accumulated_db_path = "all-results/accumulated_database.json"
         print("🤖 Automated AI track identified. Targeting ai_accumulated_database.json.")
     
     # 🧼 CLEAN OVERWRITE ENFORCEMENT: Stripped all read-and-append loops. 
