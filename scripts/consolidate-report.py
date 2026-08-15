@@ -71,12 +71,26 @@ def main():
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
+        parent_name = os.path.basename(parent_dir)
+
+        # 🔍 DEBUG TRACE LOGS: Inspecting path structure to isolate parsing blockades
+        print(f"\n📁 [DEBUG METADATA SWEEP]: Evaluating found file indicator -> {f}")
+        print(f"   ├── File Base Name: '{fname}'")
+        print(f"   ├── Parent Directory Name: '{parent_name}'")
 
         try:
             name_root = fname.replace('.success', '').replace('.failed', '')
             parts = name_root.split('--')
+            
+            # Print token size validation status
+            print(f"   ├── Target string evaluated for split: '{name_root}'")
+            print(f"   └── Count of schema tokens extracted: {len(parts)} (Tokens: {parts})")
+            
             if len(parts) < 5: 
+                print(f"   ❌ [GATE ALERT]: Token length {len(parts)} is less than 5. Skipping file entry loop via continue.")
                 continue
+                
+            print(f"   🟢 [GATE ALERT]: Successfully passed structural token count validation.")
             
             raw_repo  = parts[0]
             raw_pr    = parts[1]
