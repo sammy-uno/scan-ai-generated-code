@@ -120,7 +120,19 @@ def main():
                     total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
                     committed_files_count = int(summary_data.get('files_changed', 1))
                     
-                    cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
+                    
+                    #cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
+
+                    cwes_list = summary_data.get('cwes_discovered', [])
+                    # 🎯 IF THE MAIN FILE ARRAY IS EMPTY, EXTRACT CUMULATIVE TAGS FROM THE INDIVIDUAL FINDINGS ROSTER
+                    if not cwes_list and "findings_details" in summary_data:
+                        aggregated_cwes = set()
+                        for finding in summary_data["findings_details"]:
+                            for c in finding.get("cwes", []):
+                                aggregated_cwes.add(c)
+                        cwes_list = sorted(list(aggregated_cwes))
+
+                    
                     if isinstance(cwes_list, list):
                         clean_cwes = sorted(list(set(str(c).strip().upper() for c in cwes_list if c and str(c).strip())))
                         cwe_display = ', '.join(clean_cwes) if clean_cwes else "None"
