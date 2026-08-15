@@ -282,54 +282,25 @@ def main():
             sys.exit(1)
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
-    import urllib.request
     data = list(pr_lookup.values())
     
     print("\n======================= 🛠️ CWE RESOLUTION DEBUG LOGS =======================")
     for item in data:
         active_findings = item.get('findings_details', [])
-        definitions_map = item.get('sarif_definitions_map', {})
         
         print(f"📁 [ROW START] Evaluating -> {item['repo']} #{item['pr_num']} | Total findings: {len(active_findings)}")
         
         if active_findings:
             row_cwes = set()
             for bug_idx, bug in enumerate(active_findings):
-                vuln_id = str(bug.get('vulnerability', 'Unknown-Rule'))
-                desc_text = str(bug.get('description', ''))
+                # 🎯 DIRECT EXTRACTION: Pull the pre-calculated array from the scanning outputs
+                finding_cwes = bug.get('cwes', [])
+                if isinstance(finding_cwes, list):
+                    for cwe_id in finding_cwes:
+                        if cwe_id and str(cwe_id).strip():
+                            row_cwes.add(str(cwe_id).strip().upper())
                 
-                print(f"  🔍 [Finding #{bug_idx + 1} ({vuln_id})]:")
-                
-                # Check 1: Parse from pre-cached global definitions map metadata tags if available locally
-                if vuln_id in definitions_map:
-                    print(f"     ├── Found matching structural tags in SARIF definitions: {definitions_map[vuln_id]}")
-                    for mapping in definitions_map[vuln_id]:
-                        row_cwes.add(mapping)
-                
-                # Check 2: Pure dynamic regex sweep for any explicit cwe tags inside local rule names or texts
-                for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_id.lower()):
-                    row_cwes.add(f"CWE-{int(match)}")
-                for match in re.findall(r'cwe[/\-_]?(\d+)', desc_text.lower()):
-                    row_cwes.add(f"CWE-{int(match)}")
-                    
-                # Check 3: DYNAMIC REMOTE LOOKAHEAD: Scrape CodeQL's official documentation help page
-                if not row_cwes and "/" in vuln_id:
-                    raw_slug = vuln_id.replace("/", "-")
-                    lang_dir = "javascript" if vuln_id.startswith("js/") or vuln_id.startswith("ts/") else "python"
-                    
-                    # 🎯 FIXED BASE DOMAIN: Explicitly fully qualified to prevent comjavascript truncation typos
-                    help_url = f"https://github.com{lang_dir}/{raw_slug}/"
-                    print(f"     ├── 🌐 Local metadata stripped. Scraping live CodeQL query documentation page: {help_url}")
-                    try:
-                        req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
-                        with urllib.request.urlopen(req, timeout=5) as response:
-                            html_page = response.read().decode('utf-8', errors='ignore')
-                            for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
-                                cwe_val = f"CWE-{int(match)}"
-                                row_cwes.add(cwe_val)
-                                print(f"     │   ├── Live Web Catch -> Extracted standard tag: {cwe_val}")
-                    except Exception as web_err:
-                        print(f"     │   ⚠️ Live Documentation web endpoint lookup failure for {raw_slug}: {web_err}")
+                print(f"  🔍 [Finding #{bug_idx + 1} ({bug.get('vulnerability', 'Unknown')})]: Extracted Tags -> {list(finding_cwes)}")
             
             final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
             item['cwes'] = final_cwe_string
@@ -339,20 +310,19 @@ def main():
             print(f"  ✅ [ROW RESULT -> {item['repo']}]: No findings present. Assigned: 'None'")
     print("============================================================================\n")
 
-    # Save the expanded historical ledger directly back to the database file paths
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # Global summary calculations across all historical runs combined
+    # Calculate Executive Summary Statistics across your cumulative history trees
     total_scanned = len(data)
     vulnerable_count = sum(1 for x in data if x['has_issues_bool'])
     total_loc_scanned = sum(int(x['loc']) for x in data)
     open_count = sum(1 for x in data if "Open" in x['status'])
     merged_count = sum(1 for x in data if "Merged" in x['status'])
     closed_count = sum(1 for x in data if "Closed" in x['status'])
-
+    
     # Generate Top-Level static framework block strings
-    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Multi-Language Chained Scanner - Consolidated Report</title>
+    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Consolidated Summary Report</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
         h1 {{ border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }}
@@ -379,10 +349,10 @@ def main():
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
-        <h3>📈 Executive Summary (All Cumulative Batch Runs)</h3>
+        <h3>📈 Executive Summary (All Cumulative Chained Runs)</h3>
         <ul>
-            <li><strong>Total PRs Parsed in This Run:</strong> {total_scanned}</li>
-            <li><strong>Total LOC Scanned in This Run:</strong> {total_loc_scanned} lines</li>
+            <li><strong>Total PRs Scanned in Registry:</strong> {total_scanned}</li>
+            <li><strong>Total LOC Scanned in Registry:</strong> {total_loc_scanned} lines</li>
             <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean</span></li>
             <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}</li>
         </ul>
@@ -395,7 +365,6 @@ def main():
         row_id = f"details_{index}"
         has_flaw = r['has_issues_bool']
         cwes_found = r['cwes']
-        definitions_map = r.get('sarif_definitions_map', {})
         
         row_class = ' class="vulnerable-row"' if has_flaw else ''
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
@@ -424,34 +393,11 @@ def main():
                 vuln_title = bug['vulnerability']
                 desc_body = bug.get('description', '')
                 
-                finding_cwes = set()
-                if vuln_title in definitions_map:
-                    for tag in definitions_map[vuln_title]:
-                        finding_cwes.add(tag)
+                # 🎯 STRICTION DATA GATES: Reads strictly from pre-compiled arrays
+                finding_cwes = bug.get('cwes', [])
                 
-                # Pure dynamic regex number extraction
-                for match in re.findall(r'cwe[/\-_]?(\d+)', vuln_title.lower()):
-                    finding_cwes.add(f"CWE-{int(match)}")
-                for match in re.findall(r'cwe[/\-_]?(\d+)', desc_body.lower()):
-                    finding_cwes.add(f"CWE-{int(match)}")
-                
-                # Mirror identical dynamic remote web endpoint scraper inside the HTML loop compiler
-                if not finding_cwes and "/" in vuln_title:
-                    raw_slug = vuln_title.replace("/", "-")
-                    lang_dir = "javascript" if vuln_title.startswith("js/") or vuln_title.startswith("ts/") else "python"
-                    help_url = f"https://github.com{lang_dir}/{raw_slug}/"
-                    try:
-                        req = urllib.request.Request(help_url, headers={'User-Agent': 'Mozilla/5.0'})
-                        with urllib.request.urlopen(req, timeout=5) as response:
-                            html_page = response.read().decode('utf-8', errors='ignore')
-                            for match in re.findall(r'(?i)cwe[/\-_ ]?(\d+)', html_page):
-                                finding_cwes.add(f"CWE-{int(match)}")
-                    except Exception:
-                        pass
-                
-                # Strict enforcement: fail immediately if a finding cannot resolve any tags natively across local files or remote lookups
-                if not finding_cwes:
-                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability rule instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions across pipeline logs or remote specifications.")
+                if not finding_cwes or len(finding_cwes) == 0:
+                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions inside your scanner data outputs.")
                     sys.exit(1)
                     
                 cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
@@ -459,10 +405,10 @@ def main():
 
                 sub_table_rows += f"""
                 <tr>
-                    <td><strong>{bug['severity_label']}</strong></td>
+                    <td><strong>{bug.get('severity_label', '🟡 Medium')}</strong></td>
                     <td><strong>{display_rule_text}</strong></td>
-                    <td><code>{bug['file_line']}</code></td>
-                    <td>{bug['description']}</td>
+                    <td><code>{bug.get('file_line', 'File')}</code></td>
+                    <td>{desc_body}</td>
                 </tr>"""
 
             body_html += f"""
@@ -480,3 +426,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
