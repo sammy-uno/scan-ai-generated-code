@@ -287,9 +287,11 @@ def main():
 
             # 🚀 INJECTED ATTACHMENT ROUTINE: Populates specific rule arrays cleanly
             findings_details_list.append({
-                "vulnerability": f"{rule_id} ({cwe_display})",
-                "file_line": f"{path} #L{line}",
-                "description": msg if isinstance(msg, str) else " ".join(msg)
+                "vulnerability": rule_id,
+                "severity_label": icon_display,
+                "file_line": f"{path}#L{line}",
+                "description": msg if isinstance(msg, str) else " ".join(msg),
+                "cwes": sorted(list(cwes_set))  # 🎯 FIXED: Saves the raw numbers array cleanly for your report script!
             })
 
     output_dir = os.environ.get('CODEQL_ACTION_SARIF_RESULTS_OUTPUT_DIR', '.')
