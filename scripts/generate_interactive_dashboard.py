@@ -282,11 +282,12 @@ def main():
             sys.exit(1)
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
-    data = list(pr_lookup.values())
+    # 🎯 PRODUCTION FIX: Completely keyless flat array parsing to read your true database fields directly!
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
     
     print("\n======================= 🛠️ CWE RESOLUTION DEBUG LOGS =======================")
     for item in data:
-        # 🎯 DIRECT INGESTION: Pull the pre-calculated string straight from your database row!
         cwes_found = item.get('cwes', 'None')
         if not cwes_found or str(cwes_found).strip() == "":
             item['cwes'] = "None"
@@ -296,17 +297,17 @@ def main():
         print(f"📁 [LEDGER LOG]: Evaluating -> {item['repo']} #{item['pr_num']} | Assigned CWE String: '{item['cwes']}'")
     print("============================================================================\n")
 
-
+    # Save the expanded historical ledger directly back to disk
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-    # Calculate Executive Summary Statistics across your cumulative history trees
+    # Global summary statistics calculations over your 10 database rows
     total_scanned = len(data)
-    vulnerable_count = sum(1 for x in data if x['has_issues_bool'])
-    total_loc_scanned = sum(int(x['loc']) for x in data)
-    open_count = sum(1 for x in data if "Open" in x['status'])
-    merged_count = sum(1 for x in data if "Merged" in x['status'])
-    closed_count = sum(1 for x in data if "Closed" in x['status'])
+    vulnerable_count = sum(1 for x in data if x.get('has_issues_bool', False))
+    total_loc_scanned = sum(int(x.get('loc', 0)) for x in data)
+    open_count = sum(1 for x in data if "Open" in x.get('status', ''))
+    merged_count = sum(1 for x in data if "Merged" in x.get('status', ''))
+    closed_count = sum(1 for x in data if "Closed" in x.get('status', ''))
     
     # Generate Top-Level static framework block strings
     header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Consolidated Summary Report</title>
@@ -347,17 +348,7 @@ def main():
     <h3>🔍 Detailed Scan Records Ledger</h3>
     <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th>CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody>"""
 
-    body_html = ""
-    for index, r in enumerate(data):
-        row_id = f"details_{index}"
-        has_flaw = r['has_issues_bool']
-        cwes_found = r['cwes']
-        
-        row_class = ' class="vulnerable-row"' if has_flaw else ''
-        alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
-        
-        cwe_display = f"<code>{cwes_found}</code>" if has_flaw else (cwes_found if cwes_found == "None" else f"<code>{cwes_found}</code>")
-
+        # Build your HTML rows natively
         body_html += f"""
         <tr{row_class}>
             <td>{alert_prefix}</td>
@@ -367,7 +358,7 @@ def main():
             <td>{r['tool']}</td>
             <td>{r['lang']}</td>
             <td>{r['loc']}</td>
-            <td>{cwe_display}</td>
+            <td><code>{cwes_found}</code></td>
             <td>{r['h']}</td>
             <td>{r['m']}</td>
             <td>{r['l']}</td>
@@ -376,18 +367,18 @@ def main():
 
         if has_flaw:
             sub_table_rows = ""
-            for bug in r['findings_details']:
-                vuln_title = bug['vulnerability']
+            # Iterate through the nested details if present in the data record
+            for bug in r.get('findings_details', []):
+                vuln_title = bug.get('vulnerability', 'Unknown Rule')
                 desc_body = bug.get('description', '')
                 
-                # 🎯 STRICTION DATA GATES: Reads strictly from pre-compiled arrays
+                # 🎯 NESTED SAFETY GATES: Gracefully provide a label instead of hard crashing via sys.exit(1)
                 finding_cwes = bug.get('cwes', [])
-                
                 if not finding_cwes or len(finding_cwes) == 0:
-                    print(f"❌ CRITICAL FATAL ERROR: Vulnerability instance '{vuln_title}' on active code lines lacks any valid CWE metadata definitions inside your scanner data outputs.")
-                    sys.exit(1)
+                    cwe_label_suffix = " (CWE: N/A)"
+                else:
+                    cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
                     
-                cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
                 display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
