@@ -227,14 +227,24 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@://github.com"
-          
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          #git reset --hard HEAD || true
-          git clean -xdf -e all-results/ || true
-
-          git checkout -b database 2>/dev/null || git checkout database
+          
+          # 🎯 STEP 1: Stash your 10-PR database file safely in memory so Git doesn't wipe it
+          mkdir -p /tmp/db-stash
+          cp all-results/accumulated_database.json /tmp/db-stash/accumulated_database.json
+          
+          # 🎯 STEP 2: Force a clean, hard branch switch to 'database' and pull latest remote states
+          git fetch origin database
+          git checkout database || git checkout -b database origin/database
+          git pull origin database || true
+          
+          # 🎯 STEP 3: Bring your 10-PR database file back from memory into the active workspace folder
+          mkdir -p all-results
+          cp /tmp/db-stash/accumulated_database.json all-results/accumulated_database.json
+          
+          # 🎯 STEP 4: Stage, commit, and push directly to the remote tracking line
           git add all-results/accumulated_database.json
-          git commit -m "database: sync accumulated scans [Offset ${{ github.event.inputs.offset || '0' }}]" || true
+          git commit -m "database: append cumulative scans [Offset ${{ github.event.inputs.offset || '0' }}]" || true
           git push origin database
 
   chain:
