@@ -30,6 +30,21 @@
     "has_issues_bool": true
   },
   {
+    "repo": "Pimzino/claude-code-spec-workflow",
+    "link": "[#27](https://github.com/Pimzino/claude-code-spec-workflow/pull/27)",
+    "tool": "OpenAI Codex",
+    "lang": "javascript",
+    "loc": 27,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (3)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false
+  },
+  {
     "repo": "Skyvern-AI/skyvern",
     "link": "[#3063](https://github.com/Skyvern-AI/skyvern/pull/3063)",
     "tool": "OpenAI Codex",
