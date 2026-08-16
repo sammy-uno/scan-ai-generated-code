@@ -184,12 +184,19 @@ def main():
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge,
                 "has_issues_bool": total_issues > 0
             }
-            table_rows.append(row_entry)
+            #table_rows.append(row_entry)
+            #seen_pr_keys.add(f"{clean_repo_path}#{pr_num}")
+
+            # 🎯 INSIDE THE LOOP: Map the entry straight into your master_ledger dictionary to upsert it
+            master_ledger[lookup_key] = row_entry
             seen_pr_keys.add(f"{clean_repo_path}#{pr_num}")
             
         except Exception as e: 
             print(f'Error processing success metadata {fname}: {e}')
 
+    # 🎯 COMPUTE FINAL CUMULATIVE LIST OUT OF CHAIR MEMORY UPSERTS
+    table_rows = list(master_ledger.values())
+    
     total_scanned = len(table_rows)
     vulnerable_count = sum(1 for r in table_rows if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
