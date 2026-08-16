@@ -201,7 +201,34 @@ def main():
     #total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
 
     # 🎯 STEP 1: Compile the COMPLETE history array list to write to the persistent branch database file
-    database_payload = list(master_ledger.values())
+    #database_payload = list(master_ledger.values())
+
+    # 🎯 THE DEFINITIVE FIX: Force an explicit merge of old branch records + new batch items!
+    database_payload = []
+    
+    # Ingest historical records into the payload first to preserve past batch chains
+    if os.path.exists(accumulated_db_path):
+        try:
+            with open(accumulated_db_path, "r", encoding="utf-8") as r_db:
+                old_records = json.load(r_db)
+                if isinstance(old_records, list):
+                    for entry in old_records:
+                        # Skip if today's fresh run is already going to overwrite or update it
+                        entry_key = (str(entry.get('repo')).strip().lower(), str(entry.get('pr_num')).strip().lower(), str(entry.get('tool')).strip().lower())
+                        if entry_key not in master_ledger:
+                            database_payload.append(entry)
+        except Exception:
+            pass
+
+    # Append today's fresh active batch run items (5 PRs) onto the payload list array
+    for fresh_row in list(master_ledger.values()):
+        database_payload.append(fresh_row)
+
+    # 👇 YOUR TWO LINES STAY EXACTLY HERE 👇
+    os.makedirs(os.path.dirname(accumulated_db_path), exist_ok=True)
+    with open(accumulated_db_path, "w", encoding="utf-8") as db_w:
+        json.dump(database_payload, db_w, indent=2, ensure_ascii=False)
+    print(f"💾 [LEDGER FLUSH SUCCESSFUL] Consolidated master data size: {len(database_payload)} entries saved to branch.")
     
     os.makedirs(os.path.dirname(accumulated_db_path), exist_ok=True)
     with open(accumulated_db_path, "w", encoding="utf-8") as db_w:
