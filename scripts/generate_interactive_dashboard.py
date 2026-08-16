@@ -286,29 +286,16 @@ def main():
     
     print("\n======================= 🛠️ CWE RESOLUTION DEBUG LOGS =======================")
     for item in data:
-        active_findings = item.get('findings_details', [])
-        
-        print(f"📁 [ROW START] Evaluating -> {item['repo']} #{item['pr_num']} | Total findings: {len(active_findings)}")
-        
-        if active_findings:
-            row_cwes = set()
-            for bug_idx, bug in enumerate(active_findings):
-                # 🎯 DIRECT EXTRACTION: Pull the pre-calculated array from the scanning outputs
-                finding_cwes = bug.get('cwes', [])
-                if isinstance(finding_cwes, list):
-                    for cwe_id in finding_cwes:
-                        if cwe_id and str(cwe_id).strip():
-                            row_cwes.add(str(cwe_id).strip().upper())
-                
-                print(f"  🔍 [Finding #{bug_idx + 1} ({bug.get('vulnerability', 'Unknown')})]: Extracted Tags -> {list(finding_cwes)}")
-            
-            final_cwe_string = ", ".join(sorted(row_cwes)) if row_cwes else "Untagged Flaw"
-            item['cwes'] = final_cwe_string
-            print(f"  🎯 [ROW RESULT -> {item['repo']}]: Final 'cwes' string assigned: '{final_cwe_string}'")
-        else:
+        # 🎯 DIRECT INGESTION: Pull the pre-calculated string straight from your database row!
+        cwes_found = item.get('cwes', 'None')
+        if not cwes_found or str(cwes_found).strip() == "":
             item['cwes'] = "None"
-            print(f"  ✅ [ROW RESULT -> {item['repo']}]: No findings present. Assigned: 'None'")
+        else:
+            item['cwes'] = str(cwes_found).strip()
+            
+        print(f"📁 [LEDGER LOG]: Evaluating -> {item['repo']} #{item['pr_num']} | Assigned CWE String: '{item['cwes']}'")
     print("============================================================================\n")
+
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
