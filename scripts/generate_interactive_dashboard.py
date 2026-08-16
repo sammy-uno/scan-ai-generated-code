@@ -368,30 +368,24 @@ def main():
         has_flaw = r.get('has_issues_bool', False)
         cwes_found = r.get('cwes', 'None')
         
-        # 🎯 FIX 2: Ensure we pull findings from both potential nested data structures!
+        # 🎯 RESTORE REAL SCAFFOLD: Extract the live findings directly from the runtime records!
         findings_list = r.get('findings_details', r.get('issues_list', []))
-        if not findings_list and has_flaw:
-            # Fallback if the database squashed the items to stay light
-            findings_list = [{"vulnerability": "Scanner Alert Tracked", "severity_label": "🟡 Medium", "file_line": "See Actions Run Log", "description": "Weakness instance was successfully identified during execution loops."}]
 
         row_class = ' class="vulnerable-row"' if has_flaw else ''
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
 
-        # 🎯 FIX 1: Cleanly extract the true URL from your database's markdown link!
+        # Clean markdown anchor tags out for the static HTML layout link
         raw_link_str = r.get('link', '')
         clean_url_href = f"https://github.com{r.get('repo', '')}/pull/{r.get('pr_num', '')}"
-        
         if "](" in raw_link_str:
             try:
                 extracted_url = raw_link_str.split("](")[-1].replace(")", "").strip()
                 if extracted_url.startswith("http"):
                     clean_url_href = extracted_url
-            except Exception:
-                pass
+            except Exception: pass
                 
         anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
 
-        # Build your HTML rows natively
         body_html += f"""
         <tr{row_class}>
             <td>{alert_prefix}</td>
@@ -413,10 +407,19 @@ def main():
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Unknown Rule')
                 desc_body = bug.get('description', '')
-                    
+                
+                # 🎯 LINE-LEVEL CWE EXTRACTION: Resolve line-level CWE metrics natively
                 finding_cwes = bug.get('cwes', [])
                 if not finding_cwes or len(finding_cwes) == 0:
-                    cwe_label_suffix = " (CWE: N/A)"
+                    # Look inside your sarif rules definitions map parsed during Step 2 if present
+                    sarif_rules_map = r.get('sarif_definitions_map', {})
+                    resolved_cwes = sarif_rules_map.get(vuln_title, [])
+                    if not resolved_cwes:
+                        # Fallback parsing directly from the rule ID text string if it contains regex patterns
+                        matches = re.findall(r'cwe-(\d+)', vuln_title.lower())
+                        resolved_cwes = sorted(list(set(f"CWE-{int(m)}" for m in matches))) if matches else []
+                    
+                    cwe_label_suffix = f" ({', '.join(resolved_cwes)})" if resolved_cwes else " (CWE: N/A)"
                 else:
                     cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
                         
