@@ -203,25 +203,36 @@ def main():
     # 🎯 STEP 1: Compile the COMPLETE history array list to write to the persistent branch database file
     #database_payload = list(master_ledger.values())
 
-    # 🎯 THE DEFINITIVE FIX: Force an explicit merge of old branch records + new batch items!
+    # 🎯 THE PRODUCTION FIX: Completely keyless array merging using simple text string matching!
     database_payload = []
     
-    # Ingest historical records into the payload first to preserve past batch chains
+    # 1. Pull down whatever is currently sitting on your branch first
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as r_db:
                 old_records = json.load(r_db)
                 if isinstance(old_records, list):
-                    for entry in old_records:
-                        # Skip if today's fresh run is already going to overwrite or update it
-                        entry_key = (str(entry.get('repo')).strip().lower(), str(entry.get('pr_num')).strip().lower(), str(entry.get('tool')).strip().lower())
-                        if entry_key not in master_ledger:
-                            database_payload.append(entry)
+                    for old_item in old_records:
+                        old_repo = str(old_item.get('repo', '')).strip().lower()
+                        old_pr   = str(old_item.get('pr_num', '')).strip().lower()
+                        
+                        # Check if today's fresh batch is already going to replace this PR
+                        is_overwritten = False
+                        for fresh_item in table_rows:
+                            fresh_repo = str(fresh_item.get('repo', '')).strip().lower()
+                            fresh_pr   = str(fresh_item.get('pr_num', '')).strip().lower()
+                            if old_repo == fresh_repo and old_pr == fresh_pr:
+                                is_overwritten = True
+                                break
+                        
+                        # Only preserve it if today's run isn't actively overwriting it
+                        if not is_overwritten:
+                            database_payload.append(old_item)
         except Exception:
             pass
 
-    # Append today's fresh active batch run items (5 PRs) onto the payload list array
-    for fresh_row in list(master_ledger.values()):
+    # 2. Add today's 5 fresh active batch rows directly into the payload array list
+    for fresh_row in table_rows:
         database_payload.append(fresh_row)
 
     # 👇 YOUR TWO LINES STAY EXACTLY HERE 👇
