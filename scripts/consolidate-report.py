@@ -194,11 +194,26 @@ def main():
             print(f'Error processing success metadata {fname}: {e}')
 
     # 🎯 COMPUTE FINAL CUMULATIVE LIST OUT OF CHAIR MEMORY UPSERTS
-    table_rows = list(master_ledger.values())
+    #table_rows = list(master_ledger.values())
     
+    #total_scanned = len(table_rows)
+    #vulnerable_count = sum(1 for r in table_rows if r.get('has_issues_bool', False))
+    #total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
+
+    # 🎯 STEP 1: Compile the COMPLETE history array list to write to the persistent branch database file
+    database_payload = list(master_ledger.values())
+    
+    os.makedirs(os.path.dirname(accumulated_db_path), exist_ok=True)
+    with open(accumulated_db_path, "w", encoding="utf-8") as db_w:
+        json.dump(database_payload, db_w, indent=2, ensure_ascii=False)
+    print(f"💾 [LEDGER FLUSH SUCCESSFUL] All {len(database_payload)} cumulative scans saved cleanly to branch ledger: {accumulated_db_path}")
+
+    # 🎯 STEP 2: Restrict calculations and tables strictly to today's active batch run (5 PRs) for the Step Summary!
     total_scanned = len(table_rows)
     vulnerable_count = sum(1 for r in table_rows if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
+
+    
     
     open_count = sum(1 for r in table_rows if "Open" in r.get('status', ''))
     merged_count = sum(1 for r in table_rows if "Merged" in r.get('status', ''))
