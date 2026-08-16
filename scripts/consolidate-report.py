@@ -183,7 +183,7 @@ def main():
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge,
                 "has_issues_bool": total_issues > 0
             }
-            #table_rows.append(row_entry)
+            table_rows.append(row_entry)
             #seen_pr_keys.add(f"{clean_repo_path}#{pr_num}")
 
             # 🎯 INSIDE THE LOOP: Map the entry straight into your master_ledger dictionary to upsert it
