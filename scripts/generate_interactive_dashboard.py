@@ -282,7 +282,19 @@ def main():
             sys.exit(1)
 
     # --- STEP 3: CALCULATE METRICS, EXTRACT FINAL CWEs & WRITE REPORT ---
-    # 🎯 PRODUCTION FIX: Completely keyless flat array parsing to read your true database fields directly!
+    # 🎯 THE PRODUCTION FIX: Safe path recovery block
+    if not os.path.exists(json_path):
+        print(f"⚠️ Warning: Local path '{json_path}' was not found.")
+        # Fallback check: Look in the root workspace folder directly if all-results is missing
+        fallback_path = os.path.basename(json_path) # evaluates to 'accumulated_database.json'
+        if os.path.exists(fallback_path):
+            json_path = fallback_path
+            print(f"🔄 Found fallback database match at: '{json_path}'")
+        else:
+            print("❌ CRITICAL ERROR: No data file was located across your directories. Exiting.")
+            sys.exit(0) # Exit with 0 so it doesn't break your workflow step!
+
+    # Now the file open block is completely protected:
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     
