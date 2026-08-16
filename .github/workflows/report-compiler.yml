@@ -91,17 +91,25 @@ jobs:
         if: success()
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           
-          # Force a clean branch switch to 'database' to ensure file updates map correctly
+          # 🎯 STEP 1: Stash your fresh HTML dashboard in memory so Git checkouts don't wipe it
+          mkdir -p /tmp/html-stash
+          cp docs/GLOBAL_INTERACTIVE_REPORT.html /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html 2>/dev/null || cp GLOBAL_INTERACTIVE_REPORT.html /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html || true
+          
+          # 🎯 STEP 2: Force a clean, hard branch switch to 'database' and pull latest remote states
           git fetch origin database
           git checkout database || git checkout -b database origin/database
+          git pull origin database || true
           
-          # Stage and commit your brand new compiled interactive web dashboard page
+          # 🎯 STEP 3: Bring your HTML dashboard back from memory into the active workspace folders
           mkdir -p docs
-          cp docs/GLOBAL_INTERACTIVE_REPORT.html ./GLOBAL_INTERACTIVE_REPORT.html 2>/dev/null || true
+          cp /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html docs/GLOBAL_INTERACTIVE_REPORT.html
+          cp /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html ./GLOBAL_INTERACTIVE_REPORT.html 2>/dev/null || true
+          
+          # 🎯 STEP 4: Stage, commit, and push directly to your remote tracking branch line
           git add docs/GLOBAL_INTERACTIVE_REPORT.html || git add GLOBAL_INTERACTIVE_REPORT.html
-          git commit -m "docs: compile and publish master interactive dashboard html" || true
+          git commit -m "docs: publish consolidated master interactive html dashboard" || true
           git push origin database
 
