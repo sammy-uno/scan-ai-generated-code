@@ -348,8 +348,8 @@ def main():
     <h3>🔍 Detailed Scan Records Ledger</h3>
     <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th>CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody>"""
 
-        # Build your HTML rows natively
-        body_html += f"""
+    # Build your HTML rows natively
+    body_html += f"""
         <tr{row_class}>
             <td>{alert_prefix}</td>
             <td>{r['repo']}</td>
@@ -365,29 +365,29 @@ def main():
             <td>{r['issues_files']}</td>
         </tr>"""
 
-        if has_flaw:
-            sub_table_rows = ""
-            # Iterate through the nested details if present in the data record
-            for bug in r.get('findings_details', []):
-                vuln_title = bug.get('vulnerability', 'Unknown Rule')
-                desc_body = bug.get('description', '')
+    if has_flaw:
+        sub_table_rows = ""
+        # Iterate through the nested details if present in the data record
+        for bug in r.get('findings_details', []):
+            vuln_title = bug.get('vulnerability', 'Unknown Rule')
+            desc_body = bug.get('description', '')
                 
-                # 🎯 NESTED SAFETY GATES: Gracefully provide a label instead of hard crashing via sys.exit(1)
-                finding_cwes = bug.get('cwes', [])
-                if not finding_cwes or len(finding_cwes) == 0:
-                    cwe_label_suffix = " (CWE: N/A)"
-                else:
-                    cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
+            # 🎯 NESTED SAFETY GATES: Gracefully provide a label instead of hard crashing via sys.exit(1)
+            finding_cwes = bug.get('cwes', [])
+            if not finding_cwes or len(finding_cwes) == 0:
+                cwe_label_suffix = " (CWE: N/A)"
+            else:
+                cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
                     
-                display_rule_text = f"{vuln_title}{cwe_label_suffix}"
+            display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
-                sub_table_rows += f"""
-                <tr>
-                    <td><strong>{bug.get('severity_label', '🟡 Medium')}</strong></td>
-                    <td><strong>{display_rule_text}</strong></td>
-                    <td><code>{bug.get('file_line', 'File')}</code></td>
-                    <td>{desc_body}</td>
-                </tr>"""
+            sub_table_rows += f"""
+            <tr>
+                <td><strong>{bug.get('severity_label', '🟡 Medium')}</strong></td>
+                <td><strong>{display_rule_text}</strong></td>
+                <td><code>{bug.get('file_line', 'File')}</code></td>
+                <td>{desc_body}</td>
+            </tr>"""
 
             body_html += f"""
             <tr id="{row_id}" class="details-row"><td colspan="12"><div class="details-container">
