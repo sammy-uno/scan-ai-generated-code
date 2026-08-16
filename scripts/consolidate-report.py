@@ -119,8 +119,8 @@ def main():
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
             
-            if f"{clean_repo_path}#{pr_num}" in seen_pr_keys:
-                continue
+            #if f"{clean_repo_path}#{pr_num}" in seen_pr_keys:
+            #    continue
 
             full_url = f"{base_domain}/{clean_repo_path}/pull/{pr_num}"
             link_md = f'[#{pr_num}]({full_url})'
