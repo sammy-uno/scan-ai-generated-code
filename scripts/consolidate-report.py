@@ -48,17 +48,31 @@ def main():
         print("👥 Human auditing track identified. Targeting human_accumulated_database.json.")
     else:
         accumulated_db_path = "all-results/accumulated_database.json"
-        print("🤖 Automated AI track identified. Targeting ai_accumulated_database.json.")
+        print("🤖 Automated AI track identified. Targeting accumulated_database.json.")
     
     # 🧼 CLEAN OVERWRITE ENFORCEMENT: Stripped all read-and-append loops. 
     # Historical lists are discarded; only PR records from the current matrix run survive.
+    #if os.path.exists(accumulated_db_path):
+    #    try:
+    #        os.remove(accumulated_db_path)
+    #        print(f"🧼 [LOCAL FRESH START] Wiped existing {accumulated_db_path} to isolate fresh active scans.")
+    #    except Exception as rm_err:
+    #        print(f"⚠️ Warning: Could not clear tracking file: {rm_err}")
+
+    # 🎯 FIX: LOAD EXISTING HISTORY MAP MATRIX ENTRIES (CUMULATIVE UPSERT REPLACEMENT FOR os.remove!)
+    master_ledger = {}
     if os.path.exists(accumulated_db_path):
         try:
-            os.remove(accumulated_db_path)
-            print(f"🧼 [LOCAL FRESH START] Wiped existing {accumulated_db_path} to isolate fresh active scans.")
-        except Exception as rm_err:
-            print(f"⚠️ Warning: Could not clear tracking file: {rm_err}")
-            
+            with open(accumulated_db_path, "r", encoding="utf-8") as r_db:
+                historical_data = json.load(r_db)
+                for entry in historical_data:
+                    # Create a unique tracking key using (repo, pr_number, tool)
+                    key = (str(entry.get('repo')).strip().lower(), str(entry.get('pr_num')).strip().lower(), str(entry.get('tool')).strip().lower())
+                    master_ledger[key] = entry
+            print(f"📁 [LEDGER LOG]: Successfully loaded {len(master_ledger)} cumulative scan profiles from persistent database branch.")
+        except Exception as ledger_ex: 
+            print(f"⚠️ History read warning: {ledger_ex}")
+      
     seen_pr_keys = set()
     success_markers = []
     if os.path.exists('all-results'):
