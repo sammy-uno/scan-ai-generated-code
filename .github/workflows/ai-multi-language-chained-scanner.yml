@@ -200,7 +200,9 @@ jobs:
           MATRIX_JSON: ${{ needs.discover.outputs.matrix }}
           SCAN_TYPE: "automated"
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }} 
-          CHUNK_OFFSET: ${{ github.event.inputs.offset || '0' }}
+          #CHUNK_OFFSET: ${{ github.event.inputs.offset || '0' }}
+          # 🎯 PASS THE POINTER: Tells the Python script exactly which batch chunk is running!
+          CHUNK_OFFSET: ${{ github.event.inputs.offset || github.event.client_payload.offset || '0' }}
         run: |
           python scripts/consolidate-report.py
 
