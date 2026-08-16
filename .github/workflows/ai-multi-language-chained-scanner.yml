@@ -227,7 +227,7 @@ jobs:
           git config --global user.email "github-actions[bot]@://github.com"
           
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git reset --hard HEAD || true
+          #git reset --hard HEAD || true
           git clean -xdf -e all-results/ || true
 
           git checkout -b database 2>/dev/null || git checkout database
