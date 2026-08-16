@@ -114,6 +114,7 @@ def main():
             pr_num = raw_pr
             lang = raw_lang
             ai_agent_tool = raw_agent.replace('_', ' ')
+            lookup_key = (str(repo_path).strip().lower(), str(pr_num).strip().lower(), str(ai_agent_tool).strip().lower())
             live_loc = int(raw_size) if raw_size.isdigit() else 100
             
             base_domain = "https://github.com"
