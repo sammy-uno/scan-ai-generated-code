@@ -63,6 +63,15 @@ jobs:
           fi
           cd ..
 
+      # 🎯 STEP 3: RESTORE SHARED DATABASE FILE LEDGER BEFORE COMPILING
+      - name: 📁 Restore Shared Database Branch File Ledger
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mkdir -p all-results
+          # Fetch and pull down the persistent history tracking records from the database branch
+          git fetch origin database:database || true
+          git checkout database -- all-results/accumulated_database.json 2>/dev/null || echo "🌱 First runtime footprint initialized."
+
       - name: Compile HTML Master Dashboard
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
@@ -76,3 +85,23 @@ jobs:
           name: compiled-interactive-dashboard
           path: docs/GLOBAL_INTERACTIVE_REPORT.html
           retention-days: 7
+
+      # 🎯 STEP 4: COMMIT AND PUSH THE INTERACTIVE DASHBOARD HTML TO YOUR WEBPAGE
+      - name: 🚀 Commit and Push Final HTML Page back to Database Branch
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          
+          # Force a clean branch switch to 'database' to ensure file updates map correctly
+          git fetch origin database
+          git checkout database || git checkout -b database origin/database
+          
+          # Stage and commit your brand new compiled interactive web dashboard page
+          mkdir -p docs
+          cp docs/GLOBAL_INTERACTIVE_REPORT.html ./GLOBAL_INTERACTIVE_REPORT.html 2>/dev/null || true
+          git add docs/GLOBAL_INTERACTIVE_REPORT.html || git add GLOBAL_INTERACTIVE_REPORT.html
+          git commit -m "docs: compile and publish master interactive dashboard html" || true
+          git push origin database
+
