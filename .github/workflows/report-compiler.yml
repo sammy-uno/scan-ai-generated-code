@@ -94,22 +94,26 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           
-          # 🎯 STEP 1: Stash your fresh HTML dashboard in memory so Git checkouts don't wipe it
+          # 🎯 STEP 1: Copy your fresh HTML dashboard file into a safe temporary space outside the Git tree
           mkdir -p /tmp/html-stash
           cp docs/GLOBAL_INTERACTIVE_REPORT.html /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html 2>/dev/null || cp GLOBAL_INTERACTIVE_REPORT.html /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html || true
           
-          # 🎯 STEP 2: Force a clean, hard branch switch to 'database' and pull latest remote states
+          # 🎯 STEP 2: Wipe the local workspace copy to completely clear the untracked file blockade
+          rm -f docs/GLOBAL_INTERACTIVE_REPORT.html ./GLOBAL_INTERACTIVE_REPORT.html
+          
+          # 🎯 STEP 3: Switch branches cleanly and pull down the latest tracking indices
           git fetch origin database
           git checkout database || git checkout -b database origin/database
           git pull origin database || true
           
-          # 🎯 STEP 3: Bring your HTML dashboard back from memory into the active workspace folders
+          # 🎯 STEP 4: Restore your fresh HTML dashboard file back into the active tracking workspace
           mkdir -p docs
           cp /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html docs/GLOBAL_INTERACTIVE_REPORT.html
           cp /tmp/html-stash/GLOBAL_INTERACTIVE_REPORT.html ./GLOBAL_INTERACTIVE_REPORT.html 2>/dev/null || true
           
-          # 🎯 STEP 4: Stage, commit, and push directly to your remote tracking branch line
+          # 🎯 STEP 5: Stage, commit, and push directly to your remote repository branch interface
           git add docs/GLOBAL_INTERACTIVE_REPORT.html || git add GLOBAL_INTERACTIVE_REPORT.html
           git commit -m "docs: publish consolidated master interactive html dashboard" || true
           git push origin database
+
 
