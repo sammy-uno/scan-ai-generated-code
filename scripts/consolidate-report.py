@@ -203,10 +203,10 @@ def main():
     # 🎯 STEP 1: Compile the COMPLETE history array list to write to the persistent branch database file
     #database_payload = list(master_ledger.values())
 
-    # 🎯 THE PRODUCTION FIX: Completely keyless array merging using simple text string matching!
+    # 🎯 THE PRODUCTION FIX: Explicitly combine old branch history entries with fresh batch entries!
     database_payload = []
     
-    # 1. Pull down whatever is currently sitting on your branch first
+    # 1. Pull down and preserve the historical records currently sitting on your database branch
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as r_db:
@@ -216,22 +216,18 @@ def main():
                         old_repo = str(old_item.get('repo', '')).strip().lower()
                         old_pr   = str(old_item.get('pr_num', '')).strip().lower()
                         
-                        # Check if today's fresh batch is already going to replace this PR
+                        # Only keep the old entry if today's run isn't actively overwriting it
                         is_overwritten = False
                         for fresh_item in table_rows:
-                            fresh_repo = str(fresh_item.get('repo', '')).strip().lower()
-                            fresh_pr   = str(fresh_item.get('pr_num', '')).strip().lower()
-                            if old_repo == fresh_repo and old_pr == fresh_pr:
+                            if old_repo == str(fresh_item.get('repo','')).strip().lower() and old_pr == str(fresh_item.get('pr_num','')).strip().lower():
                                 is_overwritten = True
                                 break
-                        
-                        # Only preserve it if today's run isn't actively overwriting it
                         if not is_overwritten:
                             database_payload.append(old_item)
         except Exception:
             pass
 
-    # 2. Add today's 5 fresh active batch rows directly into the payload array list
+    # 2. Append today's 5 fresh active batch rows directly onto the payload list array
     for fresh_row in table_rows:
         database_payload.append(fresh_row)
 
