@@ -31,6 +31,7 @@ def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
     scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
     
+    # 🎯 READ THE OFFSET POINTER FROM ENVIRONMENT VARIABLES
     try:
         chunk_offset = int(os.environ.get('CHUNK_OFFSET', '0'))
     except (ValueError, TypeError):
@@ -38,38 +39,35 @@ def main():
         
     table_rows = []
     
-    # 🔍 STEP 1: Discover all success markers up front to evaluate the target scan track type
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
     is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
 
-    # 🎯 ARCHITECTURE SPLIT: Separate databases to prevent data collisions or wiping human history trees
     if is_human_run:
         accumulated_db_path = "all-results/human_accumulated_database.json"
-        print("👥 Human auditing track identified. Targeting human_accumulated_database.json.")
     else:
         accumulated_db_path = "all-results/accumulated_database.json"
-        print("🤖 Automated AI track identified. Targeting accumulated_database.json.")
     
-    # 🧼 CLEAN OVERWRITE ENFORCEMENT: Stripped all read-and-append loops. 
-    # Historical lists are discarded; only PR records from the current matrix run survive.
-    #if os.path.exists(accumulated_db_path):
-    #    try:
-    #        os.remove(accumulated_db_path)
-    #        print(f"🧼 [LOCAL FRESH START] Wiped existing {accumulated_db_path} to isolate fresh active scans.")
-    #    except Exception as rm_err:
-    #        print(f"⚠️ Warning: Could not clear tracking file: {rm_err}")
+    # 🎯 ERASE AT FIRST BATCH, ACCUMULATE AFTERWARDS RULE:
+    if chunk_offset == 0:
+        print(f"🌱 [BATCH 1 IDENTIFIED (Offset {chunk_offset})]: Erasing old database state for a fresh cumulative scan run.")
+        if os.path.exists(accumulated_db_path):
+            try:
+                os.remove(accumulated_db_path)
+            except Exception as rm_err:
+                print(f"⚠️ Warning: Could not clear tracking file: {rm_err}")
+    else:
+        print(f"🔄 [CHAINED BATCH IDENTIFIED (Offset {chunk_offset})]: Skipping deletion. Preserving and accumulating history.")
 
-    # 🎯 FIX: LOAD EXISTING HISTORY MAP MATRIX ENTRIES (CUMULATIVE UPSERT REPLACEMENT FOR os.remove!)
+    # Load existing branch memory ONLY if we didn't just wipe it on Batch 1
     master_ledger = {}
     if os.path.exists(accumulated_db_path):
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as r_db:
                 historical_data = json.load(r_db)
                 for entry in historical_data:
-                    # Create a unique tracking key using (repo, pr_number, tool)
                     key = (str(entry.get('repo')).strip().lower(), str(entry.get('pr_num')).strip().lower(), str(entry.get('tool')).strip().lower())
                     master_ledger[key] = entry
-            print(f"📁 [LEDGER LOG]: Successfully loaded {len(master_ledger)} cumulative scan profiles from persistent database branch.")
+            print(f"📁 [LEDGER LOG]: Successfully loaded {len(master_ledger)} cumulative scan profiles from database branch.")
         except Exception as ledger_ex: 
             print(f"⚠️ History read warning: {ledger_ex}")
       
