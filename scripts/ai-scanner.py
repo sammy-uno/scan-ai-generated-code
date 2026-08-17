@@ -19,7 +19,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 5     # Pure maximum slots per batch pass
+    SCAN_LIMIT = 250     # Pure maximum slots per batch pass
     
     # 🚀 CHUNK OFFSET AND EXTRACTION COUNTER INGESTION
     try:
@@ -144,11 +144,11 @@ def main():
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
     # TARGET TRACKING GRADUATION: Stops looping ONLY when you hit your exact extraction target milestone goal of 10 PRs!
-    if total_extracted >= 19:
-        print(f"🧪 [TEST CHAIN] Target total goal of 10 PR extractions reached. Terminating chaining loop sequence gracefully.")
+    if total_extracted >= 1000:
+        print(f"🧪 [TEST CHAIN] Target total goal of 1000 PR extractions reached. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
-        print(f"🧪 [TEST CHAIN] Pass complete. Chaining next batch of 5. CSV Cursor Pointer: {next_offset} | Extracted total: {total_extracted}")
+        print(f"🧪 [TEST CHAIN] Pass complete. Chaining next batch of 250. CSV Cursor Pointer: {next_offset} | Extracted total: {total_extracted}")
 
     output = json.dumps({"include": matrix_include})
     
