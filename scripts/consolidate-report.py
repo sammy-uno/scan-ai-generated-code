@@ -162,7 +162,7 @@ def main():
                 "repo": clean_repo_path, "link": link_md, "tool": ai_agent_tool, "lang": lang,
                 "loc": display_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge,
-                "has_issues_bool": total_issues > 0, "pr_num": pr_num
+                "has_issues_bool": total_issues > 0, "pr_num": pr_num,
                 "findings_details": findings_details
             }
             
