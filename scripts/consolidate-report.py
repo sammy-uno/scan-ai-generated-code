@@ -142,6 +142,7 @@ def main():
                     l = int(summary_data.get('low', summary_data.get('L', 0)))
                     total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
                     committed_files_count = int(summary_data.get('files_changed', 1))
+                    findings_details = summary_data.get('findings_details', [])
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
                     if isinstance(cwes_list, list):
@@ -162,6 +163,7 @@ def main():
                 "loc": display_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge,
                 "has_issues_bool": total_issues > 0, "pr_num": pr_num
+                "findings_details": findings_details
             }
             
             # Track today's fresh batch rows (5 PRs) for the Markdown Summary
