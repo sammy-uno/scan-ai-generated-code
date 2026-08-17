@@ -365,30 +365,24 @@ def main():
     # 🎯 THE PRODUCTION FIX: Initialize body_html as a blank string outside the loop
     body_html = ""
 
-    # 🎯 THE FIX: Read directly from the deep memory map instead of the flat data file!
-    render_source = list(pr_lookup.values()) if pr_lookup else data
-
-    for index, r in enumerate(render_source):
+    # 🎯 THE SINGLE SOURCE OF TRUTH: Read flatly from your augmented database array only!
+    for index, r in enumerate(data):
         row_id = f"details_{index}"
         has_flaw = r.get('has_issues_bool', False)
         cwes_found = r.get('cwes', 'None')
         
-        # Pull the complete, multi-row vulnerability list populated during Step 2
-        findings_list = r.get('findings_details', r.get('issues_list', []))
+        # Pull the pre-baked vulnerability items directly out of your database row item!
+        findings_list = r.get('findings_details', [])
 
         row_class = ' class="vulnerable-row"' if has_flaw else ''
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
 
-        # Safely extract and parse the hyperlinked text anchor
+        # Clean markdown anchor tags out safely for the HTML hyperlink structure
         raw_link_str = str(r.get('link', ''))
         clean_url_href = f"https://github.com{r.get('repo', '')}/pull/{r.get('pr_num', '')}"
         if "](" in raw_link_str:
             try:
                 clean_url_href = raw_link_str.split("](")[-1].replace(")", "").strip()
-            except Exception: pass
-        elif 'href="' in raw_link_str:
-            try:
-                clean_url_href = raw_link_str.split('href="')[-1].split('"')[0].strip()
             except Exception: pass
 
         anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
@@ -417,15 +411,9 @@ def main():
                 file_line_info = bug.get('file_line', 'File')
                 severity_val = bug.get('severity_label', '🟡 Medium')
                 
-                # 🎯 FIX B: Replace the old lookup check with this clean, direct line extraction rule!
+                # 🎯 PURE NATIVE CWE READ: Extract the pre-calculated list straight from the database!
                 resolved_cwes = bug.get('cwes', [])
-                
-                # Quick regex safety guard: if the nested list came up empty, pull it directly from the rule ID text string
-                if not resolved_cwes:
-                    matches = re.findall(r'cwe-(\d+)', vuln_title.lower())
-                    resolved_cwes = sorted(list(set(f"CWE-{int(m)}" for m in matches))) if matches else []
-                
-                cwe_label_suffix = f" ({', '.join(resolved_cwes)})" if resolved_cwes else " (CWE: N/A)"
+                cwe_label_suffix = f" ({', '.join(sorted(list(resolved_cwes)))})" if resolved_cwes else " (CWE: N/A)"
                 display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
