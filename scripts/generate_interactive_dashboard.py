@@ -363,30 +363,31 @@ def main():
     # 🎯 THE PRODUCTION FIX: Initialize body_html as a blank string outside the loop
     body_html = ""
 
-    for index, r in enumerate(data):
+    # 🎯 THE FIX: Read directly from the deep memory map instead of the flat data file!
+    render_source = list(pr_lookup.values()) if pr_lookup else data
+
+    for index, r in enumerate(render_source):
         row_id = f"details_{index}"
         has_flaw = r.get('has_issues_bool', False)
         cwes_found = r.get('cwes', 'None')
+        
+        # Pull the complete, multi-row vulnerability list populated during Step 2
         findings_list = r.get('findings_details', r.get('issues_list', []))
 
         row_class = ' class="vulnerable-row"' if has_flaw else ''
-        
-        # 🎯 FIXED: Re-injected the missing button wrapper script parameters to make 'View Details' clickable!
         alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
 
-        # 🎯 FIXED: Parse the raw links safely into a clean, clickable target hyperlink anchor tag!
+        # Safely extract and parse the hyperlinked text anchor
         raw_link_str = str(r.get('link', ''))
         clean_url_href = f"https://github.com{r.get('repo', '')}/pull/{r.get('pr_num', '')}"
         if "](" in raw_link_str:
             try:
                 clean_url_href = raw_link_str.split("](")[-1].replace(")", "").strip()
-            except Exception:
-                pass
+            except Exception: pass
         elif 'href="' in raw_link_str:
             try:
                 clean_url_href = raw_link_str.split('href="')[-1].split('"')[0].strip()
-            except Exception:
-                pass
+            except Exception: pass
 
         anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
 
@@ -406,25 +407,22 @@ def main():
             <td>{r.get('issues_files', '')}</td>
         </tr>"""
 
-        if has_flaw:
+        if has_flaw and findings_list:
             sub_table_rows = ""
-            # If the database squashed the items, provide a robust placeholder using live data metrics
-            if not findings_list:
-                findings_list = [{
-                    "vulnerability": f"js/shell-command-injection-from-environment",
-                    "severity_label": "🟡 Medium",
-                    "file_line": "scripts/test-agd.js#L12",
-                    "description": "Vulnerability matched line boundaries from active raw scan workspace logs."
-                }]
-
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Unknown Rule')
                 desc_body = bug.get('description', '')
+                file_line_info = bug.get('file_line', 'File')
+                severity_val = bug.get('severity_label', '🟡 Medium')
                 
+                # Check for line-level CWE definitions mapped inside your driver sweep
                 finding_cwes = bug.get('cwes', [])
                 if not finding_cwes or len(finding_cwes) == 0:
-                    matches = re.findall(r'cwe-(\d+)', vuln_title.lower())
-                    resolved_cwes = sorted(list(set(f"CWE-{int(m)}" for m in matches))) if matches else []
+                    sarif_rules_map = r.get('sarif_definitions_map', {})
+                    resolved_cwes = sarif_rules_map.get(vuln_title, [])
+                    if not resolved_cwes:
+                        matches = re.findall(r'cwe-(\d+)', vuln_title.lower())
+                        resolved_cwes = sorted(list(set(f"CWE-{int(m)}" for m in matches))) if matches else []
                     cwe_label_suffix = f" ({', '.join(resolved_cwes)})" if resolved_cwes else " (CWE: N/A)"
                 else:
                     cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
@@ -433,13 +431,12 @@ def main():
 
                 sub_table_rows += f"""
                 <tr>
-                    <td><span class="badge" style="background-color: #cf222e; color:white;">{bug.get('severity_label', '🟡 Medium')}</span></td>
+                    <td><span class="badge" style="background-color: #cf222e; color:white;">{severity_val}</span></td>
                     <td><strong>{display_rule_text}</strong></td>
-                    <td><code>{bug.get('file_line', 'File')}</code></td>
+                    <td><code>{file_line_info}</code></td>
                     <td>{desc_body}</td>
                 </tr>"""
 
-            # 🎯 FIXED: Re-attached the mandatory row ID variable here so the javascript toggle matching registers!
             body_html += f"""
             <tr id="{row_id}" class="details-row"><td colspan="12"><div class="details-container">
                 <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
