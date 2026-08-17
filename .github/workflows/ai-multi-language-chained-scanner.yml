@@ -72,7 +72,7 @@ jobs:
     needs: discover
     if: ${{ needs.discover.outputs.matrix != '' && fromJson(needs.discover.outputs.matrix).include != null && toJson(fromJson(needs.discover.outputs.matrix).include) != '[]' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CODEQL_RAM: 12000
     strategy:
