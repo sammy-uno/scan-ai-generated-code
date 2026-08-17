@@ -13,7 +13,29 @@
     "density": 0.0055,
     "status": "🟢 Open",
     "has_issues_bool": true,
-    "pr_num": "11622"
+    "pr_num": "11622",
+    "findings_details": [
+      {
+        "vulnerability": "js/shell-command-injection-from-environment",
+        "severity_label": "🟡 Medium",
+        "file_line": "golang/cosmos/scripts/test-agd.js#L12",
+        "description": "This shell command depends on an uncontrolled [absolute path](1).",
+        "cwes": [
+          "CWE-078",
+          "CWE-088"
+        ]
+      },
+      {
+        "vulnerability": "js/shell-command-injection-from-environment",
+        "severity_label": "🟡 Medium",
+        "file_line": "golang/cosmos/scripts/test-comprehensive.js#L15",
+        "description": "This shell command depends on an uncontrolled [absolute path](1).",
+        "cwes": [
+          "CWE-078",
+          "CWE-088"
+        ]
+      }
+    ]
   },
   {
     "repo": "BlueSkyXN/WorkerJS_CloudFlare_ImageBed",
@@ -29,7 +51,47 @@
     "density": 0.004,
     "status": "🔴 Closed",
     "has_issues_bool": true,
-    "pr_num": "4"
+    "pr_num": "4",
+    "findings_details": [
+      {
+        "vulnerability": "js/xss-through-dom",
+        "severity_label": "🟡 Medium",
+        "file_line": "dist/index.html#L166",
+        "description": "[DOM text](1) is reinterpreted as HTML without escaping meta-characters. [DOM text](2) is reinterpreted as HTML without escaping meta-characters.",
+        "cwes": [
+          "CWE-079",
+          "CWE-116"
+        ]
+      },
+      {
+        "vulnerability": "js/xss-through-dom",
+        "severity_label": "🟡 Medium",
+        "file_line": "dist/index.html#L183",
+        "description": "[DOM text](1) is reinterpreted as HTML without escaping meta-characters. [DOM text](2) is reinterpreted as HTML without escaping meta-characters.",
+        "cwes": [
+          "CWE-079",
+          "CWE-116"
+        ]
+      },
+      {
+        "vulnerability": "js/functionality-from-untrusted-source",
+        "severity_label": "🟡 Medium",
+        "file_line": "dist/index.html#L102",
+        "description": "Script loaded from content delivery network with no integrity check.",
+        "cwes": [
+          "CWE-830"
+        ]
+      },
+      {
+        "vulnerability": "js/functionality-from-untrusted-source",
+        "severity_label": "🟡 Medium",
+        "file_line": "dist/index.html#L101",
+        "description": "Script loaded from content delivery network with no integrity check.",
+        "cwes": [
+          "CWE-830"
+        ]
+      }
+    ]
   },
   {
     "repo": "Pimzino/claude-code-spec-workflow",
@@ -45,7 +107,8 @@
     "density": 0.0,
     "status": "🟣 Merged",
     "has_issues_bool": false,
-    "pr_num": "27"
+    "pr_num": "27",
+    "findings_details": []
   },
   {
     "repo": "Skyvern-AI/skyvern",
@@ -61,7 +124,8 @@
     "density": 0.0,
     "status": "🟣 Merged",
     "has_issues_bool": false,
-    "pr_num": "3063"
+    "pr_num": "3063",
+    "findings_details": []
   },
   {
     "repo": "prebid/Prebid.js",
@@ -77,86 +141,7 @@
     "density": 0.0,
     "status": "🟣 Merged",
     "has_issues_bool": false,
-    "pr_num": "13698"
-  },
-  {
-    "repo": "MontrealAI/AGI-Alpha-Agent-v0",
-    "link": "[#3924](https://github.com/MontrealAI/AGI-Alpha-Agent-v0/pull/3924)",
-    "tool": "OpenAI Codex",
-    "lang": "python",
-    "loc": 8,
-    "cwes": "None",
-    "h": 0,
-    "m": 0,
-    "l": 0,
-    "issues_files": "0 (2)",
-    "density": 0.0,
-    "status": "🟣 Merged",
-    "has_issues_bool": false,
-    "pr_num": "3924"
-  },
-  {
-    "repo": "mendableai/firecrawl",
-    "link": "[#1894](https://github.com/mendableai/firecrawl/pull/1894)",
-    "tool": "Devin",
-    "lang": "javascript",
-    "loc": 147,
-    "cwes": "None",
-    "h": 0,
-    "m": 0,
-    "l": 0,
-    "issues_files": "0 (2)",
-    "density": 0.0,
-    "status": "🟣 Merged",
-    "has_issues_bool": false,
-    "pr_num": "1894"
-  },
-  {
-    "repo": "neondatabase/website",
-    "link": "[#3730](https://github.com/neondatabase/website/pull/3730)",
-    "tool": "Devin",
-    "lang": "javascript",
-    "loc": 32,
-    "cwes": "None",
-    "h": 0,
-    "m": 0,
-    "l": 0,
-    "issues_files": "0 (2)",
-    "density": 0.0,
-    "status": "🟣 Merged",
-    "has_issues_bool": false,
-    "pr_num": "3730"
-  },
-  {
-    "repo": "reown-com/appkit",
-    "link": "[#4741](https://github.com/reown-com/appkit/pull/4741)",
-    "tool": "Devin",
-    "lang": "javascript",
-    "loc": 10,
-    "cwes": "None",
-    "h": 0,
-    "m": 0,
-    "l": 0,
-    "issues_files": "0 (1)",
-    "density": 0.0,
-    "status": "🟣 Merged",
-    "has_issues_bool": false,
-    "pr_num": "4741"
-  },
-  {
-    "repo": "sugyan/claude-code-webui",
-    "link": "[#219](https://github.com/sugyan/claude-code-webui/pull/219)",
-    "tool": "Claude Code",
-    "lang": "javascript",
-    "loc": 158,
-    "cwes": "None",
-    "h": 0,
-    "m": 0,
-    "l": 0,
-    "issues_files": "0 (1)",
-    "density": 0.0,
-    "status": "🟣 Merged",
-    "has_issues_bool": false,
-    "pr_num": "219"
+    "pr_num": "13698",
+    "findings_details": []
   }
 ]
