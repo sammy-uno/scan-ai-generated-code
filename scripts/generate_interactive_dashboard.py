@@ -258,11 +258,13 @@ def main():
                             bug_icon = "🟡 Medium"
                             filtered_m += 1
 
+                        # 🎯 FIX A: Find where extracted_findings.append is called and add the 'cwes' line!
                         extracted_findings.append({
                             "vulnerability": v_id,
                             "severity_label": bug_icon,
                             "file_line": f"{f_path}#L{line_num}",
-                            "description": msg
+                            "description": msg,
+                            "cwes": sarif_rule_cwe_map.get(v_id, []) # 👈 ADD THIS LINE EXACTLY RIGHT HERE!
                         })
                 
                 pr_lookup[lookup_key]['sarif_definitions_map'] = sarif_rule_cwe_map
@@ -415,18 +417,15 @@ def main():
                 file_line_info = bug.get('file_line', 'File')
                 severity_val = bug.get('severity_label', '🟡 Medium')
                 
-                # Check for line-level CWE definitions mapped inside your driver sweep
-                finding_cwes = bug.get('cwes', [])
-                if not finding_cwes or len(finding_cwes) == 0:
-                    sarif_rules_map = r.get('sarif_definitions_map', {})
-                    resolved_cwes = sarif_rules_map.get(vuln_title, [])
-                    if not resolved_cwes:
-                        matches = re.findall(r'cwe-(\d+)', vuln_title.lower())
-                        resolved_cwes = sorted(list(set(f"CWE-{int(m)}" for m in matches))) if matches else []
-                    cwe_label_suffix = f" ({', '.join(resolved_cwes)})" if resolved_cwes else " (CWE: N/A)"
-                else:
-                    cwe_label_suffix = f" ({', '.join(sorted(list(finding_cwes)))})"
-                        
+                # 🎯 FIX B: Replace the old lookup check with this clean, direct line extraction rule!
+                resolved_cwes = bug.get('cwes', [])
+                
+                # Quick regex safety guard: if the nested list came up empty, pull it directly from the rule ID text string
+                if not resolved_cwes:
+                    matches = re.findall(r'cwe-(\d+)', vuln_title.lower())
+                    resolved_cwes = sorted(list(set(f"CWE-{int(m)}" for m in matches))) if matches else []
+                
+                cwe_label_suffix = f" ({', '.join(resolved_cwes)})" if resolved_cwes else " (CWE: N/A)"
                 display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
