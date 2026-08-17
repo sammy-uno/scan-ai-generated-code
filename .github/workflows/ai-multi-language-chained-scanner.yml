@@ -221,7 +221,7 @@ jobs:
               echo -e "\n\n" >> $GITHUB_STEP_SUMMARY
             done
           fi
-
+          
       - name: Save Updated State to Shared Database Branch
         if: success()
         run: |
@@ -229,22 +229,30 @@ jobs:
           git config --global user.email "github-actions[bot]@://github.com"
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           
-          # 🎯 STEP 1: Stash your 10-PR database file safely in memory so Git doesn't wipe it
+          # STEP 1: Stash your database file safely in memory
           mkdir -p /tmp/db-stash
           cp all-results/accumulated_database.json /tmp/db-stash/accumulated_database.json
           
-          # 🎯 STEP 2: Force a clean, hard branch switch to 'database' and pull latest remote states
+          # STEP 2: Force a clean branch switch to 'database' and pull latest states
           git fetch origin database
           git checkout database || git checkout -b database origin/database
           git pull origin database || true
           
-          # 🎯 STEP 3: Bring your 10-PR database file back from memory into the active workspace folder
+          # Clear the old file path to eliminate caching lockups entirely
+          rm -f all-results/accumulated_database.json
+          
+          # STEP 3: Bring your true, updated database file back from memory
           mkdir -p all-results
           cp /tmp/db-stash/accumulated_database.json all-results/accumulated_database.json
           
-          # 🎯 STEP 4: Stage, commit, and push directly to the remote tracking line
+          # 🎯 THE TIMING FIX: Give the disk 3 seconds to fully flush and write to the file system!
+          sleep 20
+          
+          # STEP 4: Stage, commit, and push directly to the remote branch
           git add all-results/accumulated_database.json
-          git commit -m "database: append cumulative scans [Offset ${{ github.event.inputs.offset || '0' }}]" || true
+          
+          # 🎯 THE SECURITY FIX: Removed '|| true' from the push sequence so a failed save halts the loop chain!
+          git commit -m "database: append cumulative scans [Offset ${{ github.event.inputs.offset || '0' }}]" || echo "No tracked changes detected."
           git push origin database
 
   chain:
