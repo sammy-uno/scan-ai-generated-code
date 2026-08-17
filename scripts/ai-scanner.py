@@ -144,7 +144,7 @@ def main():
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
     # TARGET TRACKING GRADUATION: Stops looping ONLY when you hit your exact extraction target milestone goal of 10 PRs!
-    if total_extracted >= 10:
+    if total_extracted >= 19:
         print(f"🧪 [TEST CHAIN] Target total goal of 10 PR extractions reached. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
