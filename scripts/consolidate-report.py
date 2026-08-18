@@ -43,13 +43,20 @@ def main():
     
     # Discover all success markers up front to evaluate the target scan track type
     all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    is_human_run = (scan_type == 'human') or any("human" in os.environ.get('GITHUB_WORKFLOW', '').lower() or "human--" in os.path.basename(f) for f in all_sarifs)
+    
+    # 🎯 THE PURE ENVIRONMENT VARIABLE FIX: Direct single source of truth mapping!
+    scan_type = os.environ.get('SCAN_TYPE', 'automated').lower().strip()
+    
+    # Strictly map human versus automated paths using ONLY your workflow env block
+    is_human_run = (scan_type == 'human')
 
-    # Separate database targets to match workflow requirements
+    # Separate database targets to match workflow requirements perfectly
     if is_human_run:
         accumulated_db_path = "all-results/human_accumulated_database.json"
+        print("📁 [DATABASE TARGET]: Strict human tracking track detected. Targeting human ledger.")
     else:
         accumulated_db_path = "all-results/accumulated_database.json"
+        print("📁 [DATABASE TARGET]: Strict automated batch tracking track detected. Targeting standard ledger.")
     
     # 🎯 STEP A: FRESH START CONDITION - Erase on Batch 1, maintain history on subsequent loops
     if chunk_offset == 0:
