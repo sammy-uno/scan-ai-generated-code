@@ -349,7 +349,6 @@ def main():
             else {{ el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }}
         }}
 
-        // 🎯 TRACKING STATE: Toggles sort order on click
         let cweSortToggleState = false;
 
         function sortCweColumn() {
@@ -380,8 +379,7 @@ def main():
                     return 0;
                 }
             });
-
-            // Re-append the sorted rows to update the interface instantly
+            
             rowsArray.forEach(row => tableBody.appendChild(row));
         }
       
