@@ -351,37 +351,32 @@ def main():
 
         let cweSortToggleState = false;
 
-        function sortCweColumn() {
+        function sortCweColumn() {{
             const tableBody = document.getElementById('tableBodyContainer');
             const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
-    
-            // Toggle state back and forth on every click
+        
             cweSortToggleState = !cweSortToggleState;
 
-            rowsArray.sort((rowA, rowB) => {
-                // Isolate the text inside the 4th column cell (Index 3)
+            rowsArray.sort((rowA, rowB) => {{
                 const cellA = rowA.cells[3].innerText.trim();
                 const cellB = rowB.cells[3].innerText.trim();
 
-                // STRICT MATCH: True if the cell contains vulnerabilities (is NOT exactly "None")
                 const hasCweA = (cellA !== 'None');
                 const hasCweB = (cellB !== 'None');
 
-                if (cweSortToggleState) {
-                    // Click 1: Move PRs with active CWE fields to the top first
+                if (cweSortToggleState) {{
                     if (hasCweA && !hasCweB) return -1;
                     if (!hasCweA && hasCweB) return 1;
                     return 0;
-                } else {
-                    // Click 2: Move PRs with "None" fields to the top first
+                }} else {{
                     if (!hasCweA && hasCweB) return -1;
                     if (hasCweA && !hasCweB) return 1;
                     return 0;
-                }
-            });
-            
+                }}
+            }});
+
             rowsArray.forEach(row => tableBody.appendChild(row));
-        }
+        }}
       
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
