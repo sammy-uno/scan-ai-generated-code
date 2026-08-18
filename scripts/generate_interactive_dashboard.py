@@ -348,6 +348,43 @@ def main():
             if (el.style.display === "table-row") {{ el.style.display = "none"; btn.innerHTML = "▶ View Details"; }}
             else {{ el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }}
         }}
+
+        // 🎯 TRACKING STATE: Toggles sort order on click
+        let cweSortToggleState = false;
+
+        function sortCweColumn() {
+            const tableBody = document.getElementById('tableBodyContainer');
+            const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
+    
+            // Toggle state back and forth on every click
+            cweSortToggleState = !cweSortToggleState;
+
+            rowsArray.sort((rowA, rowB) => {
+                // Isolate the text inside the 4th column cell (Index 3)
+                const cellA = rowA.cells[3].innerText.trim();
+                const cellB = rowB.cells[3].innerText.trim();
+
+                // STRICT MATCH: True if the cell contains vulnerabilities (is NOT exactly "None")
+                const hasCweA = (cellA !== 'None');
+                const hasCweB = (cellB !== 'None');
+
+                if (cweSortToggleState) {
+                    // Click 1: Move PRs with active CWE fields to the top first
+                    if (hasCweA && !hasCweB) return -1;
+                    if (!hasCweA && hasCweB) return 1;
+                    return 0;
+                } else {
+                    // Click 2: Move PRs with "None" fields to the top first
+                    if (!hasCweA && hasCweB) return -1;
+                    if (hasCweA && !hasCweB) return 1;
+                    return 0;
+                }
+            });
+
+            // Re-append the sorted rows to update the interface instantly
+            rowsArray.forEach(row => tableBody.appendChild(row));
+        }
+      
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
@@ -360,7 +397,7 @@ def main():
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th>CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody>"""
+    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th onclick="sortCweColumn()" style="cursor: pointer;">CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody id="tableBodyContainer">"""
 
     # 🎯 THE PRODUCTION FIX: Initialize body_html as a blank string outside the loop
     body_html = ""
