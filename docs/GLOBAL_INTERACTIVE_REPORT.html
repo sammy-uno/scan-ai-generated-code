@@ -16,7 +16,7 @@
         .details-table th { background: #eaecef; }
         .toggle-btn { cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }
     </style>
-    <script>
+
     <script>
         function toggleDetails(rowId, btn) {
             var el = document.getElementById(rowId);
@@ -45,20 +45,25 @@
                 }
             }
 
-            // Separate main data rows from detail rows
-            const mainRows = [];
+            // 🎯 FIXED: Build pairs of main rows and their exact detail rows before sorting
+            const rowPairs = [];
             for (let i = 0; i < rowsArray.length; i++) {
                 const row = rowsArray[i];
                 if (!row.id) {
-                    mainRows.push(row);
+                    // This is a main row. Let's find its matching details drawer underneath it.
+                    let matchingDetailRow = null;
+                    if (i + 1 < rowsArray.length && rowsArray[i + 1].id) {
+                        matchingDetailRow = rowsArray[i + 1];
+                    }
+                    rowPairs.push({ main: row, detail: matchingDetailRow });
                 }
             }
 
-            // Sort only the main rows using Index 7
-            mainRows.sort((rowA, rowB) => {
-                // 🎯 FIXED: Explicitly look at Index 7 to find the CWE column text
-                const cellA = (rowA.cells && rowA.cells[7]) ? rowA.cells[7].innerText.trim() : 'None';
-                const cellB = (rowB.cells && rowB.cells[7]) ? rowB.cells[7].innerText.trim() : 'None';
+            // Sort the main rows using your column index number requirement
+            rowPairs.sort((pairA, pairB) => {
+                // 🎯 FIXED: Use column Index 7 exactly as specified in your body rows
+                const cellA = (pairA.main.cells && pairA.main.cells[7]) ? pairA.main.cells[7].innerText.trim() : 'None';
+                const cellB = (pairB.main.cells && pairB.main.cells[7]) ? pairB.main.cells[7].innerText.trim() : 'None';
 
                 const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
                 const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
@@ -66,23 +71,20 @@
                 if (cweSortToggleState) {
                     if (hasCweA && !hasCweB) return -1;
                     if (!hasCweA && hasCweB) return 1;
-                    return 0;
+                    return cellA.localeCompare(cellB);
                 } else {
                     if (!hasCweA && hasCweB) return -1;
                     if (hasCweA && !hasCweB) return 1;
-                    return 0;
+                    return cellB.localeCompare(cellA);
                 }
             });
 
-            // Re-append to the table body container
+            // 🎯 FIXED: Clear and rebuild the table so the drawers remain structurally bound to their button triggers
             tableBody.innerHTML = "";
-            mainRows.forEach((mainRow) => {
-                tableBody.appendChild(mainRow);
-                // Look up the matching details row that sat right beneath it in the original rowsArray
-                const originalPosition = rowsArray.indexOf(mainRow);
-                const matchingDetails = rowsArray[originalPosition + 1];
-                if (matchingDetails && matchingDetails.id) {
-                    tableBody.appendChild(matchingDetails);
+            rowPairs.forEach((pair) => {
+                tableBody.appendChild(pair.main);
+                if (pair.detail) {
+                    tableBody.appendChild(pair.detail);
                 }
             });
         }
