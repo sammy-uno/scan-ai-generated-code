@@ -20,7 +20,7 @@ def main():
     # 🎯 TARGET FIXED TO HUMAN DATASET
     INPUT_CSV = "human_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 250     # Pure maximum slots per batch pass
+    SCAN_LIMIT = 5     # Pure maximum slots per batch pass
     
     # 🚀 CHUNK OFFSET AND EXTRACTION COUNTER INGESTION
     try:
@@ -137,7 +137,7 @@ def main():
     total_extracted = past_extracted + stats["added"]
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
-    if total_extracted >= 1000:
+    if total_extracted >= 20:
         print(f"🧪 Target total goal of 1000 human PR extractions reached. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
