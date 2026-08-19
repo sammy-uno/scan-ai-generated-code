@@ -30,7 +30,7 @@
             const tableBody = document.getElementById('tableBodyContainer');
             if (!tableBody) return;
             
-            // 🎯 FIX: Grab all main rows before clearing anything
+            // Grab all main data rows
             const mainRows = Array.from(tableBody.querySelectorAll('tr:not(.details-row)'));
             const indicator = headerElement.querySelector('.sort-indicator');
             
@@ -46,7 +46,7 @@
                 }
             }
 
-            // Sort only the main rows using explicit column index 7
+            // Sort only the main data rows using explicit Column Index 7
             mainRows.sort((rowA, rowB) => {
                 const cellA = (rowA.cells && rowA.cells[7]) ? rowA.cells[7].innerText.trim() : 'None';
                 const cellB = (rowB.cells && rowB.cells[7]) ? rowB.cells[7].innerText.trim() : 'None';
@@ -65,27 +65,16 @@
                 }
             });
 
-            // 🎯 FIX: Save the HTML blocks of the detail rows before wiping the table body container
-            const detailsMap = {};
+            // 🎯 THE PERMANENT FIX: Move the elements in-place instead of clearing innerHTML
+            // This safely preserves all styles, visibility states, and data properties perfectly
             mainRows.forEach((mainRow) => {
+                tableBody.appendChild(mainRow);
                 const detailsId = mainRow.getAttribute('data-details-id');
                 if (detailsId) {
                     const detailRowEl = document.getElementById(detailsId);
                     if (detailRowEl) {
-                        detailsMap[detailsId] = detailRowEl.cloneNode(true);
+                        tableBody.appendChild(detailRowEl);
                     }
-                }
-            });
-
-            // Clear the table body safely
-            tableBody.innerHTML = "";
-
-            // Re-append the sorted main rows and inject their matching saved details right underneath them
-            mainRows.forEach((mainRow) => {
-                tableBody.appendChild(mainRow);
-                const detailsId = mainRow.getAttribute('data-details-id');
-                if (detailsId && detailsMap[detailsId]) {
-                    tableBody.appendChild(detailsMap[detailsId]);
                 }
             });
         }
