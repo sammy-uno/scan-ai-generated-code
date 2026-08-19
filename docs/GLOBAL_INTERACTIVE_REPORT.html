@@ -19,57 +19,77 @@
     <script>
         function toggleDetails(rowId, btn) {
             var el = document.getElementById(rowId);
-            if (el.style.display === "table-row") { el.style.display = "none"; btn.innerHTML = "▶ View Details"; }
-            else { el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }
-        }
-
-    let cweSortToggleState = false;
-
-    function sortCweColumn(headerElement) {
-        const tableBody = document.getElementById('tableBodyContainer');
-        if (!tableBody) return;
-        
-        const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
-        const indicator = headerElement.querySelector('.sort-indicator');
-        
-        cweSortToggleState = !cweSortToggleState;
-
-        if (indicator) {
-            if (cweSortToggleState) {
-                indicator.innerText = '▲';
-                indicator.style.color = '#38bdf8';
-            } else {
-                indicator.innerText = '▼';
-                indicator.style.color = '#fbbf24';
+            if (el.style.display === "table-row") { 
+                el.style.display = "none"; 
+                btn.innerHTML = "▶ View Details"; 
+            } else { 
+                el.style.display = "table-row"; 
+                btn.innerHTML = "▼ View Details"; 
             }
         }
 
-        rowsArray.sort((rowA, rowB) => {
-            // Target Index 7 to match your explicit CWE column position
-            const cellA = rowA.cells[7] ? rowA.cells[7].innerText.trim() : 'None';
-            const cellB = rowB.cells[7] ? rowB.cells[7].innerText.trim() : 'None';
+        let cweSortToggleState = false;
 
-            // 🎯 THE PERMANENT FIX: Check if the text physically contains a vulnerability tag!
-            // This safely handles single tags, multi-tags, and completely ignores the "None" string.
-            const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
-            const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
+        function sortCweColumn(headerElement) {
+            const tableBody = document.getElementById('tableBodyContainer');
+            if (!tableBody) return;
+            
+            const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
+            const indicator = headerElement.querySelector('.sort-indicator');
+            
+            cweSortToggleState = !cweSortToggleState;
 
-            if (cweSortToggleState) {
-                // Click 1: Move files with active vulnerabilities to the top
-                if (hasCweA && !hasCweB) return -1;
-                if (!hasCweA && hasCweB) return 1;
-                return 0;
-            } else {
-                // Click 2: Revert to standard order (None fields up top)
-                if (!hasCweA && hasCweB) return -1;
-                if (hasCweA && !hasCweB) return 1;
-                return 0;
+            if (indicator) {
+                if (cweSortToggleState) {
+                    indicator.innerText = '▲';
+                    indicator.style.color = '#38bdf8';
+                } else {
+                    indicator.innerText = '▼';
+                    indicator.style.color = '#fbbf24';
+                }
             }
-        });
 
-        // Re-append rows to update display instantly without destroying active anchor properties
-        rowsArray.forEach(row => tableBody.appendChild(row));
-    }
+            const mainRows = [];
+            const detailsMap = {};
+            
+            for (let i = 0; i < rowsArray.length; i++) {
+                const row = rowsArray[i];
+                if (!row.id) {
+                    mainRows.push(row);
+                    if (i + 1 < rowsArray.length && rowsArray[i + 1].id) {
+                        detailsMap[mainRows.length - 1] = rowsArray[i + 1];
+                    }
+                }
+            }
+
+            mainRows.sort((rowA, rowB) => {
+                const cellA = rowA.cells ? rowA.cells.innerText.trim() : 'None';
+                const cellB = rowB.cells ? rowB.cells.innerText.trim() : 'None';
+
+                const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
+                const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
+
+                if (cweSortToggleState) {
+                    if (hasCweA && !hasCweB) return -1;
+                    if (!hasCweA && hasCweB) return 1;
+                    return 0;
+                } else {
+                    if (!hasCweA && hasCweB) return -1;
+                    if (hasCweA && !hasCweB) return 1;
+                    return 0;
+                }
+            });
+
+            tableBody.innerHTML = "";
+            mainRows.forEach((mainRow) => {
+                tableBody.appendChild(mainRow);
+                const originalPosition = rowsArray.indexOf(mainRow);
+                const matchingDetails = rowsArray[originalPosition + 1];
+                if (matchingDetails && matchingDetails.id) {
+                    tableBody.appendChild(matchingDetails);
+                }
+            });
+        }
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
@@ -82,25 +102,23 @@
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <!-- 🎯 THE CORRECTION: Force immutable column widths using transparent backgrounds -->
-    <table style="width: 100%; border-collapse: collapse; background: transparent;">
+    <table style="width: 100%; border-collapse: collapse; background: transparent; table-layout: fixed;">
         <thead>
             <tr style="font-size: 13px; font-weight: 600; background: transparent;">
-                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
-                <th style="width: 18%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">PR Reference Link</th>
+                <th style="width: 12%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
+                <th style="width: 16%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
+                <th style="width: 10%; padding: 12px; text-align: left; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">PR Reference Link</th>
                 <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Status</th>
                 <th style="width: 12%; padding: 12px; text-align: left; background: transparent;">AI Tool Engine</th>
                 <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Language</th>
                 <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">LOC</th>
-                <!-- 🎯 CWE DISCOVERED TARGET SLOT (Index 7) -->
-                <th onclick="sortCweColumn(this)" style="width: 10%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
+                <th onclick="sortCweColumn(this)" style="width: 12%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
                     CWE Discovered <span class="sort-indicator" style="margin-left: 4px; font-weight: bold; color: #64748b; font-size: 10px; letter-spacing: -1px;">▲▼</span>
                 </th>
                 <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔴</th>
                 <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🟡</th>
                 <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔵</th>
-                <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
+                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
             </tr>
         </thead>
         <tbody id="tableBodyContainer">
