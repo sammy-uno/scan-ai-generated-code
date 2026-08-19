@@ -29,15 +29,20 @@
             const tableBody = document.getElementById('tableBodyContainer');
             const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
         
-            // Find the visual span text element inside the clicked header
+            // Isolate the visual indicator element block
             const indicator = headerElement.querySelector('.sort-indicator');
         
             cweSortToggleState = !cweSortToggleState;
 
-            // 🎯 DYNAMIC INDICATOR: Change the arrows based on the sorting state
+            // 🎯 DYNAMIC CARET TOGGLE: Highlights the directional chevron on user selection!
             if (indicator) {
-                indicator.innerText = cweSortToggleState ? '▲' : '▼';
-                indicator.style.color = '#f59e0b'; // Optional: Highlight indicator color on active sort
+                if (cweSortToggleState) {
+                    indicator.innerText = '▲';   // Focuses up caret on click 1
+                    indicator.style.color = '#38bdf8'; // Optional: Sky blue focus tint
+                } else {
+                    indicator.innerText = '▼';   // Focuses down caret on click 2
+                    indicator.style.color = '#fbbf24'; // Optional: Amber focus tint
+                }
             }
 
             rowsArray.sort((rowA, rowB) => {
@@ -59,8 +64,7 @@
             });
 
             rowsArray.forEach(row => tableBody.appendChild(row));
-        }
-      
+        }      
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
@@ -73,7 +77,7 @@
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th onclick="sortCweColumn(this)" style="cursor: pointer; user-select: none;"><span class="sort-indicator" style="margin-left: 5px; color: #888;">↕</span>CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody id="tableBodyContainer">
+    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th onclick="sortCweColumn(this)" style="cursor: pointer; user-select: none;">CWE Discovered<span class="sort-indicator" style="margin-left: 6px; font-weight: bold; color: #64748b; font-size: 0.8em; letter-spacing: -2px;">▲▼</span></th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody id="tableBodyContainer">
         <tr>
             <td><span class="badge badge-clean">✅ Clean</span></td>
             <td><strong>3rdIteration/btcrecover</strong></td>
