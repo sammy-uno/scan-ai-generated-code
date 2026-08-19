@@ -537,12 +537,14 @@ def main():
                     <td>{desc_body}</td>
                 </tr>"""
 
+            # 🎯 FIXED: Changed colspan from 12 to 9 to match the actual 9 columns of your body row layout!
             body_html += f"""
-            <tr id="{row_id}" class="details-row"><td colspan="12"><div class="details-container">
+            <tr id="{row_id}" class="details-row"><td colspan="9"><div class="details-container">
                 <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
                 <table class="details-table"><thead><tr><th style="width:15%;">Security</th><th style="width:20%;">Vulnerability Rule</th><th style="width:25%;">File Location & Line</th><th style="width:40%;">Defect Context Description</th></tr></thead><tbody>
                 {sub_table_rows}
                 </tbody></table></div></td></tr>"""
+
 
     footer_html = "</tbody></table></body></html>"
 
