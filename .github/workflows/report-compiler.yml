@@ -2,11 +2,6 @@ name: "📊 Universal HTML Report Deployer"
 
 on:
   workflow_dispatch:
-    inputs:
-      master_run_id:
-        description: '🎯 Paste the Master Chain Run ID (The Run ID of Batch 1)'
-        required: true
-        default: ''
 
 permissions:
   contents: write
@@ -28,42 +23,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🎯 STEP 2: SCANNER RUN ID MATCHING LAYER
-      # Searches your whole repository history and extracts packages matching your unique master key!
-      - name: Download Scan Artifact Slices from Target Chain Run
-        env:
-          GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
-          TARGET_KEY: "sarif-${{ github.event.inputs.master_run_id }}-"
-        run: |
-          mkdir -p all-results
-          echo "📥 Fetching scan artifact lists matching chain key: $TARGET_KEY"
-          
-          # 🎯 THE PRODUCTION FIX: Explicitly encapsulates the full jq block in single quotes 
-          # to prevent the shell console from misinterpreting spacing boundaries!
-          ART_IDS=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.expired == false and (.name != null) and (.name | contains("'""$TARGET_KEY""'"))) | .id')
-          
-          if [ -z "$ART_IDS" ]; then
-            echo "❌ Error: No matching artifact packages found for Master Run ID: ${{ github.event.inputs.master_run_id }}"
-            exit 1
-          fi
-          
-          for ART_ID in $ART_IDS; do
-            echo "⚡ Extracting synchronized chunk ID: $ART_ID"
-            gh api "repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > chunk.zip
-            unzip -o chunk.zip -d all-results/ 2>/dev/null || true
-            rm -f chunk.zip
-          done
-
-      - name: ⚙️ Extract Internal SARIF Records
-        run: |
-          cd all-results
-          if ls *.zip 1> /dev/null 2>&1; then
-            for f in *.zip; do unzip -o "$f" 2>/dev/null || true; done
-          fi
-          cd ..
-
-      # 🎯 STEP 3: RESTORE SHARED DATABASE FILE LEDGER BEFORE COMPILING
+      # 🎯 STEP 2: RESTORE SHARED DATABASE FILE LEDGER BEFORE COMPILING
       - name: 📁 Restore Shared Database Branch File Ledger
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -86,12 +46,12 @@ jobs:
           path: docs/GLOBAL_INTERACTIVE_REPORT.html
           retention-days: 7
 
-      # 🎯 STEP 4: COMMIT AND PUSH THE INTERACTIVE DASHBOARD HTML TO YOUR WEBPAGE
+      # 🎯 STEP 3: COMMIT AND PUSH THE INTERACTIVE DASHBOARD HTML TO YOUR WEBPAGE
       - name: 🚀 Commit and Push Final HTML Page back to Database Branch
         if: success()
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]@://github.com"
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           
           # 🎯 STEP 1: Copy your fresh HTML dashboard file into a safe temporary space outside the Git tree
@@ -115,5 +75,3 @@ jobs:
           git add docs/GLOBAL_INTERACTIVE_REPORT.html || git add GLOBAL_INTERACTIVE_REPORT.html
           git commit -m "docs: publish consolidated master interactive html dashboard" || true
           git push origin database
-
-
