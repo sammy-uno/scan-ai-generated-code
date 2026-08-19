@@ -49,5 +49,50 @@
     "has_issues_bool": false,
     "pr_num": "2267",
     "findings_details": []
+  },
+  {
+    "repo": "onlook-dev/onlook",
+    "link": "[#2295](https://github.com/onlook-dev/onlook/pull/2295)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 26,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (3)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2295",
+    "findings_details": []
+  },
+  {
+    "repo": "sammy-uno/my-repo",
+    "link": "[#1](https://github.com/sammy-uno/my-repo/pull/1)",
+    "tool": "human",
+    "lang": "python",
+    "loc": 10,
+    "cwes": "CWE-078, CWE-088",
+    "h": 0,
+    "m": 1,
+    "l": 0,
+    "issues_files": "1 (1)",
+    "density": 0.1,
+    "status": "🟢 Open",
+    "has_issues_bool": true,
+    "pr_num": "1",
+    "findings_details": [
+      {
+        "vulnerability": "py/command-line-injection",
+        "severity_label": "🟡 Medium",
+        "file_line": "test.py#L10",
+        "description": "This command line depends on a [user-provided value](1).",
+        "cwes": [
+          "CWE-078",
+          "CWE-088"
+        ]
+      }
+    ]
   }
 ]
