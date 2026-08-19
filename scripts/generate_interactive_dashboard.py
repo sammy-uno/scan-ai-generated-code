@@ -343,60 +343,85 @@ def main():
         .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }}
     </style>
     <script>
-        function toggleDetails(rowId, btn) {{
+        function toggleDetails(rowId, btn) {
             var el = document.getElementById(rowId);
-            if (el.style.display === "table-row") {{ el.style.display = "none"; btn.innerHTML = "▶ View Details"; }}
-            else {{ el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }}
-        }}
+            if (el.style.display === "table-row") { el.style.display = "none"; btn.innerHTML = "▶ View Details"; }
+            else { el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }
+        }
 
-    let cweSortToggleState = false;
+        let cweSortToggleState = false;
 
-    function sortCweColumn(headerElement) {{
-        const tableBody = document.getElementById('tableBodyContainer');
-        if (!tableBody) return;
-        
-        const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
-        const indicator = headerElement.querySelector('.sort-indicator');
-        
-        cweSortToggleState = !cweSortToggleState;
+        function sortCweColumn(headerElement) {
+            const tableBody = document.getElementById('tableBodyContainer');
+            if (!tableBody) return;
+            
+            const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
+            const indicator = headerElement.querySelector('.sort-indicator');
+            
+            cweSortToggleState = !cweSortToggleState;
 
-        if (indicator) {{
-            if (cweSortToggleState) {{
-                indicator.innerText = '▲';
-                indicator.style.color = '#38bdf8';
-            }} else {{
-                indicator.innerText = '▼';
-                indicator.style.color = '#fbbf24';
-            }}
-        }}
+            if (indicator) {
+                if (cweSortToggleState) {
+                    indicator.innerText = '▲';
+                    indicator.style.color = '#38bdf8';
+                } else {
+                    indicator.innerText = '▼';
+                    indicator.style.color = '#fbbf24';
+                }
+            }
 
-        rowsArray.sort((rowA, rowB) => {{
-            // Target Index 7 to match your explicit CWE column position
-            const cellA = rowA.cells[7] ? rowA.cells[7].innerText.trim() : 'None';
-            const cellB = rowB.cells[7] ? rowB.cells[7].innerText.trim() : 'None';
+            // 🎯 FIX: Separate the main data rows from the hidden detail rows
+            const mainRows = [];
+            const detailsMap = {};
+            
+            for (let i = 0; i < rowsArray.length; i++) {
+                const row = rowsArray[i];
+                // If it doesn't have an ID, it's a main data row
+                if (!row.id) {
+                    mainRows.push(row);
+                    // The very next row in your original HTML generation is always its matching details row
+                    if (i + 1 < rowsArray.length && rowsArray[i + 1].id) {
+                        detailsMap[mainRows.length - 1] = rowsArray[i + 1];
+                    }
+                }
+            }
 
-            // 🎯 THE PERMANENT FIX: Check if the text physically contains a vulnerability tag!
-            // This safely handles single tags, multi-tags, and completely ignores the "None" string.
-            const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
-            const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
+            // Sort only the main data rows
+            mainRows.sort((rowA, rowB) => {
+                const cellA = rowA.cells[7] ? rowA.cells[7].innerText.trim() : 'None';
+                const cellB = rowB.cells[7] ? rowB.cells[7].innerText.trim() : 'None';
 
-            if (cweSortToggleState) {{
-                // Click 1: Move files with active vulnerabilities to the top
-                if (hasCweA && !hasCweB) return -1;
-                if (!hasCweA && hasCweB) return 1;
-                return 0;
-            }} else {{
-                // Click 2: Revert to standard order (None fields up top)
-                if (!hasCweA && hasCweB) return -1;
-                if (hasCweA && !hasCweB) return 1;
-                return 0;
-            }}
-        }});
+                const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
+                const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
 
-        // Re-append rows to update display instantly without destroying active anchor properties
-        rowsArray.forEach(row => tableBody.appendChild(row));
-    }}
-    </script></head><body>
+                if (cweSortToggleState) {
+                    if (hasCweA && !hasCweB) return -1;
+                    if (!hasCweA && hasCweB) return 1;
+                    return 0;
+                } else {
+                    if (!hasCweA && hasCweB) return -1;
+                    if (hasCweA && !hasCweB) return 1;
+                    return 0;
+                }
+            });
+
+            // 🎯 FIX: Clear the container and re-append main rows immediately followed by their matching details row
+            tableBody.innerHTML = "";
+            mainRows.forEach((mainRow, index) => {
+                tableBody.appendChild(mainRow);
+                // Find the original index of this row to pull its paired details row out of the map
+                const originalPosition = rowsArray.indexOf(mainRow);
+                // Look for the details row that was sitting right below it originally
+                const matchingDetails = rowsArray[originalPosition + 1];
+                if (matchingDetails && matchingDetails.id) {
+                    tableBody.appendChild(matchingDetails);
+                }
+            });
+        }
+    </script>
+                    
+    </head><body>
+                    
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
         <h3>📈 Executive Summary (All Cumulative Chained Runs)</h3>
@@ -408,25 +433,25 @@ def main():
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <!-- 🎯 THE CORRECTION: Force immutable column widths using transparent backgrounds -->
-    <table style="width: 100%; border-collapse: collapse; background: transparent;">
-        <thead>
-            <tr style="font-size: 13px; font-weight: 600; background: transparent;">
-                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
-                <th style="width: 18%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">PR Reference Link</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Status</th>
-                <th style="width: 12%; padding: 12px; text-align: left; background: transparent;">AI Tool Engine</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Language</th>
-                <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">LOC</th>
-                <!-- 🎯 CWE DISCOVERED TARGET SLOT (Index 7) -->
-                <th onclick="sortCweColumn(this)" style="width: 10%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
+    # 🎯 FIX: Added table-layout: fixed to keep column widths strictly proportional
+    table style="width: 100%; border-collapse: collapse; background: transparent; table-layout: fixed;"
+        thead
+            tr style="font-size: 13px; font-weight: 600; background: transparent;"
+                th style="width: 12%; padding: 12px; text-align: left; background: transparent;"Security Alert Status</th>
+                th style="width: 16%; padding: 12px; text-align: left; background: transparent;"Repository Target</th>
+                <!-- 🎯 FIX: Allocated a strict 10% width container that cannot expand -->
+                th style="width: 10%; padding: 12px; text-align: left; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"PR Reference Link</th>
+                th style="width: 10%; padding: 12px; text-align: left; background: transparent;"Status</th>
+                th style="width: 12%; padding: 12px; text-align: left; background: transparent;"AI Tool Engine</th>
+                th style="width: 10%; padding: 12px; text-align: left; background: transparent;"Language</th>
+                th style="width: 6%; padding: 12px; text-align: left; background: transparent;"LOC</th>
+                <th onclick="sortCweColumn(this)" style="width: 12%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
                     CWE Discovered <span class="sort-indicator" style="margin-left: 4px; font-weight: bold; color: #64748b; font-size: 10px; letter-spacing: -1px;">▲▼</span>
                 </th>
-                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔴</th>
-                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🟡</th>
-                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔵</th>
-                <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
+                th style="width: 4%; padding: 12px; text-align: center; background: transparent;"🔴</th>
+                th style="width: 4%; padding: 12px; text-align: center; background: transparent;"🟡</th>
+                th style="width: 4%; padding: 12px; text-align: center; background: transparent;"🔵</th>
+                th style="width: 10%; padding: 12px; text-align: left; background: transparent;"Total Issues (Files)</th>
             </tr>
         </thead>
         <tbody id="tableBodyContainer">
