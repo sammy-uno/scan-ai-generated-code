@@ -356,8 +356,8 @@ def main():
             const tableBody = document.getElementById('tableBodyContainer');
             if (!tableBody) return;
             
-            // Grab all main data rows
-            const mainRows = Array.from(tableBody.querySelectorAll('tr:not(.details-row)'));
+            // 🎯 FIXED: Target only explicit main overview data rows, ignoring all internal content rows completely
+            const mainRows = Array.from(tableBody.querySelectorAll('tr.main-data-row'));
             const indicator = headerElement.querySelector('.sort-indicator');
             
             cweSortToggleState = !cweSortToggleState;
@@ -372,10 +372,10 @@ def main():
                 }}
             }}
 
-            // Sort only the main data rows using explicit Column Index 7
+            // Sort only the isolated main rows using explicit Column Index 7
             mainRows.sort((rowA, rowB) => {{
-                const cellA = (rowA.cells && rowA.cells[7]) ? rowA.cells[7].innerText.trim() : 'None';
-                const cellB = (rowB.cells && rowB.cells[7]) ? rowB.cells[7].innerText.trim() : 'None';
+                const cellA = (rowA.cells && rowA.cells) ? rowA.cells.innerText.trim() : 'None';
+                const cellB = (rowB.cells && rowB.cells) ? rowB.cells.innerText.trim() : 'None';
 
                 const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
                 const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
@@ -391,8 +391,7 @@ def main():
                 }}
             }});
 
-            // 🎯 THE PERMANENT FIX: Move the elements in-place instead of clearing innerHTML
-            // This safely preserves all styles, visibility states, and data properties perfectly
+            // Append elements back in-place. The internal data tables will stay nested completely safe
             mainRows.forEach((mainRow) => {{
                 tableBody.appendChild(mainRow);
                 const detailsId = mainRow.getAttribute('data-details-id');
@@ -466,7 +465,7 @@ def main():
         anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
 
         body_html += f"""
-        <tr{row_class} data-details-id="{row_id}">
+        <tr{row_class} class="main-data-row" data-details-id="{row_id}">
         
             <!-- Index 0: Alert Status -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{alert_prefix}</td>
