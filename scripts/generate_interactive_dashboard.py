@@ -342,7 +342,6 @@ def main():
         .details-table th {{ background: #eaecef; }}
         .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }}
     </style>
-
     <script>
         function toggleDetails(rowId, btn) {{
             var el = document.getElementById(rowId);
@@ -356,10 +355,7 @@ def main():
             const tableBody = document.getElementById('tableBodyContainer');
             if (!tableBody) return;
             
-            // 🎯 FIXED: Target only explicit main overview data rows, ignoring all internal content rows completely
-            const mainRows = Array.from(tableBody.querySelectorAll('tr.main-data-row'));
             const indicator = headerElement.querySelector('.sort-indicator');
-            
             cweSortToggleState = !cweSortToggleState;
 
             if (indicator) {{
@@ -372,10 +368,20 @@ def main():
                 }}
             }}
 
-            // Sort only the isolated main rows using explicit Column Index 7
+            // 1. Safely isolate ONLY the top-level main overview rows
+            const mainRows = [];
+            const allRows = tableBody.children;
+            for (let i = 0; i < allRows.length; i++) {{
+                const r = allRows[i];
+                if (r.tagName === 'TR' && !r.id && r.parentNode === tableBody) {{
+                    mainRows.push(r);
+                }}
+            }}
+
+            // 2. Sort rows based strictly on explicit Column Index 7 (CWE Discovered)
             mainRows.sort((rowA, rowB) => {{
-                const cellA = (rowA.cells && rowA.cells) ? rowA.cells.innerText.trim() : 'None';
-                const cellB = (rowB.cells && rowB.cells) ? rowB.cells.innerText.trim() : 'None';
+                const cellA = (rowA.cells && rowA.cells[7]) ? rowA.cells[7].innerText.trim() : 'None';
+                const cellB = (rowB.cells && rowB.cells[7]) ? rowB.cells[7].innerText.trim() : 'None';
 
                 const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
                 const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
@@ -391,9 +397,10 @@ def main():
                 }}
             }});
 
-            // Append elements back in-place. The internal data tables will stay nested completely safe
+            // 3. Move main rows and their paired detail boxes together as a solid unit
             mainRows.forEach((mainRow) => {{
                 tableBody.appendChild(mainRow);
+                
                 const detailsId = mainRow.getAttribute('data-details-id');
                 if (detailsId) {{
                     const detailRowEl = document.getElementById(detailsId);
@@ -403,9 +410,7 @@ def main():
                 }}
             }});
         }}
-    </script>
-    
-    </head><body>
+    </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
         <h3>📈 Executive Summary (All Cumulative Chained Runs)</h3>
@@ -465,7 +470,7 @@ def main():
         anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
 
         body_html += f"""
-        <tr{row_class} class="main-data-row" data-details-id="{row_id}">
+        <tr{row_class} data-details-id="{row_id}">
         
             <!-- Index 0: Alert Status -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{alert_prefix}</td>
@@ -527,10 +532,9 @@ def main():
 
             # 🎯 FIXED: Stripped out the <div> wrap container and added direct padding/border stylings straight to the <td> cell track
             body_html += f"""
-            <tr id="{row_id}" class="details-row">
-                <td colspan="12" style="padding: 20px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e;">
-                    <h4 style="margin-top: 0; margin-bottom: 10px;">📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
-                    <table class="details-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr id="{row_id}" class="details-row"><td colspan="9"><div class="details-container">
+                <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
+                <table class="details-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
                             <tr>
                                 <th style="width:15%; background: #eaecef; padding: 8px; text-align: left;">Security</th>
