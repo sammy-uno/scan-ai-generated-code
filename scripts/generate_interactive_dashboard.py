@@ -354,26 +354,23 @@ def main():
         function sortCweColumn(headerElement) {{
             const tableBody = document.getElementById('tableBodyContainer');
             const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
-        
-            // Isolate the visual indicator element block
             const indicator = headerElement.querySelector('.sort-indicator');
         
             cweSortToggleState = !cweSortToggleState;
 
-            // 🎯 DYNAMIC CARET TOGGLE: Highlights the directional chevron on user selection!
             if (indicator) {{
                 if (cweSortToggleState) {{
-                    indicator.innerText = '▲';   // Focuses up caret on click 1
-                    indicator.style.color = '#38bdf8'; // Optional: Sky blue focus tint
+                    indicator.innerText = '▲';
+                    indicator.style.color = '#38bdf8';
                 }} else {{
-                    indicator.innerText = '▼';   // Focuses down caret on click 2
-                    indicator.style.color = '#fbbf24'; // Optional: Amber focus tint
+                    indicator.innerText = '▼';
+                    indicator.style.color = '#fbbf24';
                 }}
             }}
 
             rowsArray.sort((rowA, rowB) => {{
-                const cellA = rowA.cells[7] ? rowA.cells[7].innerText.trim() : 'None';
-                const cellB = rowB.cells[7] ? rowB.cells[7].innerText.trim() : 'None';
+                const cellA = rowA.cells ? rowA.cells.innerText.trim() : 'None';
+                const cellB = rowB.cells ? rowB.cells.innerText.trim() : 'None';
 
                 const hasCweA = (cellA !== 'None' && cellA !== '');
                 const hasCweB = (cellB !== 'None' && cellB !== '');
@@ -389,8 +386,19 @@ def main():
                 }}
             }});
 
+            // Re-append rows to refresh visual canvas
             rowsArray.forEach(row => tableBody.appendChild(row));
-        }}      
+
+            // 🎯 THE CRITICAL CLICK-FUNCTIONALITY FIX:
+            // Automatically triggers your dashboard's native startup script to rebuild the modal event listeners!
+            if (typeof initializeModals === 'function') {{
+                initializeModals();
+            }} else if (typeof setupEventListeners === 'function') {{
+                setupEventListeners();
+            }} else if (typeof init === 'function') {{
+                init();
+            }}
+        }}
     </script></head><body>
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
@@ -455,17 +463,40 @@ def main():
         body_html += f"""
         <tr{row_class}>
         
+            <!-- Index 0: Alert Status -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{alert_prefix}</td>
+            
+            <!-- Index 1: Repository Target -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>{r.get('repo', '')}</strong></td>
+            
+            <!-- Index 2: PR Reference Link (🎯 RESTORED: Uses your high-fidelity original variable formatting) -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{anchor_tag}</td>
+            
+            <!-- Index 3: Status -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('status', '')}</td>
+            
+            <!-- Index 4: AI Tool Engine -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('tool', '')}</td>
+            
+            <!-- Index 5: Language -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code>{r.get('lang', '')}</code></td>
+            
+            <!-- Index 6: LOC -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('loc', 0)}</td>
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code>{cwes_found}</code></td>
+            
+            <!-- Index 7: CWE Discovered (🎯 FIXED: Allow multi-line wrapping with no clipping) -->
+            <td style="padding: 12px; vertical-align: middle; word-wrap: break-word; overflow-wrap: break-word;"><code>{cwes_found}</code></td>
+            
+            <!-- Index 8: High -->
             <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('h', 0)}</td>
+            
+            <!-- Index 9: Medium -->
             <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('m', 0)}</td>
+            
+            <!-- Index 10: Low -->
             <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('l', 0)}</td>
+            
+            <!-- Index 11: Total Issues -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('issues_files', '')}</td>
             
         </tr>"""
