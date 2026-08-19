@@ -1,0 +1,53 @@
+[
+  {
+    "repo": "Skyvern-AI/skyvern",
+    "link": "[#2837](https://github.com/Skyvern-AI/skyvern/pull/2837)",
+    "tool": "human",
+    "lang": "python",
+    "loc": 8,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (1)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2837",
+    "findings_details": []
+  },
+  {
+    "repo": "analogdotnow/Analog",
+    "link": "[#155](https://github.com/analogdotnow/Analog/pull/155)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 31,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (2)",
+    "density": 0.0,
+    "status": "🔴 Closed",
+    "has_issues_bool": false,
+    "pr_num": "155",
+    "findings_details": []
+  },
+  {
+    "repo": "liam-hq/liam",
+    "link": "[#2267](https://github.com/liam-hq/liam/pull/2267)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 71,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (2)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2267",
+    "findings_details": []
+  }
+]
