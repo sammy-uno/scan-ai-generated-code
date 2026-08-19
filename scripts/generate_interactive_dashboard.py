@@ -403,29 +403,28 @@ def main():
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <!-- 🎯 THE CORRECTION: Force layout engine to freeze column sizes via table-fixed -->
-<!-- 🎯 THE FIX: Force the browser to use immutable, frozen column tracks -->
-<table style="table-layout: fixed; width: 100%; border-collapse: collapse; background-color: #0f172a; color: #f1f5f9;">
-    <thead>
-        <tr style="background-color: #1e293b; border-bottom: 2px solid #334155; font-size: 13px; font-weight: 600;">
-            <th style="width: 11%; padding: 12px; text-align: left; vertical-align: middle;">Security Alert Status</th>
-            <th style="width: 15%; padding: 12px; text-align: left; vertical-align: middle;">Repository Target</th>
-            <th style="width: 11%; padding: 12px; text-align: left; vertical-align: middle;">PR Reference Link</th>
-            <th style="width: 8%;  padding: 12px; text-align: left; vertical-align: middle;">Status</th>
-            <th style="width: 10%; padding: 12px; text-align: left; vertical-align: middle;">AI Tool Engine</th>
-            <th style="width: 8%;  padding: 12px; text-align: left; vertical-align: middle;">Language</th>
-            <th style="width: 5%;  padding: 12px; text-align: left; vertical-align: middle;">LOC</th>
-            <!-- 🎯 CWE DISCOVERED TARGET SLOT (Index 7): Includes the interactive click router and double carets icon style -->
-            <th onclick="sortCweColumn(this)" style="width: 14%; padding: 12px; text-align: left; vertical-align: middle; cursor: pointer; user-select: none; white-space: nowrap;">
-                CWE Discovered <span class="sort-indicator" style="margin-left: 6px; font-weight: bold; color: #64748b; font-size: 11px; letter-spacing: -2px;">▲▼</span>
-            </th>
-            <th style="width: 4%;  padding: 12px; text-align: center; vertical-align: middle;">🔴 H</th>
-            <th style="width: 4%;  padding: 12px; text-align: center; vertical-align: middle;">🟡 M</th>
-            <th style="width: 4%;  padding: 12px; text-align: center; vertical-align: middle;">🔵 L</th>
-            <th style="width: 10%; padding: 12px; text-align: left; vertical-align: middle;">Total Issues (Files)</th>
-        </tr>
-    </thead>
-    <tbody id="tableBodyContainer">
+    <!-- 🎯 THE CORRECTION: Force immutable column widths using transparent backgrounds -->
+    <table style="table-layout: fixed; width: 100%; border-collapse: collapse; background: transparent;">
+        <thead>
+            <tr style="font-size: 13px; font-weight: 600; background: transparent;">
+                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
+                <th style="width: 18%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
+                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">PR Reference Link</th>
+                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Status</th>
+                <th style="width: 12%; padding: 12px; text-align: left; background: transparent;">AI Tool Engine</th>
+                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Language</th>
+                <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">LOC</th>
+                <!-- 🎯 CWE DISCOVERED TARGET SLOT (Index 7) -->
+                <th onclick="sortCweColumn(this)" style="width: 10%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
+                    CWE Discovered <span class="sort-indicator" style="margin-left: 4px; font-weight: bold; color: #64748b; font-size: 10px; letter-spacing: -1px;">▲▼</span>
+                </th>
+                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔴</th>
+                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🟡</th>
+                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔵</th>
+                <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
+            </tr>
+        </thead>
+        <tbody id="tableBodyContainer">
     """
 
     # 🎯 THE PRODUCTION FIX: Initialize body_html as a blank string outside the loop
@@ -456,44 +455,18 @@ def main():
         body_html += f"""
         <tr{row_class}>
         
-            <!-- Index 0: Alert Status Indicator -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">{alert_prefix}</td>
-            
-            <!-- Index 1: Repository Title String Context (Safely cuts off if the string name is insanely long) -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="{r.get('repo', '')}"><strong>{r.get('repo', '')}</strong></td>
-            
-            <!-- Index 2: PR Anchor Reference Link Tracker -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 13px; font-family: monospace; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">{anchor_tag}</td>
-            
-            <!-- Index 3: Verification Run Status -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; color: #94a3b8;">{r.get('status', '')}</td>
-            
-            <!-- Index 4: AI Model Agent Selection Title -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; color: #94a3b8;">{r.get('tool', '')}</td>
-            
-            <!-- Index 5: Core Language Syntax Type -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 13px; font-family: monospace;"><code>{r.get('lang', '')}</code></td>
-            
-            <!-- Index 6: Code Volume Baseline (LOC) -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 13px; font-family: monospace; color: #64748b;">{r.get('loc', 0)}</td>
-            
-            <!-- Index 7: CWE Vulnerability Tags Grid (Wraps multi-lines cleanly if long tags lists exist) -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; word-wrap: break-word; overflow-wrap: break-word;"><code>{cwes_found}</code></td>
-            
-            <!-- Index 8: High Counts Metric Cell (Aligned centered to match column header) -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; font-weight: bold; text-align: center; color: #ef4444;">{r.get('h', 0)}</td>
-            
-            <!-- Index 9: Medium Counts Metric Cell (Aligned centered to match column header) -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; font-weight: bold; text-align: center; color: #f59e0b;">{r.get('m', 0)}</td>
-            
-            <!-- Index 10: Low Counts Metric Cell (Aligned centered to match column header) -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 14px; font-weight: bold; text-align: center; color: #3b82f6;">{r.get('l', 0)}</td>
-            
-            <!-- Index 11: Accumulation Metric Summary Tracker -->
-            <td style="padding: 12px; vertical-align: middle; font-size: 13px; font-family: monospace; color: #64748b;">{r.get('issues_files', '')}</td>
-
-
-
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{alert_prefix}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>{r.get('repo', '')}</strong></td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{anchor_tag}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('status', '')}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('tool', '')}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code>{r.get('lang', '')}</code></td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('loc', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code>{cwes_found}</code></td>
+            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('h', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('m', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('l', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('issues_files', '')}</td>
             
         </tr>"""
 
