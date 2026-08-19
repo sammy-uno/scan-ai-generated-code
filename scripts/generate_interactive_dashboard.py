@@ -403,7 +403,29 @@ def main():
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th onclick="sortCweColumn(this)" style="cursor: pointer; user-select: none;">CWE Discovered<span class="sort-indicator" style="margin-left: 6px; font-weight: bold; color: #64748b; font-size: 0.8em; letter-spacing: -2px;">▲▼</span></th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody id="tableBodyContainer">"""
+    <!-- 🎯 THE CORRECTION: Force layout engine to freeze column sizes via table-fixed -->
+    <table class="table-fixed w-full border-collapse">
+        <thead>
+            <tr class="bg-slate-50 text-slate-700 text-xs font-semibold tracking-wider border-b border-slate-200">
+                <th class="p-3 text-left w-[12%]">Security Alert Status</th>
+                <th class="p-3 text-left w-[15%]">Repository Target</th>
+                <th class="p-3 text-left w-[11%]">PR Reference Link</th>
+                <th class="p-3 text-left w-[9%]">Status</th>
+                <th class="p-3 text-left w-[11%]">AI Tool Engine</th>
+                <th class="p-3 text-left w-[9%]">Language</th>
+                <th class="p-3 text-left w-[6%]">LOC</th>
+                <!-- 🎯 THE FIX: Tighten the width of the CWE Discovered column container -->
+                <th onclick="sortCweColumn(this)" style="cursor: pointer; user-select: none;" class="p-3 text-left w-[14%] whitespace-nowrap">
+                    CWE Discovered <span class="sort-indicator" style="margin-left: 4px; font-weight: bold; color: #64748b; font-size: 0.8em; letter-spacing: -2px;">▲▼</span>
+                </th>
+                <th class="p-3 text-center w-[4%]">🔴 H</th>
+                <th class="p-3 text-center w-[4%]">🟡 M</th>
+                <th class="p-3 text-center w-[4%]">🔵 L</th>
+                <th class="p-3 text-left w-[11%]">Total Issues (Files)</th>
+            </tr>
+        </thead>
+    <tbody id="tableBodyContainer">
+    """
 
     # 🎯 THE PRODUCTION FIX: Initialize body_html as a blank string outside the loop
     body_html = ""
@@ -432,18 +454,46 @@ def main():
 
         body_html += f"""
         <tr{row_class}>
-            <td>{alert_prefix}</td>
-            <td><strong>{r.get('repo', '')}</strong></td>
-            <td>{anchor_tag}</td>
-            <td>{r.get('status', '')}</td>
-            <td>{r.get('tool', '')}</td>
-            <td><code>{r.get('lang', '')}</code></td>
-            <td>{r.get('loc', 0)}</td>
-            <td><code>{cwes_found}</code></td>
-            <td>{r.get('h', 0)}</td>
-            <td>{r.get('m', 0)}</td>
-            <td>{r.get('l', 0)}</td>
-            <td>{r.get('issues_files', '')}</td>
+        
+            <!-- Index 0: Alert Status -->
+            <td class="p-3 align-middle text-sm">{alert_prefix}</td>
+            
+            <!-- Index 1: Repo Target (Allows long names to break safely or truncate) -->
+            <td class="p-3 align-middle text-sm truncate max-w-[200px]" title="{r.get('repo', '')}"><strong>{r.get('repo', '')}</strong></td>
+            
+            <!-- Index 2: PR Reference Link -->
+            <td class="p-3 align-middle text-sm font-mono">{anchor_tag}</td>
+            
+            <!-- Index 3: Status -->
+            <td class="p-3 align-middle text-sm text-slate-600">{r.get('status', '')}</td>
+            
+            <!-- Index 4: AI Tool Engine -->
+            <td class="p-3 align-middle text-sm text-slate-500">{r.get('tool', '')}</td>
+            
+            <!-- Index 5: Language -->
+            <td class="p-3 align-middle text-xs"><code>{r.get('lang', '')}</code></td>
+            
+            <!-- Index 6: LOC -->
+            <td class="p-3 align-middle text-sm font-mono text-slate-500">{r.get('loc', 0)}</td>
+            
+            <!-- Index 7: CWE Discovered (Ensures flexible wrapping if multiple tags exist) -->
+            <td class="p-3 align-middle text-sm break-words"><code>{cwes_found}</code></td>
+            
+            <!-- Index 8: High (Centered matching your header) -->
+            <td class="p-3 align-middle text-sm text-center font-bold text-red-500">{r.get('h', 0)}</td>
+            
+            <!-- Index 9: Medium (Centered matching your header) -->
+            <td class="p-3 align-middle text-sm text-center font-bold text-amber-500">{r.get('m', 0)}</td>
+            
+            <!-- Index 10: Low (Centered matching your header) -->
+            <td class="p-3 align-middle text-sm text-center font-bold text-blue-500">{r.get('l', 0)}</td>
+            
+            <!-- Index 11: Total Issues -->
+            <td class="p-3 align-middle text-sm text-slate-500 font-mono">{r.get('issues_files', '')}</td>
+
+
+
+            
         </tr>"""
 
         if has_flaw and findings_list:
