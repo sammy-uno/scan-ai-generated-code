@@ -25,18 +25,27 @@
 
         let cweSortToggleState = false;
 
-        function sortCweColumn() {
+        function sortCweColumn(headerElement) {
             const tableBody = document.getElementById('tableBodyContainer');
             const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
         
+            // Find the visual span text element inside the clicked header
+            const indicator = headerElement.querySelector('.sort-indicator');
+        
             cweSortToggleState = !cweSortToggleState;
 
-            rowsArray.sort((rowA, rowB) => {
-                const cellA = rowA.cells[3].innerText.trim();
-                const cellB = rowB.cells[3].innerText.trim();
+            // 🎯 DYNAMIC INDICATOR: Change the arrows based on the sorting state
+            if (indicator) {
+                indicator.innerText = cweSortToggleState ? '▲' : '▼';
+                indicator.style.color = '#f59e0b'; // Optional: Highlight indicator color on active sort
+            }
 
-                const hasCweA = (cellA !== 'None');
-                const hasCweB = (cellB !== 'None');
+            rowsArray.sort((rowA, rowB) => {
+                const cellA = rowA.cells[7] ? rowA.cells[7].innerText.trim() : 'None';
+                const cellB = rowB.cells[7] ? rowB.cells[7].innerText.trim() : 'None';
+
+                const hasCweA = (cellA !== 'None' && cellA !== '');
+                const hasCweB = (cellB !== 'None' && cellB !== '');
 
                 if (cweSortToggleState) {
                     if (hasCweA && !hasCweB) return -1;
@@ -64,7 +73,7 @@
         </ul>
     </div>
     <h3>🔍 Detailed Scan Records Ledger</h3>
-    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th onclick="sortCweColumn()" style="cursor: pointer;">CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody id="tableBodyContainer">
+    <table><thead><tr><th>Security Alert Status</th><th>Repository Target</th><th>PR Reference Link</th><th>Status</th><th>AI Tool Engine</th><th>Language</th><th>LOC</th><th onclick="sortCweColumn(this)" style="cursor: pointer; user-select: none;"><span class="sort-indicator" style="margin-left: 5px; color: #888;">↕</span>CWE Discovered</th><th>🔴 H</th><th>🟡 M</th><th>🔵 L</th><th>Total Issues (Files)</th></tr></thead><tbody id="tableBodyContainer">
         <tr>
             <td><span class="badge badge-clean">✅ Clean</span></td>
             <td><strong>3rdIteration/btcrecover</strong></td>
