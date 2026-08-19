@@ -356,7 +356,8 @@ def main():
             const tableBody = document.getElementById('tableBodyContainer');
             if (!tableBody) return;
             
-            const rowsArray = Array.from(tableBody.querySelectorAll('tr'));
+            // 🎯 FIX: Grab all main rows before clearing anything
+            const mainRows = Array.from(tableBody.querySelectorAll('tr:not(.details-row)'));
             const indicator = headerElement.querySelector('.sort-indicator');
             
             cweSortToggleState = !cweSortToggleState;
@@ -371,25 +372,10 @@ def main():
                 }}
             }}
 
-            // 🎯 FIXED: Build pairs of main rows and their exact detail rows before sorting
-            const rowPairs = [];
-            for (let i = 0; i < rowsArray.length; i++) {{
-                const row = rowsArray[i];
-                if (!row.id) {{
-                    // This is a main row. Let's find its matching details drawer underneath it.
-                    let matchingDetailRow = null;
-                    if (i + 1 < rowsArray.length && rowsArray[i + 1].id) {{
-                        matchingDetailRow = rowsArray[i + 1];
-                    }}
-                    rowPairs.push({{ main: row, detail: matchingDetailRow }});
-                }}
-            }}
-
-            // Sort the main rows using your column index number requirement
-            rowPairs.sort((pairA, pairB) => {{
-                // 🎯 FIXED: Use column Index 7 exactly as specified in your body rows
-                const cellA = (pairA.main.cells && pairA.main.cells[7]) ? pairA.main.cells[7].innerText.trim() : 'None';
-                const cellB = (pairB.main.cells && pairB.main.cells[7]) ? pairB.main.cells[7].innerText.trim() : 'None';
+            // Sort only the main rows using explicit column index 7
+            mainRows.sort((rowA, rowB) => {{
+                const cellA = (rowA.cells && rowA.cells[7]) ? rowA.cells[7].innerText.trim() : 'None';
+                const cellB = (rowB.cells && rowB.cells[7]) ? rowB.cells[7].innerText.trim() : 'None';
 
                 const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
                 const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
@@ -405,12 +391,27 @@ def main():
                 }}
             }});
 
-            // 🎯 FIXED: Clear and rebuild the table so the drawers remain structurally bound to their button triggers
+            // 🎯 FIX: Save the HTML blocks of the detail rows before wiping the table body container
+            const detailsMap = {{}};
+            mainRows.forEach((mainRow) => {{
+                const detailsId = mainRow.getAttribute('data-details-id');
+                if (detailsId) {{
+                    const detailRowEl = document.getElementById(detailsId);
+                    if (detailRowEl) {{
+                        detailsMap[detailsId] = detailRowEl.cloneNode(true);
+                    }}
+                }}
+            }});
+
+            // Clear the table body safely
             tableBody.innerHTML = "";
-            rowPairs.forEach((pair) => {{
-                tableBody.appendChild(pair.main);
-                if (pair.detail) {{
-                    tableBody.appendChild(pair.detail);
+
+            // Re-append the sorted main rows and inject their matching saved details right underneath them
+            mainRows.forEach((mainRow) => {{
+                tableBody.appendChild(mainRow);
+                const detailsId = mainRow.getAttribute('data-details-id');
+                if (detailsId && detailsMap[detailsId]) {{
+                    tableBody.appendChild(detailsMap[detailsId]);
                 }}
             }});
         }}
@@ -476,7 +477,7 @@ def main():
         anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
 
         body_html += f"""
-        <tr{row_class}>
+        <tr{row_class} data-details-id="{row_id}">
         
             <!-- Index 0: Alert Status -->
             <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{alert_prefix}</td>
