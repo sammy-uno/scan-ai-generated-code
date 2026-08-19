@@ -421,7 +421,6 @@ def main():
     </script>
                     
     </head><body>
-"""
     
     <h1>📊 Consolidated Summary Report</h1>
     <div class="card">
