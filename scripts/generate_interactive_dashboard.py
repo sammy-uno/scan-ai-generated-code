@@ -524,26 +524,38 @@ def main():
                 file_line_info = bug.get('file_line', 'File')
                 severity_val = bug.get('severity_label', '🟡 Medium')
                 
-                # 🎯 PURE NATIVE CWE READ: Extract the pre-calculated list straight from the database!
                 resolved_cwes = bug.get('cwes', [])
                 cwe_label_suffix = f" ({', '.join(sorted(list(resolved_cwes)))})" if resolved_cwes else " (CWE: N/A)"
                 display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
                 <tr>
-                    <td><span class="badge" style="background-color: #cf222e; color:white;">{severity_val}</span></td>
-                    <td><strong>{display_rule_text}</strong></td>
-                    <td><code>{file_line_info}</code></td>
-                    <td>{desc_body}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><span class="badge" style="background-color: #cf222e; color:white;">{severity_val}</span></td>
+                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><strong>{display_rule_text}</strong></td>
+                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><code>{file_line_info}</code></td>
+                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;">{desc_body}</td>
                 </tr>"""
 
-            # 🎯 FIXED: Changed colspan from 12 to 9 to match the actual 9 columns of your body row layout!
+            # 🎯 FIXED: Stripped out the <div> wrap container and added direct padding/border stylings straight to the <td> cell track
             body_html += f"""
-            <tr id="{row_id}" class="details-row"><td colspan="9"><div class="details-container">
-                <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
-                <table class="details-table"><thead><tr><th style="width:15%;">Security</th><th style="width:20%;">Vulnerability Rule</th><th style="width:25%;">File Location & Line</th><th style="width:40%;">Defect Context Description</th></tr></thead><tbody>
-                {sub_table_rows}
-                </tbody></table></div></td></tr>"""
+            <tr id="{row_id}" class="details-row">
+                <td colspan="12" style="padding: 20px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e;">
+                    <h4 style="margin-top: 0; margin-bottom: 10px;">📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
+                    <table class="details-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr>
+                                <th style="width:15%; background: #eaecef; padding: 8px; text-align: left;">Security</th>
+                                <th style="width:20%; background: #eaecef; padding: 8px; text-align: left;">Vulnerability Rule</th>
+                                <th style="width:25%; background: #eaecef; padding: 8px; text-align: left;">File Location & Line</th>
+                                <th style="width:40%; background: #eaecef; padding: 8px; text-align: left;">Defect Context Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sub_table_rows}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>"""
 
 
     footer_html = "</tbody></table></body></html>"
