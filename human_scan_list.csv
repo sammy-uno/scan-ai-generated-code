@@ -1,7 +1,9 @@
 repo_name,number,title,primary_language,repo_stars,agent_name
 analogdotnow/Analog,155,Fix event date time update bug,javascript,1079,human
+onlook-dev/onlook,2118,feat: Enable line breaks in text editor without splitBlock - Add hard…,javascript,21192,human
 Skyvern-AI/skyvern,2837,Bump requests from 2.32.3 to 2.32.4 in /integrations/langchain,python,13976,human
 liam-hq/liam,2267,chore(deps): update dependency postcss to v8.5.5,javascript,4194,human
+anyproto/anytype-ts,1419,Feature/JS-3669: Timeline view,javascript,5854,human
 liam-hq/liam,2266,chore(deps): update dependency @vitejs/plugin-react to v4.5.2,javascript,4194,human
 onlook-dev/onlook,2295,fix: handle chat failure better,javascript,21192,human
 Skyvern-AI/skyvern,2824,Bump python-jose from 3.3.0 to 3.4.0,python,13976,human
