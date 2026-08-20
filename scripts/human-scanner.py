@@ -39,7 +39,7 @@ def main():
         "BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", 
         "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG", "Azure/azure-sdk-for-js", 
         "typehero/typehero", "ruvnet/claude-flow", "microsoft/TypeScript", "Azure/azure-sdk-for-java", "nuxeo/nuxeo",
-        "microsoft/azuredatastudio", "labring/laf"
+        "microsoft/azuredatastudio", "labring/laf", "marimo-team/marimo"
     ]
     
     if not os.path.exists(INPUT_CSV):
