@@ -168,9 +168,14 @@ def main():
         
         repo = str(r.get('repo', 'Unknown'))
         
-        # 🎯 THE 100% UNBREAKABLE FIX: Uses the database PR number token to build a perfect HTML link
+        # 🎯 THE PRODUCTION FIX: Clean up any trailing bracket wrappers so the link resolves to a true web URL
         raw_db_url = str(r.get('link', '#')).strip()
-        pr_display_num = str(r.get('pr_num', 'Link'))        
+        pr_display_num = str(r.get('pr_num', 'Link'))
+        
+        # If the database string contains Markdown characters, strip them down to the clean web address
+        if '](' in raw_db_url:
+            raw_db_url = raw_db_url.split('](')[-1].rstrip(')')
+            
         anchor_tag = f'<a href="{raw_db_url}" target="_blank" style="text-decoration: none; color: #0969da; font-weight: 500; white-space: nowrap;">#{pr_display_num} ↗</a>'
         
         tool = str(r.get('tool', 'CodeQL'))
