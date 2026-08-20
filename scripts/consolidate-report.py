@@ -150,6 +150,9 @@ def main():
                     
                     # 🎯 INGESTION FIX: Safely pull star metrics out of json summaries
                     repo_stars_count = int(summary_data.get('stars', summary_data.get('repo_stars', 0)))
+
+                    if repo_stars_count > 0:
+                        print(f"📄 [REPORT ENGINE LOG]: Found stars in JSON for #{pr_num}: {repo_stars_count} ★")
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
                     if isinstance(cwes_list, list):
