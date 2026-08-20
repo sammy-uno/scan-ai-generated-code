@@ -141,7 +141,7 @@ def main():
     total_extracted = past_extracted + stats["added"]
     has_more_data = "true" if next_offset < len(df) and stats["added"] > 0 else "false"
 
-    if total_extracted >= 5:
+    if total_extracted >= 2:
         print(f"🧪 Target total goal of 1000 human PR extractions reached. Terminating chaining loop sequence gracefully.")
         has_more_data = "false"
     elif has_more_data == "true":
