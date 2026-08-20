@@ -20,7 +20,7 @@ def main():
     # 🎯 TARGET FIXED TO HUMAN DATASET
     INPUT_CSV = "human_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 250     # Pure maximum slots per batch pass
+    SCAN_LIMIT = 5     # Pure maximum slots per batch pass
     
     # 🚀 CHUNK OFFSET AND EXTRACTION COUNTER INGESTION
     try:
