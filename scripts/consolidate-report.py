@@ -31,7 +31,7 @@ def get_live_pr_status(repo, pr_num):
 
 def main():
     matrix_str = os.environ.get('MATRIX_JSON', '{}')
-    scan_type = os.environ.get('SCAN_TYPE', 'automated').lower()
+    scan_type = os.environ.get('SCAN_TYPE', 'automated').lower().strip()
     
     # Extract the chunk offset pointer from the workflow environment variables
     try:
@@ -41,13 +41,7 @@ def main():
         
     table_rows = []
     
-    # Discover all success markers up front to evaluate the target scan track type
-    all_sarifs = sorted(glob.glob('all-results/**/*.sarif', recursive=True)) if os.path.exists('all-results') else []
-    
-    # 🎯 THE PURE ENVIRONMENT VARIABLE FIX: Direct single source of truth mapping!
-    scan_type = os.environ.get('SCAN_TYPE', 'automated').lower().strip()
-    
-    # Strictly map human versus automated paths using ONLY your workflow env block
+    # Direct single source of truth mapping!
     is_human_run = (scan_type == 'human')
 
     # Separate database targets to match workflow requirements perfectly
@@ -58,9 +52,9 @@ def main():
         accumulated_db_path = "all-results/accumulated_database.json"
         print("📁 [DATABASE TARGET]: Strict automated batch tracking track detected. Targeting standard ledger.")
     
-    # 🎯 STEP A: FRESH START CONDITION - Erase on Batch 1, maintain history on subsequent loops
+    # 🎯 FRESH START CONDITION - Erase on Batch 1, maintain history on subsequent loops
     if chunk_offset == 0:
-        print(f"🌱 [BATCH 1 POINTER MATCHED (Offset {chunk_offset})]: Clearing previous branch history for a fresh tracking ledger run.")
+        print(f"🌱 [BATCH 1 POINTER MATCHED (Offset {chunk_offset})]: Reinitializing fresh ledger boundary for {scan_type} track.")
         if os.path.exists(accumulated_db_path):
             try:
                 os.remove(accumulated_db_path)
@@ -75,9 +69,10 @@ def main():
         try:
             with open(accumulated_db_path, "r", encoding="utf-8") as r_db:
                 historical_records = json.load(r_db)
-                for entry in historical_records:
-                    key = (str(entry.get('repo')).strip().lower(), str(entry.get('pr_num')).strip().lower(), str(entry.get('tool')).strip().lower())
-                    master_ledger[key] = entry
+                if isinstance(historical_records, list):
+                    for entry in historical_records:
+                        key = (str(entry.get('repo')).strip().lower(), str(entry.get('pr_num')).strip().lower(), str(entry.get('tool')).strip().lower())
+                        master_ledger[key] = entry
             print(f"📁 [LEDGER LOG]: Successfully loaded {len(master_ledger)} cumulative scan profiles from branch memory map.")
         except Exception as ledger_ex: 
             print(f"⚠️ History read warning: {ledger_ex}")
@@ -91,7 +86,7 @@ def main():
 
     print(f"📦 [FOUND ASSETS] Active session markers discovered on disk: {len(success_markers)}")
 
-    # 🎯 STEP B: PROCESS FILE ARTIFACTS AND POPULATE SCALAR INDEX VALUES
+    # PROCESS FILE ARTIFACTS AND POPULATE SCALAR INDEX VALUES
     for f in success_markers:
         fname = os.path.basename(f)
         parent_dir = os.path.dirname(f)
@@ -131,6 +126,8 @@ def main():
             
             h, m, l, total_issues = 0, 0, 0, 0
             committed_files_count = 1
+            repo_stars_count = 0  # 🎯 INGESTION FIX: Baseline initialization
+            findings_details = [] 
 
             custom_json_path = f.replace('.success', '.json')
             nested_json_path = os.path.join(parent_dir, f"{name_root}.json")
@@ -149,7 +146,10 @@ def main():
                     l = int(summary_data.get('low', summary_data.get('L', 0)))
                     total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
                     committed_files_count = int(summary_data.get('files_changed', 1))
-                    findings_details = summary_data.get('findings_details', [])
+                    findings_details = summary_data.get('findings_details', summary_data.get('issues_list', []))
+                    
+                    # 🎯 INGESTION FIX: Safely pull star metrics out of json summaries
+                    repo_stars_count = int(summary_data.get('stars', summary_data.get('repo_stars', 0)))
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
                     if isinstance(cwes_list, list):
@@ -170,10 +170,11 @@ def main():
                 "loc": display_loc, "cwes": cwe_display, "h": h, "m": m, "l": l, 
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge,
                 "has_issues_bool": total_issues > 0, "pr_num": pr_num,
-                "findings_details": findings_details
+                "findings_details": findings_details,
+                "stars": repo_stars_count # 🎯 INGESTION FIX: Save star metric natively to database records
             }
             
-            # Track today's fresh batch rows (5 PRs) for the Markdown Summary
+            # Track today's fresh batch rows for the Markdown Summary
             table_rows.append(row_entry)
             
             # Map the entry straight into your master_ledger map to manage history tracking
@@ -200,22 +201,23 @@ def main():
                         # Only keep the old entry if today's run isn't actively overwriting it
                         if (old_repo, old_pr, old_tool) not in master_ledger:
                             database_payload.append(old_item)
-        except Exception:
-            pass
+        except Exception as r_err:
+            print(f"⚠️ Notice: No existing database found to append. Building fresh history track list: {r_err}")
 
     # 2. Append today's fresh batch rows onto the database tracking payload list array
     for fresh_row in list(master_ledger.values()):
-        # Avoid double-adding items that are already placed in our payload list
         if fresh_row not in database_payload:
             database_payload.append(fresh_row)
 
     # Flush the combined database list array out to your database branch tracking folder
-    os.makedirs(os.path.dirname(accumulated_db_path), exist_ok=True)
+    if os.path.dirname(accumulated_db_path):
+        os.makedirs(os.path.dirname(accumulated_db_path), exist_ok=True)
+        
     with open(accumulated_db_path, "w", encoding="utf-8") as db_w:
         json.dump(database_payload, db_w, indent=2, ensure_ascii=False)
-    print(f"💾 [LEDGER FLUSH SUCCESSFUL] Consolidated master data size: {len(database_payload)} entries saved to branch.")
+    print(f"💾 [LEDGER FLUSH SUCCESSFUL] Consolidated master data size: {len(database_payload)} entries saved to {accumulated_db_path}.")
 
-    # Restrict summary calculations strictly to today's active batch run (5 PRs)
+    # Restrict summary calculations strictly to today's active batch run
     total_scanned = len(table_rows)
     vulnerable_count = sum(1 for r in table_rows if r.get('has_issues_bool', False))
     total_loc_scanned = sum(int(r.get('loc', 0)) for r in table_rows)
@@ -241,6 +243,7 @@ def main():
         chunk_file = f"report-chunks/table_part_{index + 1}.md"
         with open(chunk_file, "w", encoding="utf-8") as out:
             out.write(f"\n### Detailed Scan Logs (Part {index + 1} of {len(row_chunks)})\n")
+            
             if is_human_run:
                 out.write('| Repository | PR | Status | Lang | PR LOC | CWE Discovered | 🔴 H | 🟡 M | 🔵 L | Total Security Issues (Files) | CWE Density |\n')
                 out.write('| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n')
@@ -253,6 +256,7 @@ def main():
                     out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
                 else:
                     out.write(f'| {r.get("repo")} | {r.get("link")} | {r.get("status")} | {r.get("tool")} | {r.get("lang")} | {r.get("loc")} | **{r.get("cwes")}** | {r.get("h")} | {r.get("m")} | {r.get("l")} | **{r.get("issues_files")}** | **{r.get("density")}** |\n')
+                    
     print(f"🧩 Successfully split report into {len(row_chunks) + 1} independent compliance chunks.")
 
 if __name__ == "__main__":
