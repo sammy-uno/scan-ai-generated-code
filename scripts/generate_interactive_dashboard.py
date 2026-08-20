@@ -208,22 +208,6 @@ def main():
                 cwe_label_suffix = f" ({', '.join(sorted(list(resolved_cwes)))})" if resolved_cwes else " (CWE: N/A)"
                 display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
-                if desc_body:
-                    sentences = re.split(r'(?<=\.)\s+', desc_body)
-                    unique_sentences = []
-                    seen_normalized_sentences = set()
-                    
-                    for sentence in sentences:
-                        clean_sentence = sentence.strip()
-                        if not clean_sentence:
-                            continue
-                        normalized = re.sub(r'\[[^\]]+\]\(\d+\)', '', clean_sentence)
-                        normalized_clean = re.sub(r'\s+', ' ', normalized).strip().lower()
-                        if normalized_clean not in seen_normalized_sentences:
-                            seen_normalized_sentences.add(normalized_clean)
-                            unique_sentences.append(clean_sentence)
-                    desc_body = " ".join(unique_sentences)
-
                 sub_table_rows += f"""
                 <tr>
                     <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><span class="badge" style="background-color: #cf222e; color:white;">{severity_val}</span></td>
