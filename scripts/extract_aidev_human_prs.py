@@ -43,7 +43,7 @@ def extract_human_data():
         filtered_df = filtered_df.sort_values(by='created_at', ascending=False)
         
         # 🚀 LOC COLUMN REMOVED: Exporting only verified, meaningful properties
-        scan_list = filtered_df.head(2000)[['full_name', 'number', 'title', 'language', 'stars']].rename(columns={
+        scan_list = filtered_df.head(10000)[['full_name', 'number', 'title', 'language', 'stars']].rename(columns={
             'full_name': 'repo_name',
             'language': 'primary_language',
             'stars': 'repo_stars'
