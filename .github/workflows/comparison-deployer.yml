@@ -34,6 +34,14 @@ jobs:
         run: |
           python scripts/generate_comparison_dashboard.py
 
+      # 🎯 NEW ARTIFACT DOWNLOADING STEP FOR YOUR THESIS EVALUATION LAYOUT
+      - name: 📦 Archive Thesis Comparative Report Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-thesis-comparative-dashboard
+          path: docs/THESIS_COMPARATIVE_ANALYSIS.html
+          retention-days: 7
+
       - name: 🚀 Commit Page to Database Branch
         if: success()
         run: |
