@@ -141,6 +141,11 @@ def main():
             if target_json_path and os.path.exists(target_json_path):
                 with open(target_json_path, 'r', encoding='utf-8') as sm_f:
                     summary_data = json.load(sm_f)
+
+                    print(json.dumps(summary_data, indent=2))
+                    print("Dump above: --------------------------------------------------")
+
+                    
                     h = int(summary_data.get('high', summary_data.get('H', 0)))
                     m = int(summary_data.get('medium', summary_data.get('M', 0)))
                     l = int(summary_data.get('low', summary_data.get('L', 0)))
