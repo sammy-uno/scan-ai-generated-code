@@ -34,7 +34,7 @@ jobs:
         run: |
           python scripts/generate_comparison_dashboard.py
 
-      # 🎯 NEW ARTIFACT DOWNLOADING STEP FOR YOUR THESIS EVALUATION LAYOUT
+      # Archive the report so you can download it directly as a ZIP artifact
       - name: 📦 Archive Thesis Comparative Report Package
         uses: actions/upload-artifact@v4
         with:
@@ -42,21 +42,31 @@ jobs:
           path: docs/THESIS_COMPARATIVE_ANALYSIS.html
           retention-days: 7
 
+      # 🚀 FIXED: Clears untracked files from the tree to prevent branch checkout blockades
       - name: 🚀 Commit Page to Database Branch
         if: success()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@://github.com"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           
+          # STEP 1: Stash your fresh report safely in a temporary memory directory
           mkdir -p /tmp/stash
           cp docs/THESIS_COMPARATIVE_ANALYSIS.html /tmp/stash/THESIS_COMPARATIVE_ANALYSIS.html
           
-          git checkout database || git checkout -b database origin/database
+          # 🎯 THE FIX: Wipe the local file from the active working tree so Git can checkout cleanly
+          rm -f docs/THESIS_COMPARATIVE_ANALYSIS.html
+          
+          # STEP 2: Switch branches reliably
+          git fetch origin database
+          git checkout database || git checkout -b database origin/database || true
           git pull origin database || true
           
+          # STEP 3: Bring the file back from memory into the database branch tracking workspace
           mkdir -p docs
           cp /tmp/stash/THESIS_COMPARATIVE_ANALYSIS.html docs/THESIS_COMPARATIVE_ANALYSIS.html
           
+          # STEP 4: Stage, commit, and push changes directly
           git add docs/THESIS_COMPARATIVE_ANALYSIS.html
-          git commit -m "docs: generate master side-by-side comparative dashboard" || true
+          git commit -m "docs: generate master side-by-side comparative dashboard" || echo "No changes to commit"
           git push origin database
