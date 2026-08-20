@@ -1,6 +1,24 @@
 [
   {
     "repo": "Skyvern-AI/skyvern",
+    "link": "[#2824](https://github.com/Skyvern-AI/skyvern/pull/2824)",
+    "tool": "human",
+    "lang": "python",
+    "loc": 59,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (2)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2824",
+    "findings_details": [],
+    "stars": 13976
+  },
+  {
+    "repo": "Skyvern-AI/skyvern",
     "link": "[#2837](https://github.com/Skyvern-AI/skyvern/pull/2837)",
     "tool": "human",
     "lang": "python",
@@ -34,5 +52,129 @@
     "pr_num": "155",
     "findings_details": [],
     "stars": 1079
+  },
+  {
+    "repo": "anyproto/anytype-ts",
+    "link": "[#1419](https://github.com/anyproto/anytype-ts/pull/1419)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 907,
+    "cwes": "CWE-079, CWE-116",
+    "h": 0,
+    "m": 1,
+    "l": 0,
+    "issues_files": "1 (20)",
+    "density": 0.0011,
+    "status": "🟣 Merged",
+    "has_issues_bool": true,
+    "pr_num": "1419",
+    "findings_details": [
+      {
+        "vulnerability": "js/xss-through-dom",
+        "severity_label": "🟡 Medium",
+        "file_line": "src/ts/component/block/dataview/view/timeline.tsx#L491",
+        "description": "[DOM text](1) is reinterpreted as HTML without escaping meta-characters.",
+        "cwes": [
+          "CWE-079",
+          "CWE-116"
+        ]
+      }
+    ],
+    "stars": 5854
+  },
+  {
+    "repo": "liam-hq/liam",
+    "link": "[#2266](https://github.com/liam-hq/liam/pull/2266)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 46,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (3)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2266",
+    "findings_details": [],
+    "stars": 4194
+  },
+  {
+    "repo": "liam-hq/liam",
+    "link": "[#2267](https://github.com/liam-hq/liam/pull/2267)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 71,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (2)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2267",
+    "findings_details": [],
+    "stars": 4194
+  },
+  {
+    "repo": "onlook-dev/onlook",
+    "link": "[#2118](https://github.com/onlook-dev/onlook/pull/2118)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 182,
+    "cwes": "CWE-020, CWE-080, CWE-116",
+    "h": 0,
+    "m": 2,
+    "l": 0,
+    "issues_files": "2 (6)",
+    "density": 0.011,
+    "status": "🟣 Merged",
+    "has_issues_bool": true,
+    "pr_num": "2118",
+    "findings_details": [
+      {
+        "vulnerability": "js/incomplete-multi-character-sanitization",
+        "severity_label": "🟡 Medium",
+        "file_line": "apps/web/preload/script/api/elements/text.ts#L98",
+        "description": "This string may still contain [<script](1), which may cause an HTML element injection vulnerability.",
+        "cwes": [
+          "CWE-020",
+          "CWE-080",
+          "CWE-116"
+        ]
+      },
+      {
+        "vulnerability": "js/incomplete-multi-character-sanitization",
+        "severity_label": "🟡 Medium",
+        "file_line": "apps/web/preload/dist/index.js#L12946",
+        "description": "This string may still contain [<script](1), which may cause an HTML element injection vulnerability.",
+        "cwes": [
+          "CWE-020",
+          "CWE-080",
+          "CWE-116"
+        ]
+      }
+    ],
+    "stars": 21192
+  },
+  {
+    "repo": "onlook-dev/onlook",
+    "link": "[#2295](https://github.com/onlook-dev/onlook/pull/2295)",
+    "tool": "human",
+    "lang": "javascript",
+    "loc": 26,
+    "cwes": "None",
+    "h": 0,
+    "m": 0,
+    "l": 0,
+    "issues_files": "0 (3)",
+    "density": 0.0,
+    "status": "🟣 Merged",
+    "has_issues_bool": false,
+    "pr_num": "2295",
+    "findings_details": [],
+    "stars": 21192
   }
 ]
