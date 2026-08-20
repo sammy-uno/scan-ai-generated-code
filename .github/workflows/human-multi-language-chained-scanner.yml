@@ -145,11 +145,11 @@ jobs:
             if [ -f "sarif-results/summary.json" ]; then
               cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
             else
-              echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 1, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+              echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 1, "cwes_discovered": [], "stars": '${{ matrix.repo_stars }}'}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
             fi
           else
             echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
-            echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 0, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+            echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 0, "cwes_discovered": [], "stars": '${{ matrix.repo_stars }}'}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
           fi
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
