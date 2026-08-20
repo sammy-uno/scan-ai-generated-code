@@ -87,6 +87,7 @@ def main():
         title = str(row['title'])
         lang = str(row['primary_language'])
         agent = str(row['agent_name'])
+        repo_stars = str(row.get('repo_stars', '0'))
         
         if repo in EXCLUDE_REPOS:
             print(f"SKIP: {repo} (Manual Exclude)")
@@ -128,6 +129,7 @@ def main():
             "language": lang, 
             "pr_title": title, 
             "agent_name": agent,
+            "repo_stars": repo_stars,
             "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{lang}--{agent.replace(' ', '_')}"
         })
         
