@@ -88,23 +88,5 @@
     "pr_num": "2295",
     "findings_details": [],
     "stars": 0
-  },
-  {
-    "repo": "oraios/serena",
-    "link": "[#247](https://github.com/oraios/serena/pull/247)",
-    "tool": "human",
-    "lang": "python",
-    "loc": 2,
-    "cwes": "None",
-    "h": 0,
-    "m": 0,
-    "l": 0,
-    "issues_files": "0 (1)",
-    "density": 0.0,
-    "status": "🟣 Merged",
-    "has_issues_bool": false,
-    "pr_num": "247",
-    "findings_details": [],
-    "stars": 0
   }
 ]
