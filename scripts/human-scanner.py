@@ -101,7 +101,9 @@ def main():
             "category_name": f"human--{repo.replace('/', '_SLASH_')}--{num}--{lang}"
         })
         
-        print(f"ADDED: {repo} #{num} ({total} lines)")
+        #print(f"ADDED: {repo} #{num} ({total} lines)")
+        print(f"ADDED: {repo} #{num} ({total} lines) | Popularity: ⭐ {repo_stars} stars")
+        
         stats["added"] += 1
 
     print("\n--- Human Discovery Summary ---")
