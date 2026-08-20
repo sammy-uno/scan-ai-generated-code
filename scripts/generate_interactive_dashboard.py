@@ -17,11 +17,11 @@ def main():
     
     if scan_type == "human":
         json_path = "all-results/human_accumulated_database.json"
-        report_title = "👨‍💻 Human Code Audit - Consolidated Summary Report"
+        report_title = "👨‍💻 Human Pull Requests: Consolidated Security Scan Results"
         print("📊 [ENGINE LOG]: Running in HUMAN audit mode. Target path set to human ledger.")
     else:
         json_path = "all-results/accumulated_database.json"
-        report_title = "🤖 AI Code Scanner - Consolidated Summary Report"
+        report_title = "🤖 AI Agent Pull Requests: Consolidated Security Scan Results"
         print("📊 [ENGINE LOG]: Running in AI automated mode. Target path set to standard ledger.")
         
     os.makedirs("all-results", exist_ok=True)
@@ -426,7 +426,7 @@ def main():
             }});
         }}
     </script></head><body>
-    <h1>📊 {report_title}</h1>
+    <h1>{report_title}</h1>
     <div class="card">
         <h3>📈 Executive Summary (All Cumulative Chained Runs)</h3>
         <ul>
