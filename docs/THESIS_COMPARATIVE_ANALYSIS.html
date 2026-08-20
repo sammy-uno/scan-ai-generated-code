@@ -16,9 +16,9 @@
         li { padding: 10px 0; border-bottom: 1px solid #f6f8fa; font-size: 15px; display: flex; justify-content: space-between; }
         li:last-child { border-bottom: none; }
         .metric-value { font-weight: bold; font-size: 16px; }
-        .badge { padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; }
-        .badge-ai { background-color: #0969da; }
-        .badge-human { background-color: #2da44e; }
+        
+        /* 🎯 FIX 3: Global style definition forcing vulnerable status badges to render with a strict crimson-red layout background */
+        .badge-vuln-flag { padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; background-color: #cf222e; }
         
         .severity-track { display: flex; gap: 10px; margin-top: 5px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px dashed #d0d7de; }
         .severity-item { flex: 1; text-align: center; font-size: 13px; font-weight: bold; }
@@ -34,15 +34,17 @@
     <h1>📊 Thesis Empirical Analysis: AI vs Human Code Security Summary</h1>
     
     <div class="comparison-grid">
-        <!-- 🤖 AI-Generated Code Dataset Card -->
+        <!-- 🤖 AI-Generated Pull Requests Card -->
         <div class="card ai-card">
-            <h3>🤖 AI-Generated Code Dataset (AIDev)</h3>
+            <!-- 🎯 FIX 1: Title changed to AI-Generated Pull Requests -->
+            <h3>🤖 AI-Generated Pull Requests</h3>
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">1000</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">168,823 lines</span></li>
-                <li><span>Vulnerable PR Footprint:</span> <span class="badge badge-ai">17 PRs Flagged</span></li>
+                <!-- 🎯 FIX 3: Badge class switched to badge-vuln-flag for strict red background styling -->
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">17 PRs Flagged</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
@@ -64,15 +66,17 @@
             </ul>
         </div>
 
-        <!-- 👨‍💻 Human Auditor Baseline Card -->
+        <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
-            <h3>👨‍💻 Human-Generated Code Baseline</h3>
+            <!-- 🎯 FIX 2: Title changed to Human Pull Requests -->
+            <h3>👨‍💻 Human Pull Requests</h3>
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">999</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">149,315 lines</span></li>
-                <li><span>Vulnerable PR Footprint:</span> <span class="badge badge-human">8 PRs Flagged</span></li>
+                <!-- 🎯 FIX 3: Badge class switched to badge-vuln-flag for strict red background styling -->
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">8 PRs Flagged</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
