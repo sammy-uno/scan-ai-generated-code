@@ -20,7 +20,7 @@ def main():
     # 🎯 TARGET FIXED TO HUMAN DATASET
     INPUT_CSV = "human_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 5     # Pure maximum slots per batch pass
+    SCAN_LIMIT = 2     # Pure maximum slots per batch pass
     
     # 🚀 CHUNK OFFSET AND EXTRACTION COUNTER INGESTION
     try:
@@ -131,7 +131,8 @@ def main():
             "category_name": f"{repo.replace('/', '_SLASH_')}--{num}--{lang}--{agent.replace(' ', '_')}"
         })
         
-        print(f"ADDED: {repo} #{num} ({total} lines)")
+        #print(f"ADDED: {repo} #{num} ({total} lines)")
+        print(f"ADDED: {repo} #{num} ({total} lines) | Popularity: ⭐ {repo_stars} stars")
         stats["added"] += 1
 
     # 🚀 ACCURATE POINTER BOUNDARY ARITHMETIC
