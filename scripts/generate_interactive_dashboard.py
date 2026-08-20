@@ -167,7 +167,14 @@ def main():
         row_id = f"drawer_row_idx_{row_index_counter}"
         
         repo = str(r.get('repo', 'Unknown'))
-        anchor_tag = str(r.get('link', '#'))
+        #anchor_tag = str(r.get('link', '#'))
+
+        # 🎯 THE FIX: Convert raw database Markdown '[#num](url)' text into clean HTML link text tags
+        db_link_string = str(r.get('link', '#'))
+        
+        # This replaces the Markdown syntax structure with absolute clean HTML tags
+        anchor_tag = db_link_string.replace('[', '<a href="').replace('](', '" target="_blank" style="text-decoration: none; color: #0969da; font-weight: 500; white-space: nowrap;">').replace(')', ' ↗</a>')
+        
         tool = str(r.get('tool', 'CodeQL'))
         lang = str(r.get('lang', 'Unknown'))
         loc = str(r.get('loc', '0'))
