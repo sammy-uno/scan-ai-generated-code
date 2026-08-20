@@ -17,9 +17,11 @@ def main():
     
     if scan_type == "human":
         json_path = "all-results/human_accumulated_database.json"
+        report_title = "👨‍💻 Human Code Audit - Consolidated Summary Report"
         print("📊 [ENGINE LOG]: Running in HUMAN audit mode. Target path set to human ledger.")
     else:
         json_path = "all-results/accumulated_database.json"
+        report_title = "🤖 AI Code Scanner - Consolidated Summary Report"
         print("📊 [ENGINE LOG]: Running in AI automated mode. Target path set to standard ledger.")
         
     os.makedirs("all-results", exist_ok=True)
@@ -337,7 +339,7 @@ def main():
     closed_count = sum(1 for x in data if "Closed" in x.get('status', ''))
     
     # Generate Top-Level static framework block strings
-    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>AI Scanner - Consolidated Summary Report</title>
+    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{report_title}</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
         h1 {{ border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }}
@@ -424,7 +426,7 @@ def main():
             }});
         }}
     </script></head><body>
-    <h1>📊 Consolidated Summary Report</h1>
+    <h1>📊 {report_title}</h1>
     <div class="card">
         <h3>📈 Executive Summary (All Cumulative Chained Runs)</h3>
         <ul>
