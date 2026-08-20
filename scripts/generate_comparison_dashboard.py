@@ -23,7 +23,6 @@ def main():
     vulnerable_ai_prs = sum(1 for x in ai_data if x.get('has_issues_bool', False))
     total_ai_loc = sum(int(x.get('loc', 0)) for x in ai_data)
     
-    # Safely isolate the numeric issues total from string formats like "12 (3)"
     total_ai_issues = 0
     for x in ai_data:
         val = str(x.get('issues_files', '0')).strip().split()[0]
@@ -32,7 +31,6 @@ def main():
             
     ai_density = round(total_ai_issues / total_ai_loc, 6) if total_ai_loc > 0 else 0.0
 
-    # 📊 AI Severities and Statuses
     ai_high = sum(int(x.get('h', 0)) for x in ai_data)
     ai_medium = sum(int(x.get('m', 0)) for x in ai_data)
     ai_low = sum(int(x.get('l', 0)) for x in ai_data)
@@ -54,7 +52,6 @@ def main():
             
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
 
-    # 📊 Human Severities and Statuses
     human_high = sum(int(x.get('h', 0)) for x in human_data)
     human_medium = sum(int(x.get('m', 0)) for x in human_data)
     human_low = sum(int(x.get('l', 0)) for x in human_data)
@@ -82,9 +79,9 @@ def main():
         li {{ padding: 10px 0; border-bottom: 1px solid #f6f8fa; font-size: 15px; display: flex; justify-content: space-between; }}
         li:last-child {{ border-bottom: none; }}
         .metric-value {{ font-weight: bold; font-size: 16px; }}
-        .badge {{ padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; }}
-        .badge-ai {{ background-color: #0969da; }}
-        .badge-human {{ background-color: #2da44e; }}
+        
+        /* 🎯 FIX 3: Global style definition forcing vulnerable status badges to render with a strict crimson-red layout background */
+        .badge-vuln-flag {{ padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; background-color: #cf222e; }}
         
         .severity-track {{ display: flex; gap: 10px; margin-top: 5px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px dashed #d0d7de; }}
         .severity-item {{ flex: 1; text-align: center; font-size: 13px; font-weight: bold; }}
@@ -100,15 +97,17 @@ def main():
     <h1>📊 Thesis Empirical Analysis: AI vs Human Code Security Summary</h1>
     
     <div class="comparison-grid">
-        <!-- 🤖 AI-Generated Code Dataset Card -->
+        <!-- 🤖 AI-Generated Pull Requests Card -->
         <div class="card ai-card">
-            <h3>🤖 AI-Generated Code Dataset (AIDev)</h3>
+            <!-- 🎯 FIX 1: Title changed to AI-Generated Pull Requests -->
+            <h3>🤖 AI-Generated Pull Requests</h3>
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_ai_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_ai_loc:,} lines</span></li>
-                <li><span>Vulnerable PR Footprint:</span> <span class="badge badge-ai">{vulnerable_ai_prs} PRs Flagged</span></li>
+                <!-- 🎯 FIX 3: Badge class switched to badge-vuln-flag for strict red background styling -->
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_ai_prs} PRs Flagged</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
@@ -130,15 +129,17 @@ def main():
             </ul>
         </div>
 
-        <!-- 👨‍💻 Human Auditor Baseline Card -->
+        <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
-            <h3>👨‍💻 Human-Generated Code Baseline</h3>
+            <!-- 🎯 FIX 2: Title changed to Human Pull Requests -->
+            <h3>👨‍💻 Human Pull Requests</h3>
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_human_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_human_loc:,} lines</span></li>
-                <li><span>Vulnerable PR Footprint:</span> <span class="badge badge-human">{vulnerable_human_prs} PRs Flagged</span></li>
+                <!-- 🎯 FIX 3: Badge class switched to badge-vuln-flag for strict red background styling -->
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_human_prs} PRs Flagged</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
