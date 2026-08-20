@@ -38,7 +38,8 @@ def main():
     EXCLUDE_REPOS = [
         "BerriAI/litellm", "elastic/kibana", "tinygrad/tinygrad", "classmethod/tsumiki", 
         "camunda/camunda", "Azure/azure-sdk-for-python", "wzdavid/ThinkRAG", "Azure/azure-sdk-for-js", 
-        "typehero/typehero", "ruvnet/claude-flow", "microsoft/TypeScript", "Azure/azure-sdk-for-java", "nuxeo/nuxeo"
+        "typehero/typehero", "ruvnet/claude-flow", "microsoft/TypeScript", "Azure/azure-sdk-for-java", "nuxeo/nuxeo",
+        "microsoft/azuredatastudio", "labring/laf"
     ]
     
     if not os.path.exists(INPUT_CSV):
@@ -93,10 +94,10 @@ def main():
             stats["excluded"] += 1
             continue
 
-        if repo in seen_repos:
-            print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
-            stats["duplicates"] += 1
-            continue
+        #if repo in seen_repos:
+        #    print(f"SKIP: {repo} #{num} (Duplicate Repo Filtered Natively across historical batches)")
+        #    stats["duplicates"] += 1
+        #    continue
 
         lines_res = run_command(f'gh pr view {num} --repo {repo} --json additions,deletions')
         if lines_res: 
