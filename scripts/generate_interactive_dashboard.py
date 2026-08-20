@@ -383,7 +383,6 @@ def main():
                 }}
             }}
 
-            // 1. Safely isolate ONLY the top-level main overview rows
             const mainRows = [];
             const allRows = tableBody.children;
             for (let i = 0; i < allRows.length; i++) {{
@@ -393,10 +392,10 @@ def main():
                 }}
             }}
 
-            // 2. Sort rows based strictly on explicit Column Index 7 (CWE Discovered)
             mainRows.sort((rowA, rowB) => {{
-                const cellA = (rowA.cells && rowA.cells[7]) ? rowA.cells[7].innerText.trim() : 'None';
-                const cellB = (rowB.cells && rowB.cells[7]) ? rowB.cells[7].innerText.trim() : 'None';
+                // 🎯 SHIFTED TO INDEX 8: Due to adding the Repository Stars data cell column
+                const cellA = (rowA.cells && rowA.cells[8]) ? rowA.cells[8].innerText.trim() : 'None';
+                const cellB = (rowB.cells && rowB.cells[8]) ? rowB.cells[8].innerText.trim() : 'None';
 
                 const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
                 const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
@@ -412,10 +411,8 @@ def main():
                 }}
             }});
 
-            // 3. Move main rows and their paired detail boxes together as a solid unit
             mainRows.forEach((mainRow) => {{
                 tableBody.appendChild(mainRow);
-                
                 const detailsId = mainRow.getAttribute('data-details-id');
                 if (detailsId) {{
                     const detailRowEl = document.getElementById(detailsId);
@@ -426,12 +423,12 @@ def main():
             }});
         }}
     </script></head><body>
-    <h1>{report_title}</h1>
+    <h1>📊 {report_title}</h1>
     <div class="card">
-        <h3>📈 Executive Summary (All Cumulative Chained Runs)</h3>
+        <h3>📈 Executive Summary</h3>
         <ul>
-            <li><strong>Total PRs Scanned in Registry:</strong> {total_scanned}</li>
-            <li><strong>Total LOC Scanned in Registry:</strong> {total_loc_scanned} lines</li>
+            <li><strong>Total PRs Scanned:</strong> {total_scanned}</li>
+            <li><strong>Total LOC Scanned:</strong> {total_loc_scanned} lines</li>
             <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean</span></li>
             <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}</li>
         </ul>
@@ -440,102 +437,49 @@ def main():
     <table style="width: 100%; border-collapse: collapse; background: transparent; table-layout: fixed;">
         <thead>
             <tr style="font-size: 13px; font-weight: 600; background: transparent;">
-                <th style="width: 12%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
-                <th style="width: 16%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">PR Reference Link</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Status</th>
-                <th style="width: 12%; padding: 12px; text-align: left; background: transparent;">AI Tool Engine</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Language</th>
-                <th style="width: 6%; padding: 12px; text-align: left; background: transparent;">LOC</th>
+                <th style="width: 11%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
+                <th style="width: 15%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
+                
+                <!-- 🎯 FIX 1: New Column Added Directly Next to Repository Target -->
+                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Repository Stars</th>
+                
+                <th style="width: 9%; padding: 12px; text-align: left; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">PR Reference Link</th>
+                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Status</th>
+                <th style="width: 11%; padding: 12px; text-align: left; background: transparent;">AI Tool Engine</th>
+                <th style="width: 9%; padding: 12px; text-align: left; background: transparent;">Language</th>
+                <th style="width: 5%; padding: 12px; text-align: left; background: transparent;">LOC</th>
                 <th onclick="sortCweColumn(this)" style="width: 12%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
                     CWE Discovered <span class="sort-indicator" style="margin-left: 4px; font-weight: bold; color: #64748b; font-size: 10px; letter-spacing: -1px;">▲▼</span>
                 </th>
-                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔴</th>
-                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🟡</th>
-                <th style="width: 4%; padding: 12px; text-align: center; background: transparent;">🔵</th>
-                <th style="width: 10%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
+                <th style="width: 3%; padding: 12px; text-align: center; background: transparent;">🔴</th>
+                <th style="width: 3%; padding: 12px; text-align: center; background: transparent;">🟡</th>
+                <th style="width: 3%; padding: 12px; text-align: center; background: transparent;">🔵</th>
+                <th style="width: 9%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
             </tr>
         </thead>
         <tbody id="tableBodyContainer">
     """
-
-    # 🎯 THE PRODUCTION FIX: Initialize body_html as a blank string outside the loop
-    body_html = ""
-
-    # 🎯 THE SINGLE SOURCE OF TRUTH: Read flatly from your augmented database array only!
-    for index, r in enumerate(data):
-        row_id = f"details_{index}"
+        # Build individual sub-table rows for the dropdown drawer view details element
         has_flaw = r.get('has_issues_bool', False)
-        cwes_found = r.get('cwes', 'None')
-        
-        # Pull the pre-baked vulnerability items directly out of your database row item!
         findings_list = r.get('findings_details', [])
-
-        row_class = ' class="vulnerable-row"' if has_flaw else ''
-        alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button> <span class="badge badge-vuln">⚠️ VULNERABLE</span>' if has_flaw else '<span class="badge badge-clean">✅ Clean</span>'
-
-        # Clean markdown anchor tags out safely for the HTML hyperlink structure
-        raw_link_str = str(r.get('link', ''))
-        clean_url_href = f"https://github.com{r.get('repo', '')}/pull/{r.get('pr_num', '')}"
-        if "](" in raw_link_str:
-            try:
-                clean_url_href = raw_link_str.split("](")[-1].replace(")", "").strip()
-            except Exception: pass
-
-        anchor_tag = f'<a href="{clean_url_href}" target="_blank" style="color: #0969da; font-weight: 500; text-decoration: none;">#{r.get("pr_num", "Link")} ↗</a>'
-
-        body_html += f"""
-        <tr{row_class} data-details-id="{row_id}">
         
-            <!-- Index 0: Alert Status -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{alert_prefix}</td>
-            
-            <!-- Index 1: Repository Target -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>{r.get('repo', '')}</strong></td>
-            
-            <!-- Index 2: PR Reference Link (🎯 RESTORED: Uses your high-fidelity original variable formatting) -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{anchor_tag}</td>
-            
-            <!-- Index 3: Status -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('status', '')}</td>
-            
-            <!-- Index 4: AI Tool Engine -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('tool', '')}</td>
-            
-            <!-- Index 5: Language -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><code>{r.get('lang', '')}</code></td>
-            
-            <!-- Index 6: LOC -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('loc', 0)}</td>
-            
-            <!-- Index 7: CWE Discovered (🎯 FIXED: Allow multi-line wrapping with no clipping) -->
-            <td style="padding: 12px; vertical-align: middle; word-wrap: break-word; overflow-wrap: break-word;"><code>{cwes_found}</code></td>
-            
-            <!-- Index 8: High -->
-            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('h', 0)}</td>
-            
-            <!-- Index 9: Medium -->
-            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('m', 0)}</td>
-            
-            <!-- Index 10: Low -->
-            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: bold;">{r.get('l', 0)}</td>
-            
-            <!-- Index 11: Total Issues -->
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{r.get('issues_files', '')}</td>
-            
-        </tr>"""
+        # Pull out the integer stars value from the database record
+        repo_stars_value = r.get('stars', 0)
 
         if has_flaw and findings_list:
             sub_table_rows = ""
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Unknown Rule')
-                #desc_body = bug.get('description', '')
-
                 desc_body = str(bug.get('description', '')).strip()
+                file_line_info = bug.get('file_line', 'File')
+                severity_val = bug.get('severity_label', '🟡 Medium')
                 
-                # 🎯 THE THESIS FIX: Dynamically strip and ignore any Markdown references like [text](number)
+                resolved_cwes = bug.get('cwes', [])
+                cwe_label_suffix = f" ({', '.join(sorted(list(resolved_cwes)))})" if resolved_cwes else " (CWE: N/A)"
+                display_rule_text = f"{vuln_title}{cwe_label_suffix}"
+
+                # 🎯 THESIS FIX: Dynamically strip and ignore duplicate incrementing markdown numbers
                 if desc_body:
-                    # Split the paragraph into individual sentences cleanly
                     sentences = re.split(r'(?<=\.)\s+', desc_body)
                     unique_sentences = []
                     seen_normalized_sentences = set()
@@ -544,32 +488,12 @@ def main():
                         clean_sentence = sentence.strip()
                         if not clean_sentence:
                             continue
-                            
-                        # 🎯 GENERIC STRIP: Dynamically matches and removes any structure like [any_word](any_digits)
-                        # Examples handled: [authorization](1), [user](24), [sink](3) -> normalized text blocks match perfectly
                         normalized = re.sub(r'\[[^\]]+\]\(\d+\)', '', clean_sentence)
-                        
-                        # Strip extra spaces and punctuation from the comparison string to ensure an exact textual match
                         normalized_clean = re.sub(r'\s+', ' ', normalized).strip().lower()
-                        
-                        # Only keep the sentence if its core structural text has not been processed yet
                         if normalized_clean not in seen_normalized_sentences:
                             seen_normalized_sentences.add(normalized_clean)
                             unique_sentences.append(clean_sentence)
-                    
-                    # Recombine the text using only the unique sentences
                     desc_body = " ".join(unique_sentences)
-
-
-
-
-                
-                file_line_info = bug.get('file_line', 'File')
-                severity_val = bug.get('severity_label', '🟡 Medium')
-                
-                resolved_cwes = bug.get('cwes', [])
-                cwe_label_suffix = f" ({', '.join(sorted(list(resolved_cwes)))})" if resolved_cwes else " (CWE: N/A)"
-                display_rule_text = f"{vuln_title}{cwe_label_suffix}"
 
                 sub_table_rows += f"""
                 <tr>
@@ -579,11 +503,35 @@ def main():
                     <td style="padding: 8px; border-bottom: 1px solid #d0d7de;">{desc_body}</td>
                 </tr>"""
 
-            # 🎯 FIXED: Stripped out the <div> wrap container and added direct padding/border stylings straight to the <td> cell track
+        # Generate main row layout body lines
+        body_html += f"""
+        <tr{row_class} data-details-id="{row_id}">
+            <td style="padding: 12px; vertical-align: middle;">{alert_prefix}</td>
+            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>{repo}</strong></td>
+            
+            <!-- 🎯 FIX 2: Repository Stars injected directly next to Repository Target -->
+            <td style="padding: 12px; vertical-align: middle; font-weight: 500; color: #57606a;">⭐ {repo_stars_value:,}</td>
+            
+            <td style="padding: 12px; vertical-align: middle;">{anchor_tag}</td>
+            <td style="padding: 12px; vertical-align: middle;">{status}</td>
+            <td style="padding: 12px; vertical-align: middle;">{tool}</td>
+            <td style="padding: 12px; vertical-align: middle;"><code>{lang}</code></td>
+            <td style="padding: 12px; vertical-align: middle;">{loc}</td>
+            <td style="padding: 12px; vertical-align: middle; font-weight: 600;">{cwes_found}</td>
+            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: 500; color: #cf222e;">{r.get('h', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: 500; color: #d4a724;">{r.get('m', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: 500; color: #0969da;">{r.get('l', 0)}</td>
+            <td style="padding: 12px; vertical-align: middle;">{issues_files}</td>
+        </tr>"""
+
+        # Append hidden details sub-table drawer rows
+        if has_flaw and findings_list:
+            # 🎯 FIX 3: Boosted colspan to 13 to cleanly wrap your expanded 13 columns grid (12 standard + 1 stars)
             body_html += f"""
-            <tr id="{row_id}" class="details-row"><td colspan="9"><div class="details-container">
-                <h4>📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
-                <table class="details-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tr id="{row_id}" class="details-row">
+                <td colspan="13" style="padding: 20px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e;">
+                    <h4 style="margin-top: 0; margin-bottom: 10px;">📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
+                    <table class="details-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
                             <tr>
                                 <th style="width:15%; background: #eaecef; padding: 8px; text-align: left;">Security</th>
@@ -599,13 +547,12 @@ def main():
                 </td>
             </tr>"""
 
-
+    # Assemble and write final HTML document package 
     footer_html = "</tbody></table></body></html>"
-
-    with open(output_path, "w", encoding="utf-8", newline="\n") as out:
+    
+    with open(output_path, "w", encoding="utf-8") as out:
         out.write(header_html + body_html + footer_html)
-    print(f"✨ SUCCESS: HTML Reporting dashboard compiled at: {output_path}")
+    print(f"✨ SUCCESS: Consolidated HTML dashboard successfully generated at: {output_path}")
 
 if __name__ == "__main__":
     main()
-
