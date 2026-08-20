@@ -1,0 +1,54 @@
+name: "📊 Thesis Comparison Dashboard Deployer"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-comparison:
+    name: Compile Core Comparison Matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # Pull down BOTH database files from your persistent branch tracker
+      - name: 📁 Restore AI and Human Ledgers
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mkdir -p all-results
+          git fetch origin database:database || true
+          git checkout database -- all-results/accumulated_database.json 2>/dev/null || true
+          git checkout database -- all-results/human_accumulated_database.json 2>/dev/null || true
+
+      - name: Run Comparison Aggregator
+        run: |
+          python scripts/generate_comparison_dashboard.py
+
+      - name: 🚀 Commit Page to Database Branch
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          
+          mkdir -p /tmp/stash
+          cp docs/THESIS_COMPARATIVE_ANALYSIS.html /tmp/stash/THESIS_COMPARATIVE_ANALYSIS.html
+          
+          git checkout database || git checkout -b database origin/database
+          git pull origin database || true
+          
+          mkdir -p docs
+          cp /tmp/stash/THESIS_COMPARATIVE_ANALYSIS.html docs/THESIS_COMPARATIVE_ANALYSIS.html
+          
+          git add docs/THESIS_COMPARATIVE_ANALYSIS.html
+          git commit -m "docs: generate master side-by-side comparative dashboard" || true
+          git push origin database
