@@ -140,19 +140,22 @@ jobs:
           
           if [ -d "sarif-results" ] && [ "$(ls -A sarif-results/*.sarif 2>/dev/null)" ]; then
             cp sarif-results/*.sarif ./results.sarif 2>/dev/null || true
-            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.sarif" 2>/dev/null || true
-            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.success"
+            
+            # 🎯 FIX: Appended --${{ matrix.repo_stars }} to the end of your asset filenames!
+            cp sarif-results/*.sarif "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}--${{ matrix.repo_stars }}.sarif" 2>/dev/null || true
+            echo "success" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}--${{ matrix.repo_stars }}.success"
             python scripts/parse-results.py || true
             
             if [ -f "sarif-results/summary.json" ]; then
-              cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+              cp sarif-results/summary.json "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}--${{ matrix.repo_stars }}.json"
             else
-              echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 1, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
+              echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 1, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}--${{ matrix.repo_stars }}.json"
             fi
           else
-            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.failed"
-            echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 0, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}.json"
-          fi
+            # 🎯 FIX: Appended --${{ matrix.repo_stars }} to the end of your failure filenames!
+            echo "failed" > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}--${{ matrix.repo_stars }}.failed"
+            echo '{"high": 0, "medium": 0, "low": 0, "total_issues": 0, "files_changed": 0, "cwes_discovered": []}' > "./${SAFE_REPO}--${{ matrix.pr_num }}--${{ matrix.language }}--${SAFE_AGENT}--${LIVE_LOC}--${{ matrix.repo_stars }}.json"
+          fi          
         env:
           GH_TOKEN: ${{ secrets.GLOBAL_SCAN_PAT }}
 
