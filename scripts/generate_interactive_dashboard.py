@@ -8,10 +8,23 @@ import sys
 def main():
     output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
     # 🎯 SYNCHRONIZED PATH: Matches the filename managed by your workflow database branch
-    json_path = "all-results/accumulated_database.json"
+    #json_path = "all-results/accumulated_database.json"
+    #os.makedirs("all-results", exist_ok=True)
+    #os.makedirs("docs", exist_ok=True)
+
+    # 🎯 PRODUCTION FIX: Check the environment variable to automatically point to the correct file path!
+    scan_type = os.environ.get("SCAN_TYPE", "automated").lower().strip()
+    
+    if scan_type == "human":
+        json_path = "all-results/human_accumulated_database.json"
+        print("📊 [ENGINE LOG]: Running in HUMAN audit mode. Target path set to human ledger.")
+    else:
+        json_path = "all-results/accumulated_database.json"
+        print("📊 [ENGINE LOG]: Running in AI automated mode. Target path set to standard ledger.")
+        
     os.makedirs("all-results", exist_ok=True)
     os.makedirs("docs", exist_ok=True)
-    
+
     pr_lookup = {}
     if os.path.exists(json_path):
         try:
