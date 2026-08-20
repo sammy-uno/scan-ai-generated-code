@@ -200,7 +200,11 @@ def main():
         if has_flaw and findings_list:
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Unknown Rule')
+
+                # 🎯 BROWSER RENDERING FIX: Escape HTML angle brackets so the browser prints '<script' as raw text instead of a code tag!
                 desc_body = str(bug.get('description', '')).strip()
+                desc_body = desc_body.replace('<', '&lt;').replace('>', '&gt;')
+                
                 file_line_info = bug.get('file_line', 'File')
                 severity_val = bug.get('severity_label', '🟡 Medium')
                 
