@@ -52,7 +52,7 @@ def main():
         accumulated_db_path = "all-results/accumulated_database.json"
         print("📁 [DATABASE TARGET]: Strict automated batch tracking track detected. Targeting standard ledger.")
     
-    # 🎯 FRESH START CONDITION - Erase on Batch 1, maintain history on subsequent loops
+    # FRESH START CONDITION - Erase on Batch 1, maintain history on subsequent loops
     if chunk_offset == 0:
         print(f"🌱 [BATCH 1 POINTER MATCHED (Offset {chunk_offset})]: Reinitializing fresh ledger boundary for {scan_type} track.")
         if os.path.exists(accumulated_db_path):
@@ -97,25 +97,29 @@ def main():
             parts = name_root.split('--')
             
             # Directory naming string fallback mapping tracker for artifact subfolder trees
-            if len(parts) < 5 and '--' in parent_name:
+            if len(parts) < 6 and '--' in parent_name:
                 clean_parent = re.sub(r'^sarif-\d+-', '', parent_name)
                 parts = clean_parent.split('--')
                 
-            if len(parts) < 5: 
+            if len(parts) < 6: 
                 continue
             
-            # Extract distinct scalar index items cleanly from our token list array
+            # 🎯 EXTRACT 6 DISTINCT ITEMS NATIVELY OFF YOUR FILENAME STRING TOKENS
             raw_repo  = parts[0]
             raw_pr    = parts[1]
             raw_lang  = parts[2]
             raw_agent = parts[3]
             raw_size  = parts[4]
+            raw_stars = parts[5] # 👈 GRABS THE SIXTH ELEMENT SAFELY FROM YOUR PATH
 
             repo_path = raw_repo.replace('_SLASH_', '/')
             pr_num = raw_pr
             lang = raw_lang
             ai_agent_tool = raw_agent.replace('_', ' ')
             live_loc = int(raw_size) if raw_size.isdigit() else 100
+            
+            # 🎯 SET STARS COUNT DYNAMICALLY FROM THE STRIPPED TOKEN
+            repo_stars_count = int(raw_stars) if raw_stars.isdigit() else 0
             
             base_domain = "https://github.com"
             clean_repo_path = repo_path.strip('/')
@@ -126,7 +130,6 @@ def main():
             
             h, m, l, total_issues = 0, 0, 0, 0
             committed_files_count = 1
-            repo_stars_count = 0  # 🎯 INGESTION FIX: Baseline initialization
             findings_details = [] 
 
             custom_json_path = f.replace('.success', '.json')
@@ -141,23 +144,12 @@ def main():
             if target_json_path and os.path.exists(target_json_path):
                 with open(target_json_path, 'r', encoding='utf-8') as sm_f:
                     summary_data = json.load(sm_f)
-
-                    print(json.dumps(summary_data, indent=2))
-                    print("Dump above: --------------------------------------------------")
-
-                    
                     h = int(summary_data.get('high', summary_data.get('H', 0)))
                     m = int(summary_data.get('medium', summary_data.get('M', 0)))
                     l = int(summary_data.get('low', summary_data.get('L', 0)))
                     total_issues = int(summary_data.get('total_issues', summary_data.get('issues', h + m + l)))
                     committed_files_count = int(summary_data.get('files_changed', 1))
                     findings_details = summary_data.get('findings_details', summary_data.get('issues_list', []))
-                    
-                    # 🎯 INGESTION FIX: Safely pull star metrics out of json summaries
-                    repo_stars_count = int(summary_data.get('stars', summary_data.get('repo_stars', 0)))
-
-                    if repo_stars_count > 0:
-                        print(f"📄 [REPORT ENGINE LOG]: Found stars in JSON for #{pr_num}: {repo_stars_count} ★")
                     
                     cwes_list = summary_data.get('cwes_discovered', summary_data.get('cwes', []))
                     if isinstance(cwes_list, list):
@@ -179,7 +171,7 @@ def main():
                 "issues_files": paren_issues_files, "density": cwe_density, "status": status_badge,
                 "has_issues_bool": total_issues > 0, "pr_num": pr_num,
                 "findings_details": findings_details,
-                "stars": repo_stars_count # 🎯 INGESTION FIX: Save star metric natively to database records
+                "stars": repo_stars_count # 🎯 SAVED SEAMLESSLY FROM YOUR FILENAME TOKENS
             }
             
             # Track today's fresh batch rows for the Markdown Summary
