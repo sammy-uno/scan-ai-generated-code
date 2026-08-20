@@ -529,7 +529,41 @@ def main():
             sub_table_rows = ""
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Unknown Rule')
-                desc_body = bug.get('description', '')
+                #desc_body = bug.get('description', '')
+
+                desc_body = str(bug.get('description', '')).strip()
+                
+                # 🎯 THE THESIS FIX: Dynamically strip and ignore any Markdown references like [text](number)
+                if desc_body:
+                    # Split the paragraph into individual sentences cleanly
+                    sentences = re.split(r'(?<=\.)\s+', desc_body)
+                    unique_sentences = []
+                    seen_normalized_sentences = set()
+                    
+                    for sentence in sentences:
+                        clean_sentence = sentence.strip()
+                        if not clean_sentence:
+                            continue
+                            
+                        # 🎯 GENERIC STRIP: Dynamically matches and removes any structure like [any_word](any_digits)
+                        # Examples handled: [authorization](1), [user](24), [sink](3) -> normalized text blocks match perfectly
+                        normalized = re.sub(r'\[[^\]]+\]\(\d+\)', '', clean_sentence)
+                        
+                        # Strip extra spaces and punctuation from the comparison string to ensure an exact textual match
+                        normalized_clean = re.sub(r'\s+', ' ', normalized).strip().lower()
+                        
+                        # Only keep the sentence if its core structural text has not been processed yet
+                        if normalized_clean not in seen_normalized_sentences:
+                            seen_normalized_sentences.add(normalized_clean)
+                            unique_sentences.append(clean_sentence)
+                    
+                    # Recombine the text using only the unique sentences
+                    desc_body = " ".join(unique_sentences)
+
+
+
+
+                
                 file_line_info = bug.get('file_line', 'File')
                 severity_val = bug.get('severity_label', '🟡 Medium')
                 
