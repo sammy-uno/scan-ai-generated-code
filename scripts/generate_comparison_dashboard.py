@@ -18,20 +18,52 @@ def main():
         with open(human_db_path, "r", encoding="utf-8") as f:
             human_data = json.load(f)
 
-    # Calculate global statistical distributions
+    # --- AI CALCULATIONS ---
     total_ai_prs = len(ai_data)
     vulnerable_ai_prs = sum(1 for x in ai_data if x.get('has_issues_bool', False))
     total_ai_loc = sum(int(x.get('loc', 0)) for x in ai_data)
-    total_ai_issues = sum(int(str(x.get('issues_files', '0')).split()[0]) for x in ai_data if x.get('issues_files'))
+    
+    # Safely isolate the numeric issues total from string formats like "12 (3)"
+    total_ai_issues = 0
+    for x in ai_data:
+        val = str(x.get('issues_files', '0')).strip().split()[0]
+        if val.isdigit():
+            total_ai_issues += int(val)
+            
     ai_density = round(total_ai_issues / total_ai_loc, 6) if total_ai_loc > 0 else 0.0
 
+    # 📊 AI Severities and Statuses
+    ai_high = sum(int(x.get('h', 0)) for x in ai_data)
+    ai_medium = sum(int(x.get('m', 0)) for x in ai_data)
+    ai_low = sum(int(x.get('l', 0)) for x in ai_data)
+    
+    ai_open = sum(1 for x in ai_data if "Open" in str(x.get('status', '')))
+    ai_merged = sum(1 for x in ai_data if "Merged" in str(x.get('status', '')))
+    ai_closed = sum(1 for x in ai_data if "Closed" in str(x.get('status', '')))
+
+    # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
     total_human_loc = sum(int(x.get('loc', 0)) for x in human_data)
-    total_human_issues = sum(int(str(x.get('issues_files', '0')).split()[0]) for x in human_data if x.get('issues_files'))
+    
+    total_human_issues = 0
+    for x in human_data:
+        val = str(x.get('issues_files', '0')).strip().split()[0]
+        if val.isdigit():
+            total_human_issues += int(val)
+            
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
 
-    # Compile the side-by-side frontend structure
+    # 📊 Human Severities and Statuses
+    human_high = sum(int(x.get('h', 0)) for x in human_data)
+    human_medium = sum(int(x.get('m', 0)) for x in human_data)
+    human_low = sum(int(x.get('l', 0)) for x in human_data)
+    
+    human_open = sum(1 for x in human_data if "Open" in str(x.get('status', '')))
+    human_merged = sum(1 for x in human_data if "Merged" in str(x.get('status', '')))
+    human_closed = sum(1 for x in human_data if "Closed" in str(x.get('status', '')))
+
+    # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -44,16 +76,23 @@ def main():
         .card {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
         .ai-card {{ border-top: 6px solid #0969da; }}
         .human-card {{ border-top: 6px solid #2da44e; }}
-        h3 {{ margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; }}
-        ul {{ list-style: none; padding: 0; margin: 0; }}
-        li {{ padding: 12px 0; border-bottom: 1px solid #eaecef; font-size: 15px; display: flex; justify-content: space-between; }}
+        h3 {{ margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eaecef; padding-bottom: 8px; }}
+        h4 {{ margin-top: 15px; margin-bottom: 5px; color: #57606a; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }}
+        ul {{ list-style: none; padding: 0; margin: 0 0 15px 0; }}
+        li {{ padding: 10px 0; border-bottom: 1px solid #f6f8fa; font-size: 15px; display: flex; justify-content: space-between; }}
         li:last-child {{ border-bottom: none; }}
         .metric-value {{ font-weight: bold; font-size: 16px; }}
         .badge {{ padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; }}
         .badge-ai {{ background-color: #0969da; }}
         .badge-human {{ background-color: #2da44e; }}
+        
+        .severity-track {{ display: flex; gap: 10px; margin-top: 5px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px dashed #d0d7de; }}
+        .severity-item {{ flex: 1; text-align: center; font-size: 13px; font-weight: bold; }}
+        .sev-h {{ color: #cf222e; }}
+        .sev-m {{ color: #d4a724; }}
+        .sev-l {{ color: #0969da; }}
+        
         .summary-box {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 24px; margin-top: 30px; text-align: center; }}
-        .delta-highlight {{ color: #cf222e; font-weight: bold; }}
     </style>
 </head>
 <body>
@@ -61,27 +100,63 @@ def main():
     <h1>📊 Thesis Empirical Analysis: AI vs Human Code Security Summary</h1>
     
     <div class="comparison-grid">
-        <!-- AI Automated Dataset Tracker Card -->
+        <!-- 🤖 AI-Generated Code Dataset Card -->
         <div class="card ai-card">
             <h3>🤖 AI-Generated Code Dataset (AIDev)</h3>
+            
+            <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_ai_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_ai_loc:,} lines</span></li>
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge badge-ai">{vulnerable_ai_prs} PRs Flagged</span></li>
+            </ul>
+
+            <h4>⚖️ Security Alert Breakdown</h4>
+            <ul>
                 <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_ai_issues} defects</span></li>
                 <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">{ai_density:.6f}</span></li>
             </ul>
+            <div class="severity-track">
+                <div class="severity-item sev-h">🔴 High: {ai_high}</div>
+                <div class="severity-item sev-m">🟡 Medium: {ai_medium}</div>
+                <div class="severity-item sev-l">🔵 Low: {ai_low}</div>
+            </div>
+
+            <h4>🔄 PR Lifecycle Status Distribution</h4>
+            <ul>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{ai_open}</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{ai_merged}</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{ai_closed}</span></li>
+            </ul>
         </div>
 
-        <!-- Human Auditor Baseline Tracker Card -->
+        <!-- 👨‍💻 Human Auditor Baseline Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human-Generated Code Baseline</h3>
+            
+            <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_human_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_human_loc:,} lines</span></li>
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge badge-human">{vulnerable_human_prs} PRs Flagged</span></li>
+            </ul>
+
+            <h4>⚖️ Security Alert Breakdown</h4>
+            <ul>
                 <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_human_issues} defects</span></li>
                 <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">{human_density:.6f}</span></li>
+            </ul>
+            <div class="severity-track">
+                <div class="severity-item sev-h">🔴 High: {human_high}</div>
+                <div class="severity-item sev-m">🟡 Medium: {human_medium}</div>
+                <div class="severity-item sev-l">🔵 Low: {human_low}</div>
+            </div>
+
+            <h4>🔄 PR Lifecycle Status Distribution</h4>
+            <ul>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{human_open}</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{human_merged}</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{human_closed}</span></li>
             </ul>
         </div>
     </div>
@@ -89,7 +164,7 @@ def main():
     <div class="summary-box">
         <h3>🔍 Quick Thesis Observation Note</h3>
         <p>AI Defect Density is <strong>{ai_density:.6f}</strong> vs Human Defect Density of <strong>{human_density:.6f}</strong>.</p>
-        <p>This empirical distribution provides the direct data foundation needed to quantify security deltas for your research chapters.</p>
+        <p>This side-by-side distribution maps out your entire security analysis framework cleanly for your research defense slides.</p>
     </div>
 
 </body>
