@@ -201,8 +201,17 @@ def main():
             for bug in findings_list:
                 vuln_title = bug.get('vulnerability', 'Unknown Rule')
 
-                # 🎯 BROWSER RENDERING FIX: Escape HTML angle brackets so the browser prints '<script' as raw text instead of a code tag!
                 desc_body = str(bug.get('description', '')).strip()
+
+                # Step 1: Strip the CodeQL brackets and numbers [text](num) -> text
+                clean_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', raw_text)
+
+                # Step 2: Split into sentences, deduplicate them while preserving order, and rebuild
+                sentences = re.split(r'(?<=[.!?])\s+', clean_text.strip())
+                unique_sentences = list(dict.fromkeys(sentences))
+                final_text = " ".join(unique_sentences)
+
+                # 🎯 BROWSER RENDERING FIX: Escape HTML angle brackets so the browser prints '<script' as raw text instead of a code tag!
                 desc_body = desc_body.replace('<', '&lt;').replace('>', '&gt;')
                 
                 file_line_info = bug.get('file_line', 'File')
