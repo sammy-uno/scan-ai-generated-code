@@ -30,8 +30,6 @@ def main():
             total_ai_issues += int(tokens[0])
             
     ai_density = round(total_ai_issues / total_ai_loc, 6) if total_ai_loc > 0 else 0.0
-    
-    # 🎯 NEW METRIC: Baseline exposure rate over all PR submissions
     ai_avg_defect_rate = round(total_ai_issues / total_ai_prs, 2) if total_ai_prs > 0 else 0.0
 
     ai_high = sum(int(x.get('h', 0)) for x in ai_data)
@@ -41,6 +39,9 @@ def main():
     ai_open = sum(1 for x in ai_data if "Open" in str(x.get('status', '')))
     ai_merged = sum(1 for x in ai_data if "Merged" in str(x.get('status', '')))
     ai_closed = sum(1 for x in ai_data if "Closed" in str(x.get('status', '')))
+
+    # 🎯 NEW METRIC: Overall throughput rate for AI PR submissions
+    ai_global_merge_rate = round((ai_merged / total_ai_prs) * 100, 2) if total_ai_prs > 0 else 0.0
 
     # 🔬 AI Advanced Analytical Metrics
     ai_critical_ratio = round((ai_high / total_ai_issues) * 100, 2) if total_ai_issues > 0 else 0.0
@@ -70,8 +71,6 @@ def main():
             total_human_issues += int(tokens[0])
             
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
-    
-    # 🎯 NEW METRIC: Baseline exposure rate over all human PR submissions
     human_avg_defect_rate = round(total_human_issues / total_human_prs, 2) if total_human_prs > 0 else 0.0
 
     human_high = sum(int(x.get('h', 0)) for x in human_data)
@@ -81,6 +80,9 @@ def main():
     human_open = sum(1 for x in human_data if "Open" in str(x.get('status', '')))
     human_merged = sum(1 for x in human_data if "Merged" in str(x.get('status', '')))
     human_closed = sum(1 for x in human_data if "Closed" in str(x.get('status', '')))
+
+    # 🎯 NEW METRIC: Overall throughput rate for Human PR submissions
+    human_global_merge_rate = round((human_merged / total_human_prs) * 100, 2) if total_human_prs > 0 else 0.0
 
     # 🔬 Human Advanced Analytical Metrics
     human_critical_ratio = round((human_high / total_human_issues) * 100, 2) if total_human_issues > 0 else 0.0
@@ -146,6 +148,7 @@ def main():
                 <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_ai_issues} defects</span></li>
                 <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">{ai_density:.6f}</span></li>
                 <li><span>Average Defect Rate (Total Defects / Total PRs):</span> <span class="metric-value">{ai_avg_defect_rate} defects/PR</span></li>
+                <li><span>Global Merged Rate (Merged PRs / Total PRs):</span> <span class="metric-value">{ai_global_merge_rate}%</span></li>
             </ul>
             <div class="severity-track">
                 <div class="severity-item sev-h">🔴 High: {ai_high}</div>
@@ -184,7 +187,8 @@ def main():
             <ul>
                 <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_human_issues} defects</span></li>
                 <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">{human_density:.6f}</span></li>
-                <li><span>Average Defect Rate (Total Defects / Total PRs):</span> <span class="metric-value">{human_human_defect_rate if 'human_human_defect_rate' in locals() else human_avg_defect_rate} defects/PR</span></li>
+                <li><span>Average Defect Rate (Total Defects / Total PRs):</span> <span class="metric-value">{human_avg_defect_rate} defects/PR</span></li>
+                <li><span>Global Merged Rate (Merged PRs / Total PRs):</span> <span class="metric-value">{human_global_merge_rate}%</span></li>
             </ul>
             <div class="severity-track">
                 <div class="severity-item sev-h">🔴 High: {human_high}</div>
