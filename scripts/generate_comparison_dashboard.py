@@ -40,7 +40,6 @@ def main():
     ai_merged = sum(1 for x in ai_data if "Merged" in str(x.get('status', '')))
     ai_closed = sum(1 for x in ai_data if "Closed" in str(x.get('status', '')))
 
-    # 🎯 NEW METRIC: Overall throughput rate for AI PR submissions
     ai_global_merge_rate = round((ai_merged / total_ai_prs) * 100, 2) if total_ai_prs > 0 else 0.0
 
     # 🔬 AI Advanced Analytical Metrics
@@ -50,15 +49,30 @@ def main():
     ai_vuln_merged = sum(1 for x in ai_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
     ai_dismissal_rate = round((ai_vuln_merged / vulnerable_ai_prs) * 100, 2) if vulnerable_ai_prs > 0 else 0.0
 
-    ai_unique_cwes = set()
+    # 🔬 Advanced AI CWE Extraction Pipeline Grouped by Severity
+    ai_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     for x in ai_data:
-        cwes = x.get('cwes', 'None')
-        if cwes and cwes != 'None':
-            for cwe in str(cwes).split(','):
-                cwe_clean = cwe.strip()
-                if cwe_clean:
-                    ai_unique_cwes.add(cwe_clean)
-    ai_cwe_breadth = len(ai_unique_cwes)
+        findings = x.get('findings_details', [])
+        for bug in findings:
+            sev = bug.get('severity_label', 'Medium').strip()
+            if "High" in sev or "🔴" in sev:
+                sev_key = "High"
+            elif "Low" in sev or "🔵" in sev:
+                sev_key = "Low"
+            else:
+                sev_key = "Medium"
+                
+            resolved_cwes = bug.get('cwes', [])
+            vuln_title = bug.get('vulnerability', 'Security Weakness Discovered')
+            for cwe in resolved_cwes:
+                cwe_clean = str(cwe).strip()
+                if cwe_clean and cwe_clean.upper() != 'NONE':
+                    ai_cwe_by_severity[sev_key][cwe_clean] = vuln_title
+
+    ai_all_unique = set(list(ai_cwe_by_severity["High"].keys()) + 
+                        list(ai_cwe_by_severity["Medium"].keys()) + 
+                        list(ai_cwe_by_severity["Low"].keys()))
+    ai_cwe_breadth = len(ai_all_unique)
     # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
@@ -81,7 +95,6 @@ def main():
     human_merged = sum(1 for x in human_data if "Merged" in str(x.get('status', '')))
     human_closed = sum(1 for x in human_data if "Closed" in str(x.get('status', '')))
 
-    # 🎯 NEW METRIC: Overall throughput rate for Human PR submissions
     human_global_merge_rate = round((human_merged / total_human_prs) * 100, 2) if total_human_prs > 0 else 0.0
 
     # 🔬 Human Advanced Analytical Metrics
@@ -91,15 +104,51 @@ def main():
     human_vuln_merged = sum(1 for x in human_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
     human_dismissal_rate = round((human_vuln_merged / vulnerable_human_prs) * 100, 2) if vulnerable_human_prs > 0 else 0.0
 
-    human_unique_cwes = set()
+    # 🔬 Advanced Human CWE Extraction Pipeline Grouped by Severity
+    human_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     for x in human_data:
-        cwes = x.get('cwes', 'None')
-        if cwes and cwes != 'None':
-            for cwe in str(cwes).split(','):
-                cwe_clean = cwe.strip()
-                if cwe_clean:
-                    human_unique_cwes.add(cwe_clean)
-    human_cwe_breadth = len(human_unique_cwes)
+        findings = x.get('findings_details', [])
+        for bug in findings:
+            sev = bug.get('severity_label', 'Medium').strip()
+            if "High" in sev or "🔴" in sev:
+                sev_key = "High"
+            elif "Low" in sev or "🔵" in sev:
+                sev_key = "Low"
+            else:
+                sev_key = "Medium"
+                
+            resolved_cwes = bug.get('cwes', [])
+            vuln_title = bug.get('vulnerability', 'Security Weakness Discovered')
+            for cwe in resolved_cwes:
+                cwe_clean = str(cwe).strip()
+                if cwe_clean and cwe_clean.upper() != 'NONE':
+                    human_cwe_by_severity[sev_key][cwe_clean] = vuln_title
+
+    human_all_unique = set(list(human_cwe_by_severity["High"].keys()) + 
+                           list(human_cwe_by_severity["Medium"].keys()) + 
+                           list(human_cwe_by_severity["Low"].keys()))
+    human_cwe_breadth = len(human_all_unique)
+
+    # --- GENERATE NESTED HTML SUB-LISTS FOR DETAILED VIEW ---
+    ai_cwe_html_list = ""
+    for sev_name, cwe_dict in ai_cwe_by_severity.items():
+        if cwe_dict:
+            ai_cwe_html_list += f"<div style='margin-top:6px; margin-bottom:2px; font-size:12px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0 0 6px 0; padding-left:18px; list-style-type:disc;'>"
+            for code, desc in sorted(cwe_dict.items()):
+                ai_cwe_html_list += f"<li style='padding:2px 0; font-size:12px; border:none; display:list-item; justify-content:initial;'><code>{code}</code> - <span style='color:#57606a;'>{desc}</span></li>"
+            ai_cwe_html_list += "</ul>"
+    if not ai_cwe_html_list:
+        ai_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
+
+    human_cwe_html_list = ""
+    for sev_name, cwe_dict in human_cwe_by_severity.items():
+        if cwe_dict:
+            human_cwe_html_list += f"<div style='margin-top:6px; margin-bottom:2px; font-size:12px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0 0 6px 0; padding-left:18px; list-style-type:disc;'>"
+            for code, desc in sorted(cwe_dict.items()):
+                human_cwe_html_list += f"<li style='padding:2px 0; font-size:12px; border:none; display:list-item; justify-content:initial;'><code>{code}</code> - <span style='color:#57606a;'>{desc}</span></li>"
+            human_cwe_html_list += "</ul>"
+    if not human_cwe_html_list:
+        human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
 
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
@@ -168,11 +217,18 @@ def main():
                 <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">{ai_critical_ratio}%</span></li>
                 <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{ai_defect_concentration} bugs/Vulnerable PR</span></li>
                 <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{ai_dismissal_rate}%</span></li>
-                <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">{ai_cwe_breadth} types</span></li>
+                <li style="display: block; padding: 10px 0; border-bottom: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
+                        <span class="metric-value">{ai_cwe_breadth} types</span>
+                    </div>
+                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                        {ai_cwe_html_list}
+                    </div>
+                </li>
             </ul>
         </div>
 
-        <!-- 👨‍💻 Human Pull Requests Card -->
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
@@ -209,7 +265,15 @@ def main():
                 <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">{human_critical_ratio}%</span></li>
                 <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{human_defect_concentration} bugs/Vulnerable PR</span></li>
                 <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{human_dismissal_rate}%</span></li>
-                <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">{human_cwe_breadth} types</span></li>
+                <li style="display: block; padding: 10px 0; border-bottom: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
+                        <span class="metric-value">{human_cwe_breadth} types</span>
+                    </div>
+                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                        {human_cwe_html_list}
+                    </div>
+                </li>
             </ul>
         </div>
     </div>
