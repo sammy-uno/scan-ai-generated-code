@@ -143,6 +143,13 @@ def main():
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_ai_prs} PRs Flagged</span></li>
             </ul>
 
+            <h4>🔄 PR Lifecycle Status Distribution</h4>
+            <ul>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{ai_open}</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{ai_merged}</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{ai_closed}</span></li>
+            </ul>
+
             <h4>⚖️ Security Alert Breakdown</h4>
             <ul>
                 <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_ai_issues} defects</span></li>
@@ -163,15 +170,9 @@ def main():
                 <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{ai_dismissal_rate}%</span></li>
                 <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">{ai_cwe_breadth} types</span></li>
             </ul>
-
-            <h4>🔄 PR Lifecycle Status Distribution</h4>
-            <ul>
-                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{ai_open}</span></li>
-                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{ai_merged}</span></li>
-                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{ai_closed}</span></li>
-            </ul>
         </div>
 
+        <!-- 👨‍💻 Human Pull Requests Card -->
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
@@ -181,6 +182,13 @@ def main():
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_human_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_human_loc:,} lines</span></li>
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_human_prs} PRs Flagged</span></li>
+            </ul>
+
+            <h4>🔄 PR Lifecycle Status Distribution</h4>
+            <ul>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{human_open}</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{human_merged}</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{human_closed}</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
@@ -202,13 +210,6 @@ def main():
                 <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{human_defect_concentration} bugs/Vulnerable PR</span></li>
                 <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{human_dismissal_rate}%</span></li>
                 <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">{human_cwe_breadth} types</span></li>
-            </ul>
-
-            <h4>🔄 PR Lifecycle Status Distribution</h4>
-            <ul>
-                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{human_open}</span></li>
-                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{human_merged}</span></li>
-                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{human_closed}</span></li>
             </ul>
         </div>
     </div>
