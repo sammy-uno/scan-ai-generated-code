@@ -149,10 +149,10 @@ def main():
 
             <h4>🧠 Advanced Research Metrics</h4>
             <ul>
-                <li><span>High-Severity Critical Ratio:</span> <span class="metric-value">{ai_critical_ratio}%</span></li>
-                <li><span>Defect Concentration Factor:</span> <span class="metric-value">{ai_defect_concentration} bugs/PR</span></li>
-                <li><span>Alert Dismissal Rate (Merged anyway):</span> <span class="metric-value">{ai_dismissal_rate}%</span></li>
-                <li><span>Unique CWE Landscape Breadth:</span> <span class="metric-value">{ai_cwe_breadth} types</span></li>
+                <li><span>High-Severity Critical Ratio:</span> <span class="metric-value">{ai_critical_ratio}% <span style="font-size: 12px; color: #57606a; font-weight: normal;">(High Defects / Total Defects)</span></span></li>
+                <li><span>Defect Concentration Factor:</span> <span class="metric-value">{ai_defect_concentration} bugs/PR <span style="font-size: 12px; color: #57606a; font-weight: normal;">(Total Defects / Vulnerable PRs)</span></span></li>
+                <li><span>Alert Dismissal Rate (Merged anyway):</span> <span class="metric-value">{ai_dismissal_rate}% <span style="font-size: 12px; color: #57606a; font-weight: normal;">(Vulnerable Merged PRs / Total Vulnerable PRs)</span></span></li>
+                <li><span>Unique CWE Landscape Breadth:</span> <span class="metric-value">{ai_cwe_breadth} types <span style="font-size: 12px; color: #57606a; font-weight: normal;">(Count of Unique CWE IDs)</span></span></li>
             </ul>
 
             <h4>🔄 PR Lifecycle Status Distribution</h4>
@@ -187,10 +187,10 @@ def main():
 
             <h4>🧠 Advanced Research Metrics</h4>
             <ul>
-                <li><span>High-Severity Critical Ratio:</span> <span class="metric-value">{human_critical_ratio}%</span></li>
-                <li><span>Defect Concentration Factor:</span> <span class="metric-value">{human_defect_concentration} bugs/PR</span></li>
-                <li><span>Alert Dismissal Rate (Merged anyway):</span> <span class="metric-value">{human_dismissal_rate}%</span></li>
-                <li><span>Unique CWE Landscape Breadth:</span> <span class="metric-value">{human_cwe_breadth} types</span></li>
+                <li><span>High-Severity Critical Ratio:</span> <span class="metric-value">{human_critical_ratio}% <span style="font-size: 12px; color: #57606a; font-weight: normal;">(High Defects / Total Defects)</span></span></li>
+                <li><span>Defect Concentration Factor:</span> <span class="metric-value">{human_defect_concentration} bugs/PR <span style="font-size: 12px; color: #57606a; font-weight: normal;">(Total Defects / Vulnerable PRs)</span></span></li>
+                <li><span>Alert Dismissal Rate (Merged anyway):</span> <span class="metric-value">{human_dismissal_rate}% <span style="font-size: 12px; color: #57606a; font-weight: normal;">(Vulnerable Merged PRs / Total Vulnerable PRs)</span></span></li>
+                <li><span>Unique CWE Landscape Breadth:</span> <span class="metric-value">{human_cwe_breadth} types <span style="font-size: 12px; color: #57606a; font-weight: normal;">(Count of Unique CWE IDs)</span></span></li>
             </ul>
 
             <h4>🔄 PR Lifecycle Status Distribution</h4>
