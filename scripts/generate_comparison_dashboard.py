@@ -25,9 +25,9 @@ def main():
     
     total_ai_issues = 0
     for x in ai_data:
-        val = str(x.get('issues_files', '0')).strip().split()
-        if val and val[0].isdigit():
-            total_ai_issues += int(val[0])
+        tokens = str(x.get('issues_files', '0')).strip().split()
+        if tokens and tokens[0].isdigit():
+            total_ai_issues += int(tokens[0])
             
     ai_density = round(total_ai_issues / total_ai_loc, 6) if total_ai_loc > 0 else 0.0
 
@@ -55,16 +55,17 @@ def main():
                 if cwe_clean:
                     ai_unique_cwes.add(cwe_clean)
     ai_cwe_breadth = len(ai_unique_cwes)
+    
     # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
     total_human_loc = sum(int(x.get('loc', 0)) for x in human_data)
-    
+
     total_human_issues = 0
     for x in human_data:
-        val = str(x.get('issues_files', '0')).strip().split()
-        if val and val.isdigit():
-            total_human_issues += int(val)
+        tokens = str(x.get('issues_files', '0')).strip().split()
+        if tokens and tokens[0].isdigit():
+            total_human_issues += int(tokens[0])
             
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
 
