@@ -25,9 +25,9 @@ def main():
     
     total_ai_issues = 0
     for x in ai_data:
-        val = str(x.get('issues_files', '0')).strip().split()[0]
-        if val.isdigit():
-            total_ai_issues += int(val)
+        val = str(x.get('issues_files', '0')).strip().split()
+        if val and val[0].isdigit():
+            total_ai_issues += int(val[0])
             
     ai_density = round(total_ai_issues / total_ai_loc, 6) if total_ai_loc > 0 else 0.0
 
@@ -39,6 +39,22 @@ def main():
     ai_merged = sum(1 for x in ai_data if "Merged" in str(x.get('status', '')))
     ai_closed = sum(1 for x in ai_data if "Closed" in str(x.get('status', '')))
 
+    # 🔬 AI Advanced Analytical Metrics
+    ai_critical_ratio = round((ai_high / total_ai_issues) * 100, 2) if total_ai_issues > 0 else 0.0
+    ai_defect_concentration = round(total_ai_issues / vulnerable_ai_prs, 2) if vulnerable_ai_prs > 0 else 0.0
+    
+    ai_vuln_merged = sum(1 for x in ai_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
+    ai_dismissal_rate = round((ai_vuln_merged / vulnerable_ai_prs) * 100, 2) if vulnerable_ai_prs > 0 else 0.0
+
+    ai_unique_cwes = set()
+    for x in ai_data:
+        cwes = x.get('cwes', 'None')
+        if cwes and cwes != 'None':
+            for cwe in str(cwes).split(','):
+                cwe_clean = cwe.strip()
+                if cwe_clean:
+                    ai_unique_cwes.add(cwe_clean)
+    ai_cwe_breadth = len(ai_unique_cwes)
     # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
@@ -46,8 +62,8 @@ def main():
     
     total_human_issues = 0
     for x in human_data:
-        val = str(x.get('issues_files', '0')).strip().split()[0]
-        if val.isdigit():
+        val = str(x.get('issues_files', '0')).strip().split()
+        if val and val.isdigit():
             total_human_issues += int(val)
             
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
@@ -59,6 +75,23 @@ def main():
     human_open = sum(1 for x in human_data if "Open" in str(x.get('status', '')))
     human_merged = sum(1 for x in human_data if "Merged" in str(x.get('status', '')))
     human_closed = sum(1 for x in human_data if "Closed" in str(x.get('status', '')))
+
+    # 🔬 Human Advanced Analytical Metrics
+    human_critical_ratio = round((human_high / total_human_issues) * 100, 2) if total_human_issues > 0 else 0.0
+    human_defect_concentration = round(total_human_issues / vulnerable_human_prs, 2) if vulnerable_human_prs > 0 else 0.0
+    
+    human_vuln_merged = sum(1 for x in human_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
+    human_dismissal_rate = round((human_vuln_merged / vulnerable_human_prs) * 100, 2) if vulnerable_human_prs > 0 else 0.0
+
+    human_unique_cwes = set()
+    for x in human_data:
+        cwes = x.get('cwes', 'None')
+        if cwes and cwes != 'None':
+            for cwe in str(cwes).split(','):
+                cwe_clean = cwe.strip()
+                if cwe_clean:
+                    human_unique_cwes.add(cwe_clean)
+    human_cwe_breadth = len(human_unique_cwes)
 
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
@@ -74,39 +107,31 @@ def main():
         .ai-card {{ border-top: 6px solid #0969da; }}
         .human-card {{ border-top: 6px solid #2da44e; }}
         h3 {{ margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eaecef; padding-bottom: 8px; }}
-        h4 {{ margin-top: 15px; margin-bottom: 5px; color: #57606a; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }}
+        h4 {{ margin-top: 20px; margin-bottom: 5px; color: #57606a; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px dashed #eaecef; padding-bottom: 3px; }}
         ul {{ list-style: none; padding: 0; margin: 0 0 15px 0; }}
         li {{ padding: 10px 0; border-bottom: 1px solid #f6f8fa; font-size: 15px; display: flex; justify-content: space-between; }}
         li:last-child {{ border-bottom: none; }}
         .metric-value {{ font-weight: bold; font-size: 16px; }}
-        
-        /* 🎯 FIX 3: Global style definition forcing vulnerable status badges to render with a strict crimson-red layout background */
         .badge-vuln-flag {{ padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; background-color: #cf222e; }}
-        
         .severity-track {{ display: flex; gap: 10px; margin-top: 5px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px dashed #d0d7de; }}
         .severity-item {{ flex: 1; text-align: center; font-size: 13px; font-weight: bold; }}
         .sev-h {{ color: #cf222e; }}
         .sev-m {{ color: #d4a724; }}
         .sev-l {{ color: #0969da; }}
-        
         .summary-box {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 24px; margin-top: 30px; text-align: center; }}
     </style>
 </head>
 <body>
-
     <h1>📊 Thesis Empirical Analysis: AI vs Human Code Security Summary</h1>
-    
     <div class="comparison-grid">
         <!-- 🤖 AI-Generated Pull Requests Card -->
         <div class="card ai-card">
-            <!-- 🎯 FIX 1: Title changed to AI-Generated Pull Requests -->
             <h3>🤖 AI-Generated Pull Requests</h3>
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_ai_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_ai_loc:,} lines</span></li>
-                <!-- 🎯 FIX 3: Badge class switched to badge-vuln-flag for strict red background styling -->
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_ai_prs} PRs Flagged</span></li>
             </ul>
 
@@ -121,6 +146,14 @@ def main():
                 <div class="severity-item sev-l">🔵 Low: {ai_low}</div>
             </div>
 
+            <h4>🧠 Advanced Research Metrics</h4>
+            <ul>
+                <li><span>High-Severity Critical Ratio:</span> <span class="metric-value">{ai_critical_ratio}%</span></li>
+                <li><span>Defect Concentration Factor:</span> <span class="metric-value">{ai_defect_concentration} bugs/PR</span></li>
+                <li><span>Alert Dismissal Rate (Merged anyway):</span> <span class="metric-value">{ai_dismissal_rate}%</span></li>
+                <li><span>Unique CWE Landscape Breadth:</span> <span class="metric-value">{ai_cwe_breadth} types</span></li>
+            </ul>
+
             <h4>🔄 PR Lifecycle Status Distribution</h4>
             <ul>
                 <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{ai_open}</span></li>
@@ -131,14 +164,12 @@ def main():
 
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
-            <!-- 🎯 FIX 2: Title changed to Human Pull Requests -->
             <h3>👨‍💻 Human Pull Requests</h3>
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_human_prs}</span></li>
                 <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_human_loc:,} lines</span></li>
-                <!-- 🎯 FIX 3: Badge class switched to badge-vuln-flag for strict red background styling -->
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_human_prs} PRs Flagged</span></li>
             </ul>
 
@@ -152,6 +183,14 @@ def main():
                 <div class="severity-item sev-m">🟡 Medium: {human_medium}</div>
                 <div class="severity-item sev-l">🔵 Low: {human_low}</div>
             </div>
+
+            <h4>🧠 Advanced Research Metrics</h4>
+            <ul>
+                <li><span>High-Severity Critical Ratio:</span> <span class="metric-value">{human_critical_ratio}%</span></li>
+                <li><span>Defect Concentration Factor:</span> <span class="metric-value">{human_defect_concentration} bugs/PR</span></li>
+                <li><span>Alert Dismissal Rate (Merged anyway):</span> <span class="metric-value">{human_dismissal_rate}%</span></li>
+                <li><span>Unique CWE Landscape Breadth:</span> <span class="metric-value">{human_cwe_breadth} types</span></li>
+            </ul>
 
             <h4>🔄 PR Lifecycle Status Distribution</h4>
             <ul>
