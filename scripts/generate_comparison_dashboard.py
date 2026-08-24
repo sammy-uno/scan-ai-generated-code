@@ -102,9 +102,12 @@ def main():
                         collapsed_label = f"{child_cwe} ({parent_cwe})"
                         combined_titles = ai_global_registry[parent_cwe]["titles"].union(ai_global_registry[child_cwe]["titles"])
                         
-                        if collapsed_label not in ai_cwe_by_severity["High"]:
-                            ai_cwe_by_severity["High"][collapsed_label] = set()
-                        ai_cwe_by_severity["High"][collapsed_label].update(combined_titles)
+                        # 🎯 FIX: Check if the child belongs to your Top 25 before setting severity
+                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
+                        
+                        if collapsed_label not in ai_cwe_by_severity[target_sev]:
+                            ai_cwe_by_severity[target_sev][collapsed_label] = set()
+                        ai_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
                         
                         ai_processed_keys.add(parent_cwe)
                         ai_processed_keys.add(child_cwe)
@@ -178,9 +181,12 @@ def main():
                         collapsed_label = f"{child_cwe} ({parent_cwe})"
                         combined_titles = human_global_registry[parent_cwe]["titles"].union(human_global_registry[child_cwe]["titles"])
                         
-                        if collapsed_label not in human_cwe_by_severity["High"]:
-                            human_cwe_by_severity["High"][collapsed_label] = set()
-                        human_cwe_by_severity["High"][collapsed_label].update(combined_titles)
+                        # 🎯 FIX: Check if the child belongs to your Top 25 before setting severity
+                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
+                        
+                        if collapsed_label not in human_cwe_by_severity[target_sev]:
+                            human_cwe_by_severity[target_sev][collapsed_label] = set()
+                        human_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
                         
                         human_processed_keys.add(parent_cwe)
                         human_processed_keys.add(child_cwe)
