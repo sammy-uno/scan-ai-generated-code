@@ -66,62 +66,58 @@ def main():
 
     ai_global_merge_rate = round((ai_merged / total_ai_prs) * 100, 2) if total_ai_prs > 0 else 0.0
 
-    # Advanced AI CWE Extraction Pipeline with Live Stream Debug Logging
+    # 🔬 AI Advanced Analytical Metrics
+    ai_critical_ratio = round((ai_high / total_ai_issues) * 100, 2) if total_ai_issues > 0 else 0.0
+    ai_defect_concentration = round(total_ai_issues / vulnerable_ai_prs, 2) if vulnerable_ai_prs > 0 else 0.0
+    
+    ai_vuln_merged = sum(1 for x in ai_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
+    ai_dismissal_rate = round((ai_vuln_merged / vulnerable_ai_prs) * 100, 2) if vulnerable_ai_prs > 0 else 0.0
+
+    # 🔬 Global AI Multi-Pass Data Synthesis Engine
     ai_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     ai_all_unique = set()
+    ai_global_registry = {}
 
-    print("\n=== 🛠️ STARTING AI COGNITIVE DIAGNOSTIC TRACE ===")
     for x in ai_data:
         findings = x.get('findings_details', [])
         for bug in findings:
             vuln_title = bug.get('vulnerability', 'Security Weakness Discovered').strip()
             raw_cwes = bug.get('cwes', [])
             
-            # Diagnostic Check 1: Is the data structure arriving as a string representation?
-            if isinstance(raw_cwes, str):
-                finding_cwe_list = [c.strip().upper() for c in raw_cwes.split(',') if c.strip()]
-            else:
-                finding_cwe_list = [str(c).strip().upper() for c in raw_cwes if str(c).strip() and str(c).strip().upper() != 'NONE']
+            finding_cwe_list = [str(c).strip().upper() for c in raw_cwes if str(c).strip() and str(c).strip().upper() != 'NONE']
             
-            # Only trace target rate limiting elements to keep terminal clean
-            if any("RATE" in vuln_title.upper() or "400" in c or "770" in c for c in finding_cwe_list):
-                print(f"🐞 [TRACE LOG]: Rule Detected: '{vuln_title}' | Extracted Tokens Array: {finding_cwe_list}")
-                
-            for c in finding_cwe_list:
-                ai_all_unique.add(c)
-                
-            resolved_tokens = []
-            processed_as_child = set()
-            processed_as_parent = set()
-            
-            # Target structural parent connectivity loops
             for cwe in finding_cwe_list:
-                if cwe in CWE_PARENT_RELATIONS:
-                    for child_candidate in CWE_PARENT_RELATIONS[cwe]:
-                        if child_candidate in finding_cwe_list:
-                            if "400" in cwe:
-                                print(f"  🎯 [MATCH SUCCESS]: Collapsing parent {cwe} straight into child {child_candidate}!")
-                            resolved_tokens.append((child_candidate, cwe, "High"))
-                            processed_as_child.add(child_candidate)
-                            processed_as_parent.add(cwe)
-            
-            # Sort residual arrays
-            for cwe in finding_cwe_list:
-                if cwe in processed_as_child or cwe in processed_as_parent:
-                    continue
-                if cwe in CWE_TOP_25:
-                    resolved_tokens.append((cwe, None, "High"))
-                else:
-                    resolved_tokens.append((cwe, None, "Medium"))
-                    
-            for child, parent, target_sev in resolved_tokens:
-                display_token = f"{child} ({parent})" if parent else child
-                if display_token not in ai_cwe_by_severity[target_sev]:
-                    ai_cwe_by_severity[target_sev][display_token] = set()
-                ai_cwe_by_severity[target_sev][display_token].add(vuln_title)
+                ai_all_unique.add(cwe)
+                if cwe not in ai_global_registry:
+                    ai_global_registry[cwe] = {"titles": set(), "co_located": set(finding_cwe_list)}
+                ai_global_registry[cwe]["titles"].add(vuln_title)
+                ai_global_registry[cwe]["co_located"].update(finding_cwe_list)
+
+    ai_processed_keys = set()
+    for parent_cwe, children_list in CWE_PARENT_RELATIONS.items():
+        if parent_cwe in ai_global_registry:
+            for child_cwe in children_list:
+                if child_cwe in ai_global_registry:
+                    if child_cwe in ai_global_registry[parent_cwe]["co_located"]:
+                        collapsed_label = f"{child_cwe} ({parent_cwe})"
+                        combined_titles = ai_global_registry[parent_cwe]["titles"].union(ai_global_registry[child_cwe]["titles"])
+                        
+                        if collapsed_label not in ai_cwe_by_severity["High"]:
+                            ai_cwe_by_severity["High"][collapsed_label] = set()
+                        ai_cwe_by_severity["High"][collapsed_label].update(combined_titles)
+                        
+                        ai_processed_keys.add(parent_cwe)
+                        ai_processed_keys.add(child_cwe)
+
+    for cwe, data in ai_global_registry.items():
+        if cwe in ai_processed_keys:
+            continue
+        target_sev = "High" if cwe in CWE_TOP_25 else "Medium"
+        if cwe not in ai_cwe_by_severity[target_sev]:
+            ai_cwe_by_severity[target_sev][cwe] = set()
+        ai_cwe_by_severity[target_sev][cwe].update(data["titles"])
 
     ai_cwe_breadth = len(ai_all_unique)
-    print("=== 🛠️ END OF AI DIAGNOSTIC TRACE ===\n")
     # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
@@ -153,58 +149,51 @@ def main():
     human_vuln_merged = sum(1 for x in human_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
     human_dismissal_rate = round((human_vuln_merged / vulnerable_human_prs) * 100, 2) if vulnerable_human_prs > 0 else 0.0
 
-    # Advanced Human CWE Extraction Pipeline with Live Stream Debug Logging
+    # 🔬 Global Human Multi-Pass Data Synthesis Engine
     human_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     human_all_unique = set()
+    human_global_registry = {}
 
-    print("\n=== 👨‍💻 STARTING HUMAN COGNITIVE DIAGNOSTIC TRACE ===")
     for x in human_data:
         findings = x.get('findings_details', [])
         for bug in findings:
             vuln_title = bug.get('vulnerability', 'Security Weakness Discovered').strip()
             raw_cwes = bug.get('cwes', [])
             
-            if isinstance(raw_cwes, str):
-                finding_cwe_list = [c.strip().upper() for c in raw_cwes.split(',') if c.strip()]
-            else:
-                finding_cwe_list = [str(c).strip().upper() for c in raw_cwes if str(c).strip() and str(c).strip().upper() != 'NONE']
-            
-            if any("RATE" in vuln_title.upper() or "400" in c or "770" in c for c in finding_cwe_list):
-                print(f"🐞 [TRACE LOG]: Rule Detected: '{vuln_title}' | Extracted Tokens Array: {finding_cwe_list}")
-                
-            for c in finding_cwe_list:
-                human_all_unique.add(c)
-                
-            resolved_tokens = []
-            processed_as_child = set()
-            processed_as_parent = set()
+            finding_cwe_list = [str(c).strip().upper() for c in raw_cwes if str(c).strip() and str(c).strip().upper() != 'NONE']
             
             for cwe in finding_cwe_list:
-                if cwe in CWE_PARENT_RELATIONS:
-                    for child_candidate in CWE_PARENT_RELATIONS[cwe]:
-                        if child_candidate in finding_cwe_list:
-                            if "400" in cwe:
-                                print(f"  🎯 [MATCH SUCCESS]: Collapsing parent {cwe} straight into child {child_candidate}!")
-                            resolved_tokens.append((child_candidate, cwe, "High"))
-                            processed_as_child.add(child_candidate)
-                            processed_as_parent.add(cwe)
-            
-            for cwe in finding_cwe_list:
-                if cwe in processed_as_child or cwe in processed_as_parent:
-                    continue
-                if cwe in CWE_TOP_25:
-                    resolved_tokens.append((cwe, None, "High"))
-                else:
-                    resolved_tokens.append((cwe, None, "Medium"))
-                    
-            for child, parent, target_sev in resolved_tokens:
-                display_token = f"{child} ({parent})" if parent else child
-                if display_token not in human_cwe_by_severity[target_sev]:
-                    human_cwe_by_severity[target_sev][display_token] = set()
-                human_cwe_by_severity[target_sev][display_token].add(vuln_title)
+                human_all_unique.add(cwe)
+                if cwe not in human_global_registry:
+                    human_global_registry[cwe] = {"titles": set(), "co_located": set(finding_cwe_list)}
+                human_global_registry[cwe]["titles"].add(vuln_title)
+                human_global_registry[cwe]["co_located"].update(finding_cwe_list)
+
+    human_processed_keys = set()
+    for parent_cwe, children_list in CWE_PARENT_RELATIONS.items():
+        if parent_cwe in human_global_registry:
+            for child_cwe in children_list:
+                if child_cwe in human_global_registry:
+                    if child_cwe in human_global_registry[parent_cwe]["co_located"]:
+                        collapsed_label = f"{child_cwe} ({parent_cwe})"
+                        combined_titles = human_global_registry[parent_cwe]["titles"].union(human_global_registry[child_cwe]["titles"])
+                        
+                        if collapsed_label not in human_cwe_by_severity["High"]:
+                            human_cwe_by_severity["High"][collapsed_label] = set()
+                        human_cwe_by_severity["High"][collapsed_label].update(combined_titles)
+                        
+                        human_processed_keys.add(parent_cwe)
+                        human_processed_keys.add(child_cwe)
+
+    for cwe, data in human_global_registry.items():
+        if cwe in human_processed_keys:
+            continue
+        target_sev = "High" if cwe in CWE_TOP_25 else "Medium"
+        if cwe not in human_cwe_by_severity[target_sev]:
+            human_cwe_by_severity[target_sev][cwe] = set()
+        human_cwe_by_severity[target_sev][cwe].update(data["titles"])
 
     human_cwe_breadth = len(human_all_unique)
-    print("=== 👨‍💻 END OF HUMAN DIAGNOSTIC TRACE ===\n")
 
     # --- GENERATE NESTED HTML SUB-LISTS ---
     ai_cwe_html_list = ""
