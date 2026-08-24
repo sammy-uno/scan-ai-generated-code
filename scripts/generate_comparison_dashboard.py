@@ -101,9 +101,12 @@ def main():
                         collapsed_label = f"{child_cwe} ({parent_cwe})"
                         combined_titles = ai_global_registry[parent_cwe]["titles"].union(ai_global_registry[child_cwe]["titles"])
                         
-                        if collapsed_label not in ai_cwe_by_severity["High"]:
-                            ai_cwe_by_severity["High"][collapsed_label] = set()
-                        ai_cwe_by_severity["High"][collapsed_label].update(combined_titles)
+                        # 🎯 SEVERITY FIX: Check if the child belongs to your Top 25 whitelist
+                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
+                        
+                        if collapsed_label not in ai_cwe_by_severity[target_sev]:
+                            ai_cwe_by_severity[target_sev][collapsed_label] = set()
+                        ai_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
                         
                         ai_processed_keys.add(parent_cwe)
                         ai_processed_keys.add(child_cwe)
@@ -153,7 +156,6 @@ def main():
     human_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     human_all_unique = set()
     human_global_registry = {}
-
     for x in human_data:
         findings = x.get('findings_details', [])
         for bug in findings:
@@ -178,9 +180,12 @@ def main():
                         collapsed_label = f"{child_cwe} ({parent_cwe})"
                         combined_titles = human_global_registry[parent_cwe]["titles"].union(human_global_registry[child_cwe]["titles"])
                         
-                        if collapsed_label not in human_cwe_by_severity["High"]:
-                            human_cwe_by_severity["High"][collapsed_label] = set()
-                        human_cwe_by_severity["High"][collapsed_label].update(combined_titles)
+                        # 🎯 SEVERITY FIX: Check if the child belongs to your Top 25 whitelist
+                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
+                        
+                        if collapsed_label not in human_cwe_by_severity[target_sev]:
+                            human_cwe_by_severity[target_sev][collapsed_label] = set()
+                        human_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
                         
                         human_processed_keys.add(parent_cwe)
                         human_processed_keys.add(child_cwe)
@@ -194,6 +199,7 @@ def main():
         human_cwe_by_severity[target_sev][cwe].update(data["titles"])
 
     human_cwe_breadth = len(human_all_unique)
+
     # --- GENERATE NESTED HTML SUB-LISTS WITH 3-COLUMN STRUCTURAL ROWS ---
     import re
     
@@ -220,26 +226,19 @@ def main():
         if cwe_dict:
             ai_cwe_html_list += f"<div style='margin-top:12px; margin-bottom:6px; font-size:13px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0; padding-left:0; list-style-type:none;'>"
             for code, desc_set in sorted(cwe_dict.items()):
-                # Column 3: Standalone visual tag blocks for CodeQL rules
                 rule_badges = "".join([f"<div style='background:#f1f3f5; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:2px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</div>" for r in desc_set])
-                
-                # Column 2: Look up MITRE descriptions
                 codes_found = re.findall(r'CWE-\d+', code)
                 title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
                 title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
                 
-                # Assemble 3-Column flex row container for AI card
                 ai_cwe_html_list += f"""
                 <li style='padding:6px 0; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; min-height:32px; gap:12px;'>
-                    <!-- Column 1: Classification ID (Width: 22%) -->
                     <div style='width:22%; flex-shrink:0;'>
                         <code style='background:#ddf4ff; color:#0969da; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
                     </div>
-                    <!-- Column 2: MITRE Architectural Nomenclature (Width: 50%) -->
                     <div style='width:50%; color:#24292f; font-weight:500; font-size:12px; line-height:1.4; padding-right:8px;'>
                         {title_string}
                     </div>
-                    <!-- Column 3: Triggering Scanner Rules (Width: 28%) -->
                     <div style='width:28%; text-align:right; display:flex; flex-wrap:wrap; justify-content:flex-end;'>
                         {rule_badges}
                     </div>
@@ -253,26 +252,19 @@ def main():
         if cwe_dict:
             human_cwe_html_list += f"<div style='margin-top:12px; margin-bottom:6px; font-size:13px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0; padding-left:0; list-style-type:none;'>"
             for code, desc_set in sorted(cwe_dict.items()):
-                # Column 3: Standalone visual tag blocks for CodeQL rules
                 rule_badges = "".join([f"<div style='background:#f1f3f5; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:2px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</div>" for r in desc_set])
-                
-                # Column 2: Look up MITRE descriptions
                 codes_found = re.findall(r'CWE-\d+', code)
                 title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
                 title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
                 
-                # Assemble 3-Column flex row container for Human card
                 human_cwe_html_list += f"""
                 <li style='padding:6px 0; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; min-height:32px; gap:12px;'>
-                    <!-- Column 1: Classification ID (Width: 22%) -->
                     <div style='width:22%; flex-shrink:0;'>
                         <code style='background:#e6ffed; color:#1a7f37; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
                     </div>
-                    <!-- Column 2: MITRE Architectural Nomenclature (Width: 50%) -->
                     <div style='width:50%; color:#24292f; font-weight:500; font-size:12px; line-height:1.4; padding-right:8px;'>
                         {title_string}
                     </div>
-                    <!-- Column 3: Triggering Scanner Rules (Width: 28%) -->
                     <div style='width:28%; text-align:right; display:flex; flex-wrap:wrap; justify-content:flex-end;'>
                         {rule_badges}
                     </div>
@@ -347,18 +339,15 @@ def main():
                 <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">{ai_critical_ratio}%</span></li>
                 <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{ai_defect_concentration} bugs/Vulnerable PR</span></li>
                 <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{ai_dismissal_rate}%</span></li>
-                <li style="display: block; padding: 10px 0; border-bottom: none;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
-                        <span class="metric-value">{ai_cwe_breadth} types</span>
-                    </div>
-                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
-                        {ai_cwe_html_list}
-                    </div>
-                </li>
+                <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">{ai_cwe_breadth} types</span></li>
             </ul>
+
+            <h4>🔬 Security Vulnerability Analysis</h4>
+            <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); margin-top: 8px;">
+                {ai_cwe_html_list}
+            </div>
         </div>
-        
+"""
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
@@ -395,16 +384,13 @@ def main():
                 <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">{human_critical_ratio}%</span></li>
                 <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{human_defect_concentration} bugs/Vulnerable PR</span></li>
                 <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{human_dismissal_rate}%</span></li>
-                <li style="display: block; padding: 10px 0; border-bottom: none;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
-                        <span class="metric-value">{human_cwe_breadth} types</span>
-                    </div>
-                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
-                        {human_cwe_html_list}
-                    </div>
-                </li>
+                <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">{human_cwe_breadth} types</span></li>
             </ul>
+
+            <h4>🔬 Security Vulnerability Analysis</h4>
+            <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); margin-top: 8px;">
+                {human_cwe_html_list}
+            </div>
         </div>
     </div>
 
