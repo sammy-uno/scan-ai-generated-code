@@ -130,7 +130,7 @@ def main():
                 human_cwe_by_severity[target_sev][cwe].add(vuln_title)
 
     human_cwe_breadth = len(human_all_unique)
-    # --- GENERATE NESTED HTML SUB-LISTS WITH 10% / 50% / 40% FORCED COLUMN WIDTHS ---
+    # --- GENERATE NESTED HTML SUB-LISTS WITH FORCED COLUMN WIDTHS & HEADERS ---
     import re
     
     CWE_TITLES = {
@@ -163,6 +163,14 @@ def main():
             <div style='margin-top:14px; margin-bottom:6px; font-size:13px; font-weight:bold; color:#24292f;'>{sev_name} Severities:</div>
             <div style='border:1px solid #d0d7de; border-radius:6px; margin-bottom:16px; overflow:hidden; background:#ffffff;'>
                 <table style='width:100%; border-collapse:collapse; text-align:left; font-size:12px; table-layout:fixed;'>
+                    <thead>
+                        <tr style='background:#f6f8fa; border-bottom:1px solid #d0d7de; color:#57606a; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;'>
+                            <th style='width:10%; padding:8px 10px; border-right:1px solid #d0d7de;'>CWE ID</th>
+                            <th style='width:50%; padding:8px 10px; border-right:1px solid #d0d7de;'>Architectural Nomenclature</th>
+                            <th style='width:40%; padding:8px 10px; text-align:right;'>Triggering CodeQL Rules</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             """
             for code, desc_set in sorted(cwe_dict.items()):
                 rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
@@ -171,20 +179,17 @@ def main():
                 
                 ai_cwe_html_list += f"""
                 <tr style='border-bottom:1px solid #d0d7de;'>
-                    <!-- Column 1: Classification ID (Forced Width locked at 10%) -->
                     <td style='width:10%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
                         <code style='{badge_style} padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>{code}</code>
                     </td>
-                    <!-- Column 2: MITRE Nomenclature (Forced Width locked at 50%) -->
                     <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                         {title_string}
                     </td>
-                    <!-- Column 3: Triggering Rules (Forced Width expanded locked at 40%) -->
                     <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
                         <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
                     </td>
                 </tr>"""
-            ai_cwe_html_list += "</table></div>"
+            ai_cwe_html_list += "</tbody></table></div>"
     if not ai_cwe_html_list:
         ai_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
 
@@ -200,6 +205,14 @@ def main():
             <div style='margin-top:14px; margin-bottom:6px; font-size:13px; font-weight:bold; color:#24292f;'>{sev_name} Severities:</div>
             <div style='border:1px solid #d0d7de; border-radius:6px; margin-bottom:16px; overflow:hidden; background:#ffffff;'>
                 <table style='width:100%; border-collapse:collapse; text-align:left; font-size:12px; table-layout:fixed;'>
+                    <thead>
+                        <tr style='background:#f6f8fa; border-bottom:1px solid #d0d7de; color:#57606a; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;'>
+                            <th style='width:10%; padding:8px 10px; border-right:1px solid #d0d7de;'>CWE ID</th>
+                            <th style='width:50%; padding:8px 10px; border-right:1px solid #d0d7de;'>Architectural Nomenclature</th>
+                            <th style='width:40%; padding:8px 10px; text-align:right;'>Triggering CodeQL Rules</th>
+                        </tr>
+                    </thead>
+                    <tbody>
             """
             for code, desc_set in sorted(cwe_dict.items()):
                 rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
@@ -208,22 +221,20 @@ def main():
                 
                 human_cwe_html_list += f"""
                 <tr style='border-bottom:1px solid #d0d7de;'>
-                    <!-- Column 1: Classification ID (Forced Width locked at 10%) -->
                     <td style='width:10%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
                         <code style='{badge_style} padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>{code}</code>
                     </td>
-                    <!-- Column 2: MITRE Nomenclature (Forced Width locked at 50%) -->
                     <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                         {title_string}
                     </td>
-                    <!-- Column 3: Triggering Rules (Forced Width expanded locked at 40%) -->
                     <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
                         <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
                     </td>
                 </tr>"""
-            human_cwe_html_list += "</table></div>"
+            human_cwe_html_list += "</tbody></table></div>"
     if not human_cwe_html_list:
         human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
+
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
