@@ -200,7 +200,7 @@ def main():
 
     human_cwe_breadth = len(human_all_unique)
 
-    # --- GENERATE NESTED HTML SUB-LISTS WITH DEFAULT BACKGROUNDS & BADGE-ONLY COLORS ---
+    # --- GENERATE NESTED HTML SUB-LISTS WITH FIXED COLUMNS & HIGH SEVERITY ACCENTS ---
     import re
     
     CWE_TITLES = {
@@ -224,15 +224,11 @@ def main():
     ai_cwe_html_list = ""
     for sev_name, cwe_dict in ai_cwe_by_severity.items():
         if cwe_dict:
-            # Configure badge colors only while keeping the container row background clean and neutral
+            # Theme properties mapping out precise, readable, high-contrast borders and texts
             if sev_name == "High":
-                badge_bg = "#ffeef0"     # Light Red Badge background
-                badge_color = "#cf222e"  # Deep Red text
-                badge_border = "1px solid rgba(207, 34, 46, 0.2)"
+                badge_style = "background-color: #ffeef0; color: #cf222e; border: 1px solid rgba(207, 34, 46, 0.4);"
             else:
-                badge_bg = "#fff8e1"     # Light Yellow Badge background
-                badge_color = "#bf8700"  # Deep Yellow/Gold text
-                badge_border = "1px solid rgba(191, 135, 0, 0.2)"
+                badge_style = "background-color: #fff8e1; color: #bf8700; border: 1px solid rgba(191, 135, 0, 0.4);"
 
             ai_cwe_html_list += f"""
             <div style='margin-top:14px; margin-bottom:6px; font-size:13px; font-weight:bold; color:#24292f;'>{sev_name} Severities:</div>
@@ -240,25 +236,25 @@ def main():
                 <table style='width:100%; border-collapse:collapse; text-align:left; font-size:12px; table-layout:fixed;'>
             """
             for code, desc_set in sorted(cwe_dict.items()):
-                rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:2px 5px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
+                rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
                 
                 codes_found = re.findall(r'CWE-\d+', code)
                 title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
                 title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
                 
                 ai_cwe_html_list += f"""
-                <tr style='border-bottom:1px solid #f0f2f4;'>
-                    <!-- Column 1: Classification ID Badge Only Colored (Width: 25%) -->
-                    <td style='width:25%; padding:10px 8px; border-right:1px solid #f0f2f4; vertical-align:middle;'>
-                        <code style='background:{badge_bg}; color:{badge_color}; border:{badge_border}; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
+                <tr style='border-bottom:1px solid #d0d7de;'>
+                    <!-- Column 1: Classification ID (Width locked at 25%) -->
+                    <td style='width:25%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff;'>
+                        <code style='{badge_style} padding:4px 8px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
                     </td>
-                    <!-- Column 2: MITRE Architectural Nomenclature (Width: 50%) -->
-                    <td style='width:50%; padding:10px 8px; border-right:1px solid #f0f2f4; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; word-wrap:break-word;'>
+                    <!-- Column 2: MITRE Nomenclature (Width locked at 50%) -->
+                    <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                         {title_string}
                     </td>
-                    <!-- Column 3: Triggering Scanner Rules (Width: 25%) -->
-                    <td style='width:25%; padding:10px 8px; text-align:right; vertical-align:middle;'>
-                        <div style='display:flex; flex-wrap:wrap; justify-content:flex-end;'>{rule_badges}</div>
+                    <!-- Column 3: Triggering Rules (Width locked at 25%) -->
+                    <td style='width:25%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
+                        <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
                     </td>
                 </tr>"""
             ai_cwe_html_list += "</table></div>"
@@ -269,13 +265,9 @@ def main():
     for sev_name, cwe_dict in human_cwe_by_severity.items():
         if cwe_dict:
             if sev_name == "High":
-                badge_bg = "#ffeef0"     # Light Red Badge background
-                badge_color = "#cf222e"  # Deep Red text
-                badge_border = "1px solid rgba(207, 34, 46, 0.2)"
+                badge_style = "background-color: #ffeef0; color: #cf222e; border: 1px solid rgba(207, 34, 46, 0.4);"
             else:
-                badge_bg = "#fff8e1"     # Light Yellow Badge background
-                badge_color = "#bf8700"  # Deep Yellow/Gold text
-                badge_border = "1px solid rgba(191, 135, 0, 0.2)"
+                badge_style = "background-color: #fff8e1; color: #bf8700; border: 1px solid rgba(191, 135, 0, 0.4);"
 
             human_cwe_html_list += f"""
             <div style='margin-top:14px; margin-bottom:6px; font-size:13px; font-weight:bold; color:#24292f;'>{sev_name} Severities:</div>
@@ -283,25 +275,25 @@ def main():
                 <table style='width:100%; border-collapse:collapse; text-align:left; font-size:12px; table-layout:fixed;'>
             """
             for code, desc_set in sorted(cwe_dict.items()):
-                rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:2px 5px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
+                rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
                 
                 codes_found = re.findall(r'CWE-\d+', code)
                 title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
                 title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
                 
                 human_cwe_html_list += f"""
-                <tr style='border-bottom:1px solid #f0f2f4;'>
-                    <!-- Column 1: Classification ID Badge Only Colored (Width: 25%) -->
-                    <td style='width:25%; padding:10px 8px; border-right:1px solid #f0f2f4; vertical-align:middle;'>
-                        <code style='background:{badge_bg}; color:{badge_color}; border:{badge_border}; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
+                <tr style='border-bottom:1px solid #d0d7de;'>
+                    <!-- Column 1: Classification ID (Width locked at 25%) -->
+                    <td style='width:25%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff;'>
+                        <code style='{badge_style} padding:4px 8px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
                     </td>
-                    <!-- Column 2: MITRE Architectural Nomenclature (Width: 50%) -->
-                    <td style='width:50%; padding:10px 8px; border-right:1px solid #f0f2f4; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; word-wrap:break-word;'>
+                    <!-- Column 2: MITRE Nomenclature (Width locked at 50%) -->
+                    <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                         {title_string}
                     </td>
-                    <!-- Column 3: Triggering Scanner Rules (Width: 25%) -->
-                    <td style='width:25%; padding:10px 8px; text-align:right; vertical-align:middle;'>
-                        <div style='display:flex; flex-wrap:wrap; justify-content:flex-end;'>{rule_badges}</div>
+                    <!-- Column 3: Triggering Rules (Width locked at 25%) -->
+                    <td style='width:25%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
+                        <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
                     </td>
                 </tr>"""
             human_cwe_html_list += "</table></div>"
