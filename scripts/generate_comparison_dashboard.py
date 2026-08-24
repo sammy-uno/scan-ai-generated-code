@@ -92,7 +92,6 @@ def main():
                     ai_global_registry[cwe] = {"titles": set(), "co_located": set(finding_cwe_list)}
                 ai_global_registry[cwe]["titles"].add(vuln_title)
                 ai_global_registry[cwe]["co_located"].update(finding_cwe_list)
-
     ai_processed_keys = set()
     for parent_cwe, children_list in CWE_PARENT_RELATIONS.items():
         if parent_cwe in ai_global_registry:
@@ -102,12 +101,9 @@ def main():
                         collapsed_label = f"{child_cwe} ({parent_cwe})"
                         combined_titles = ai_global_registry[parent_cwe]["titles"].union(ai_global_registry[child_cwe]["titles"])
                         
-                        # 🎯 FIX: Check if the child belongs to your Top 25 before setting severity
-                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
-                        
-                        if collapsed_label not in ai_cwe_by_severity[target_sev]:
-                            ai_cwe_by_severity[target_sev][collapsed_label] = set()
-                        ai_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
+                        if collapsed_label not in ai_cwe_by_severity["High"]:
+                            ai_cwe_by_severity["High"][collapsed_label] = set()
+                        ai_cwe_by_severity["High"][collapsed_label].update(combined_titles)
                         
                         ai_processed_keys.add(parent_cwe)
                         ai_processed_keys.add(child_cwe)
@@ -121,6 +117,7 @@ def main():
         ai_cwe_by_severity[target_sev][cwe].update(data["titles"])
 
     ai_cwe_breadth = len(ai_all_unique)
+
     # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
@@ -181,12 +178,9 @@ def main():
                         collapsed_label = f"{child_cwe} ({parent_cwe})"
                         combined_titles = human_global_registry[parent_cwe]["titles"].union(human_global_registry[child_cwe]["titles"])
                         
-                        # 🎯 FIX: Check if the child belongs to your Top 25 before setting severity
-                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
-                        
-                        if collapsed_label not in human_cwe_by_severity[target_sev]:
-                            human_cwe_by_severity[target_sev][collapsed_label] = set()
-                        human_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
+                        if collapsed_label not in human_cwe_by_severity["High"]:
+                            human_cwe_by_severity["High"][collapsed_label] = set()
+                        human_cwe_by_severity["High"][collapsed_label].update(combined_titles)
                         
                         human_processed_keys.add(parent_cwe)
                         human_processed_keys.add(child_cwe)
@@ -200,15 +194,56 @@ def main():
         human_cwe_by_severity[target_sev][cwe].update(data["titles"])
 
     human_cwe_breadth = len(human_all_unique)
+    # --- GENERATE NESTED HTML SUB-LISTS WITH 3-COLUMN STRUCTURAL ROWS ---
+    import re
+    
+    CWE_TITLES = {
+        'CWE-020': 'Improper Input Validation',
+        'CWE-079': "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
+        'CWE-080': 'Improper Neutralization of Script-Related HTML Tags in a Web Page',
+        'CWE-116': 'Improper Encoding or Sanitization of Input',
+        'CWE-209': 'Generation of Error Message Containing Sensitive Information',
+        'CWE-307': 'Improper Restriction of Excessive Authentication Attempts',
+        'CWE-312': 'Cleartext Storage of Sensitive Information',
+        'CWE-327': 'Use of a Broken or Risky Cryptographic Algorithm',
+        'CWE-328': 'Use of Weak Hash',
+        'CWE-359': 'Exposure of Private Personal Information ("Privacy Violation")',
+        'CWE-400': 'Uncontrolled Resource Consumption',
+        'CWE-497': 'Exposure of System Information to an Unauthorized Actor',
+        'CWE-532': 'Insertion of Sensitive Information into Log File',
+        'CWE-601': 'URL Redirection to Untrusted Site (\'Open Redirect\')',
+        'CWE-770': 'Allocation of Resources Without Limits or Throttling'
+    }
 
-    # --- GENERATE NESTED HTML SUB-LISTS ---
     ai_cwe_html_list = ""
     for sev_name, cwe_dict in ai_cwe_by_severity.items():
         if cwe_dict:
-            ai_cwe_html_list += f"<div style='margin-top:6px; margin-bottom:2px; font-size:12px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0 0 6px 0; padding-left:18px; list-style-type:disc;'>"
+            ai_cwe_html_list += f"<div style='margin-top:12px; margin-bottom:6px; font-size:13px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0; padding-left:0; list-style-type:none;'>"
             for code, desc_set in sorted(cwe_dict.items()):
-                desc_combined = " / ".join(sorted(list(desc_set)))
-                ai_cwe_html_list += f"<li style='padding:2px 0; font-size:12px; border:none; display:list-item; justify-content:initial;'><code>{code}</code> - <span style='color:#57606a;'>{desc_combined}</span></li>"
+                # Column 3: Standalone visual tag blocks for CodeQL rules
+                rule_badges = "".join([f"<div style='background:#f1f3f5; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:2px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</div>" for r in desc_set])
+                
+                # Column 2: Look up MITRE descriptions
+                codes_found = re.findall(r'CWE-\d+', code)
+                title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
+                title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
+                
+                # Assemble 3-Column flex row container for AI card
+                ai_cwe_html_list += f"""
+                <li style='padding:6px 0; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; min-height:32px; gap:12px;'>
+                    <!-- Column 1: Classification ID (Width: 22%) -->
+                    <div style='width:22%; flex-shrink:0;'>
+                        <code style='background:#ddf4ff; color:#0969da; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
+                    </div>
+                    <!-- Column 2: MITRE Architectural Nomenclature (Width: 50%) -->
+                    <div style='width:50%; color:#24292f; font-weight:500; font-size:12px; line-height:1.4; padding-right:8px;'>
+                        {title_string}
+                    </div>
+                    <!-- Column 3: Triggering Scanner Rules (Width: 28%) -->
+                    <div style='width:28%; text-align:right; display:flex; flex-wrap:wrap; justify-content:flex-end;'>
+                        {rule_badges}
+                    </div>
+                </li>"""
             ai_cwe_html_list += "</ul>"
     if not ai_cwe_html_list:
         ai_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
@@ -216,14 +251,35 @@ def main():
     human_cwe_html_list = ""
     for sev_name, cwe_dict in human_cwe_by_severity.items():
         if cwe_dict:
-            human_cwe_html_list += f"<div style='margin-top:6px; margin-bottom:2px; font-size:12px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0 0 6px 0; padding-left:18px; list-style-type:disc;'>"
+            human_cwe_html_list += f"<div style='margin-top:12px; margin-bottom:6px; font-size:13px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0; padding-left:0; list-style-type:none;'>"
             for code, desc_set in sorted(cwe_dict.items()):
-                desc_combined = " / ".join(sorted(list(desc_set)))
-                human_cwe_html_list += f"<li style='padding:2px 0; font-size:12px; border:none; display:list-item; justify-content:initial;'><code>{code}</code> - <span style='color:#57606a;'>{desc_combined}</span></li>"
+                # Column 3: Standalone visual tag blocks for CodeQL rules
+                rule_badges = "".join([f"<div style='background:#f1f3f5; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:2px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</div>" for r in desc_set])
+                
+                # Column 2: Look up MITRE descriptions
+                codes_found = re.findall(r'CWE-\d+', code)
+                title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
+                title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
+                
+                # Assemble 3-Column flex row container for Human card
+                human_cwe_html_list += f"""
+                <li style='padding:6px 0; border-bottom:1px solid #f6f8fa; display:flex; align-items:center; min-height:32px; gap:12px;'>
+                    <!-- Column 1: Classification ID (Width: 22%) -->
+                    <div style='width:22%; flex-shrink:0;'>
+                        <code style='background:#e6ffed; color:#1a7f37; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
+                    </div>
+                    <!-- Column 2: MITRE Architectural Nomenclature (Width: 50%) -->
+                    <div style='width:50%; color:#24292f; font-weight:500; font-size:12px; line-height:1.4; padding-right:8px;'>
+                        {title_string}
+                    </div>
+                    <!-- Column 3: Triggering Scanner Rules (Width: 28%) -->
+                    <div style='width:28%; text-align:right; display:flex; flex-wrap:wrap; justify-content:flex-end;'>
+                        {rule_badges}
+                    </div>
+                </li>"""
             human_cwe_html_list += "</ul>"
     if not human_cwe_html_list:
         human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
-
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -296,13 +352,13 @@ def main():
                         <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
                         <span class="metric-value">{ai_cwe_breadth} types</span>
                     </div>
-                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
                         {ai_cwe_html_list}
                     </div>
                 </li>
             </ul>
         </div>
-
+"""
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
@@ -344,7 +400,7 @@ def main():
                         <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
                         <span class="metric-value">{human_cwe_breadth} types</span>
                     </div>
-                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
                         {human_cwe_html_list}
                     </div>
                 </li>
