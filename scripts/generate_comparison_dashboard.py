@@ -86,8 +86,8 @@ def main():
     total_human_issues = 0
     for x in human_data:
         tokens = str(x.get('issues_files', '0')).strip().split()
-        if tokens and tokens.isdigit():
-            total_human_issues += int(tokens)
+        if tokens and tokens[0].isdigit():
+            total_human_issues += int(tokens[0])
             
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
     human_avg_defect_rate = round(total_human_issues / total_human_prs, 2) if total_human_prs > 0 else 0.0
