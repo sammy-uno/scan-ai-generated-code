@@ -1,280 +1,355 @@
 import os
 import json
-import re
 
 def main():
-    output_path = "docs/GLOBAL_INTERACTIVE_REPORT.html"
-    
-    # Check the environment variable to automatically point to the correct file path
-    scan_type = os.environ.get("SCAN_TYPE", "automated").lower().strip()
-    
-    if scan_type == "human":
-        json_path = "all-results/human_accumulated_database.json"
-        report_title = "👨‍💻 Human Pull Requests - Consolidated Summary Report"
-        print("📊 [ENGINE LOG]: Running in HUMAN audit mode. Target path set to human ledger.")
-    else:
-        json_path = "all-results/accumulated_database.json"
-        report_title = "🤖 AI-Generated Pull Requests - Consolidated Summary Report"
-        print("📊 [ENGINE LOG]: Running in AI automated mode. Target path set to standard ledger.")
-        
-    os.makedirs("all-results", exist_ok=True)
-    os.makedirs("docs", exist_ok=True)
+    output_path = "docs/THESIS_COMPARATIVE_ANALYSIS.html"
+    ai_db_path = "all-results/accumulated_database.json"
+    human_db_path = "all-results/human_accumulated_database.json"
 
-    # Ingest baseline entries from the database branch file ledger
-    records_list = []
-    if os.path.exists(json_path):
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                records_list = json.load(f)
-            print(f"📁 [ENGINE LOG]: Loaded {len(records_list)} database entries.")
-        except Exception as err:
-            print(f"❌ Error loading database: {err}")
+    # 🎯 OFFICIAL 2025 MITRE CWE TOP 25 BASELINE ARRAY
+    CWE_TOP_25 = [
+        'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
+        'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
+    ]
 
-    # Calculate global statistical distributions for the summary card layout
-    total_scanned = len(records_list)
-    vulnerable_count = sum(1 for r in records_list if r.get('has_issues_bool', False))
-    total_loc_scanned = sum(int(r.get('loc', 0)) for r in records_list)
+    # 🏛️ EXHAUSTIVE MITRE CWE-1000 ARCHITECTURAL ANCESTRY MAP
+    CWE_PARENT_RELATIONS = {
+        'CWE-20':  ['CWE-117', 'CWE-1284', 'CWE-1285'],
+        'CWE-22':  ['CWE-23', 'CWE-35', 'CWE-36'],
+        'CWE-74':  ['CWE-77', 'CWE-78', 'CWE-79', 'CWE-89', 'CWE-94', 'CWE-502'],
+        'CWE-119': ['CWE-120', 'CWE-121', 'CWE-122', 'CWE-125', 'CWE-787'],
+        'CWE-200': ['CWE-201', 'CWE-209', 'CWE-312', 'CWE-359', 'CWE-532', 'CWE-611'],
+        'CWE-284': ['CWE-285', 'CWE-287', 'CWE-306', 'CWE-862', 'CWE-863', 'CWE-639'],
+        'CWE-311': ['CWE-312', 'CWE-319', 'CWE-327'],
+        'CWE-312': ['CWE-532'],
+        'CWE-400': ['CWE-770', 'CWE-772', 'CWE-404'],
+        'CWE-664': ['CWE-400', 'CWE-404', 'CWE-668'],
+        'CWE-693': ['CWE-327', 'CWE-345', 'CWE-352'],
+        'CWE-707': ['CWE-20', 'CWE-74', 'CWE-116']
+    }
+
+    # Load AI dataset records
+    ai_data = []
+    if os.path.exists(ai_db_path):
+        with open(ai_db_path, "r", encoding="utf-8") as f:
+            ai_data = json.load(f)
+
+    # Load Human dataset records
+    human_data = []
+    if os.path.exists(human_db_path):
+        with open(human_db_path, "r", encoding="utf-8") as f:
+            human_data = json.load(f)
+
+    # --- AI CALCULATIONS ---
+    total_ai_prs = len(ai_data)
+    vulnerable_ai_prs = sum(1 for x in ai_data if x.get('has_issues_bool', False))
+    total_ai_loc = sum(int(x.get('loc', 0)) for x in ai_data)
     
-    open_count = sum(1 for r in records_list if "Open" in str(r.get('status', '')))
-    merged_count = sum(1 for r in records_list if "Merged" in str(r.get('status', '')))
-    closed_count = sum(1 for r in records_list if "Closed" in str(r.get('status', '')))
+    total_ai_issues = 0
+    for x in ai_data:
+        tokens = str(x.get('issues_files', '0')).strip().split()
+        if tokens and tokens[0].isdigit():
+            total_ai_issues += int(tokens[0])
+            
+    ai_density = round(total_ai_issues / total_ai_loc, 6) if total_ai_loc > 0 else 0.0
+    ai_avg_defect_rate = round(total_ai_issues / total_ai_prs, 2) if total_ai_prs > 0 else 0.0
 
-    header_html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{report_title}</title>
+    ai_high = sum(int(x.get('h', 0)) for x in ai_data)
+    ai_medium = sum(int(x.get('m', 0)) for x in ai_data)
+    ai_low = sum(int(x.get('l', 0)) for x in ai_data)
+    
+    ai_open = sum(1 for x in ai_data if "Open" in str(x.get('status', '')))
+    ai_merged = sum(1 for x in ai_data if "Merged" in str(x.get('status', '')))
+    ai_closed = sum(1 for x in ai_data if "Closed" in str(x.get('status', '')))
+
+    ai_global_merge_rate = round((ai_merged / total_ai_prs) * 100, 2) if total_ai_prs > 0 else 0.0
+
+    # 🔬 AI Advanced Analytical Metrics
+    ai_critical_ratio = round((ai_high / total_ai_issues) * 100, 2) if total_ai_issues > 0 else 0.0
+    ai_defect_concentration = round(total_ai_issues / vulnerable_ai_prs, 2) if vulnerable_ai_prs > 0 else 0.0
+    
+    ai_vuln_merged = sum(1 for x in ai_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
+    ai_dismissal_rate = round((ai_vuln_merged / vulnerable_ai_prs) * 100, 2) if vulnerable_ai_prs > 0 else 0.0
+
+    # 🔬 Advanced AI CWE Extraction Pipeline with Conditional Parent Nesting
+    ai_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
+    ai_all_unique = set()
+
+    for x in ai_data:
+        findings = x.get('findings_details', [])
+        for bug in findings:
+            vuln_title = bug.get('vulnerability', 'Security Weakness Discovered').strip()
+            raw_cwes = bug.get('cwes', [])
+            finding_cwe_list = [str(c).strip() for c in raw_cwes if str(c).strip() and str(c).strip().upper() != 'NONE']
+            
+            for c in finding_cwe_list:
+                ai_all_unique.add(c)
+                
+            for cwe in finding_cwe_list:
+                if cwe in CWE_TOP_25:
+                    if cwe not in ai_cwe_by_severity["High"]:
+                        ai_cwe_by_severity["High"][cwe] = set()
+                    ai_cwe_by_severity["High"][cwe].add(vuln_title)
+                else:
+                    is_parent_of_active_child = False
+                    matching_child_cwe = None
+                    if cwe in CWE_PARENT_RELATIONS:
+                        for child_candidate in CWE_PARENT_RELATIONS[cwe]:
+                            if child_candidate in finding_cwe_list:
+                                is_parent_of_active_child = True
+                                matching_child_cwe = child_candidate
+                                break
+                    
+                    if is_parent_of_active_child:
+                        nested_cwe_display = f"{matching_child_cwe} ({cwe})"
+                        if nested_cwe_display not in ai_cwe_by_severity["High"]:
+                            ai_cwe_by_severity["High"][nested_cwe_display] = set()
+                        ai_cwe_by_severity["High"][nested_cwe_display].add(vuln_title)
+                    else:
+                        if cwe not in ai_cwe_by_severity["Medium"]:
+                            ai_cwe_by_severity["Medium"][cwe] = set()
+                        ai_cwe_by_severity["Medium"][cwe].add(vuln_title)
+
+    ai_cwe_breadth = len(ai_all_unique)
+    # --- HUMAN CALCULATIONS ---
+    total_human_prs = len(human_data)
+    vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
+    total_human_loc = sum(int(x.get('loc', 0)) for x in human_data)
+    
+    total_human_issues = 0
+    for x in human_data:
+        tokens = str(x.get('issues_files', '0')).strip().split()
+        if tokens and tokens[0].isdigit():
+            total_human_issues += int(tokens[0])
+            
+    human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
+    human_avg_defect_rate = round(total_human_issues / total_human_prs, 2) if total_human_prs > 0 else 0.0
+
+    human_high = sum(int(x.get('h', 0)) for x in human_data)
+    human_medium = sum(int(x.get('m', 0)) for x in human_data)
+    human_low = sum(int(x.get('l', 0)) for x in human_data)
+    
+    human_open = sum(1 for x in human_data if "Open" in str(x.get('status', '')))
+    human_merged = sum(1 for x in human_data if "Merged" in str(x.get('status', '')))
+    human_closed = sum(1 for x in human_data if "Closed" in str(x.get('status', '')))
+
+    human_global_merge_rate = round((human_merged / total_human_prs) * 100, 2) if total_human_prs > 0 else 0.0
+
+    # 🔬 Human Advanced Analytical Metrics
+    human_critical_ratio = round((human_high / total_human_issues) * 100, 2) if total_human_issues > 0 else 0.0
+    human_defect_concentration = round(total_human_issues / vulnerable_human_prs, 2) if vulnerable_human_prs > 0 else 0.0
+    
+    human_vuln_merged = sum(1 for x in human_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
+    human_dismissal_rate = round((human_vuln_merged / vulnerable_human_prs) * 100, 2) if vulnerable_human_prs > 0 else 0.0
+
+    # 🔬 Advanced Human CWE Extraction Pipeline with Conditional Parent Nesting
+    human_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
+    human_all_unique = set()
+
+    for x in human_data:
+        findings = x.get('findings_details', [])
+        for bug in findings:
+            vuln_title = bug.get('vulnerability', 'Security Weakness Discovered').strip()
+            raw_cwes = bug.get('cwes', [])
+            finding_cwe_list = [str(c).strip() for c in raw_cwes if str(c).strip() and str(c).strip().upper() != 'NONE']
+            
+            for c in finding_cwe_list:
+                human_all_unique.add(c)
+                
+            for cwe in finding_cwe_list:
+                if cwe in CWE_TOP_25:
+                    if cwe not in human_cwe_by_severity["High"]:
+                        human_cwe_by_severity["High"][cwe] = set()
+                    human_cwe_by_severity["High"][cwe].add(vuln_title)
+                else:
+                    is_parent_of_active_child = False
+                    matching_child_cwe = None
+                    if cwe in CWE_PARENT_RELATIONS:
+                        for child_candidate in CWE_PARENT_RELATIONS[cwe]:
+                            if child_candidate in finding_cwe_list:
+                                is_parent_of_active_child = True
+                                matching_child_cwe = child_candidate
+                                break
+                    
+                    if is_parent_of_active_child:
+                        nested_cwe_display = f"{matching_child_cwe} ({cwe})"
+                        if nested_cwe_display not in human_cwe_by_severity["High"]:
+                            human_cwe_by_severity["High"][nested_cwe_display] = set()
+                        human_cwe_by_severity["High"][nested_cwe_display].add(vuln_title)
+                    else:
+                        if cwe not in human_cwe_by_severity["Medium"]:
+                            human_cwe_by_severity["Medium"][cwe] = set()
+                        human_cwe_by_severity["Medium"][cwe].add(vuln_title)
+
+    human_cwe_breadth = len(human_all_unique)
+
+    # --- GENERATE NESTED HTML SUB-LISTS ---
+    ai_cwe_html_list = ""
+    for sev_name, cwe_dict in ai_cwe_by_severity.items():
+        if cwe_dict:
+            ai_cwe_html_list += f"<div style='margin-top:6px; margin-bottom:2px; font-size:12px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0 0 6px 0; padding-left:18px; list-style-type:disc;'>"
+            for code, desc_set in sorted(cwe_dict.items()):
+                desc_combined = " / ".join(sorted(list(desc_set)))
+                ai_cwe_html_list += f"<li style='padding:2px 0; font-size:12px; border:none; display:list-item; justify-content:initial;'><code>{code}</code> - <span style='color:#57606a;'>{desc_combined}</span></li>"
+            ai_cwe_html_list += "</ul>"
+    if not ai_cwe_html_list:
+        ai_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
+
+    human_cwe_html_list = ""
+    for sev_name, cwe_dict in human_cwe_by_severity.items():
+        if cwe_dict:
+            human_cwe_html_list += f"<div style='margin-top:6px; margin-bottom:2px; font-size:12px;'><strong>{sev_name} Severities:</strong></div><ul style='margin:0 0 6px 0; padding-left:18px; list-style-type:disc;'>"
+            for code, desc_set in sorted(cwe_dict.items()):
+                desc_combined = " / ".join(sorted(list(desc_set)))
+                human_cwe_html_list += f"<li style='padding:2px 0; font-size:12px; border:none; display:list-item; justify-content:initial;'><code>{code}</code> - <span style='color:#57606a;'>{desc_combined}</span></li>"
+            human_cwe_html_list += "</ul>"
+    if not human_cwe_html_list:
+        human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
+
+    # --- COMPILE HTML GRID TEMPLATE ---
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Thesis Empirical Analysis: AI vs Human Code Security</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
-        h1 {{ border-bottom: 1px solid #d0d7de; padding-bottom: 10px; }}
-        .card {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 20px; margin-bottom: 30px; }}
-        table {{ width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border: 1px solid #d0d7de; border-radius: 6px; }}
-        th {{ background: #f6f8fa; padding: 12px; font-weight: 600; border-bottom: 2px solid #d0d7de; text-align: left; }}
-        td {{ padding: 12px; border-bottom: 1px solid #d0d7de; }}
-        .vulnerable-row {{ background-color: #ffebe9 !important; }}
-        .badge {{ display: inline-block; padding: 2px 8px; font-size: 12px; font-weight: 500; border-radius: 2em; }}
-        .badge-vuln {{ background-color: #cf222e; color: #fff; }}
-        .badge-clean {{ background-color: #2da44e; color: #fff; }}
-        .details-row {{ display: none; background: #fafafa; }}
-        .details-container {{ padding: 15px 30px; background: #fff8f8; border-left: 4px solid #cf222e; }}
-        .details-table {{ width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }}
-        .details-table th {{ background: #eaecef; }}
-        .toggle-btn {{ cursor: pointer; color: #0969da; font-weight: bold; background: none; border: none; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f6f8fa; padding: 40px; color: #24292f; }}
+        h1 {{ border-bottom: 1px solid #d0d7de; padding-bottom: 10px; margin-bottom: 30px; }}
+        .comparison-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }}
+        .card {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }}
+        .ai-card {{ border-top: 6px solid #0969da; }}
+        .human-card {{ border-top: 6px solid #2da44e; }}
+        h3 {{ margin-top: 0; font-size: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eaecef; padding-bottom: 8px; }}
+        h4 {{ margin-top: 20px; margin-bottom: 5px; color: #57606a; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px dashed #eaecef; padding-bottom: 3px; }}
+        ul {{ list-style: none; padding: 0; margin: 0 0 15px 0; }}
+        li {{ padding: 10px 0; border-bottom: 1px solid #f6f8fa; font-size: 15px; display: flex; justify-content: space-between; }}
+        li:last-child {{ border-bottom: none; }}
+        .metric-value {{ font-weight: bold; font-size: 16px; }}
+        .badge-vuln-flag {{ padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 2em; color: #fff; background-color: #cf222e; }}
+        .severity-track {{ display: flex; gap: 10px; margin-top: 5px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px dashed #d0d7de; }}
+        .severity-item {{ flex: 1; text-align: center; font-size: 13px; font-weight: bold; }}
+        .sev-h {{ color: #cf222e; }}
+        .sev-m {{ color: #d4a724; }}
+        .sev-l {{ color: #0969da; }}
+        .summary-box {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 24px; margin-top: 30px; text-align: center; }}
     </style>
-    <script>
-        function toggleDetails(rowId, btn) {{
-            var el = document.getElementById(rowId);
-            if (el.style.display === "table-row") {{ el.style.display = "none"; btn.innerHTML = "▶ View Details"; }}
-            else {{ el.style.display = "table-row"; btn.innerHTML = "▼ View Details"; }}
-        }}
-
-        let cweSortToggleState = false;
-
-        function sortCweColumn(headerElement) {{
-            const tableBody = document.getElementById('tableBodyContainer');
-            if (!tableBody) return;
+</head>
+<body>
+    <h1>📊 Thesis Empirical Analysis: AI vs Human Code Security Summary</h1>
+    <div class="comparison-grid">
+        <!-- 🤖 AI-Generated Pull Requests Card -->
+        <div class="card ai-card">
+            <h3>🤖 AI-Generated Pull Requests</h3>
             
-            const indicator = headerElement.querySelector('.sort-indicator');
-            cweSortToggleState = !cweSortToggleState;
+            <h4>📈 General Size & Metrics</h4>
+            <ul>
+                <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_ai_prs}</span></li>
+                <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_ai_loc:,} lines</span></li>
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_ai_prs} PRs Flagged</span></li>
+            </ul>
 
-            if (indicator) {{
-                if (cweSortToggleState) {{
-                    indicator.innerText = '▲';
-                    indicator.style.color = '#38bdf8';
-                }} else {{
-                    indicator.innerText = '▼';
-                    indicator.style.color = '#fbbf24';
-                }}
-            }}
+            <h4>🔄 PR Lifecycle Status Distribution</h4>
+            <ul>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{ai_open}</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{ai_merged}</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{ai_closed}</span></li>
+            </ul>
 
-            const mainRows = [];
-            const allRows = tableBody.children;
-            for (let i = 0; i < allRows.length; i++) {{
-                const r = allRows[i];
-                if (r.tagName === 'TR' && !r.id && r.parentNode === tableBody) {{
-                    mainRows.push(r);
-                }}
-            }}
+            <h4>⚖️ Security Alert Breakdown</h4>
+            <ul>
+                <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_ai_issues} defects</span></li>
+                <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">{ai_density:.6f}</span></li>
+                <li><span>Average Defect Rate (Total Defects / Total PRs):</span> <span class="metric-value">{ai_avg_defect_rate} defects/PR</span></li>
+                <li><span>Global Merged Rate (Merged PRs / Total PRs):</span> <span class="metric-value">{ai_global_merge_rate}%</span></li>
+            </ul>
+            <div class="severity-track">
+                <div class="severity-item sev-h">🔴 High: {ai_high}</div>
+                <div class="severity-item sev-m">🟡 Medium: {ai_medium}</div>
+                <div class="severity-item sev-l">🔵 Low: {ai_low}</div>
+            </div>
 
-            mainRows.sort((rowA, rowB) => {{
-                // 🎯 SORT MATCH: Explicitly mapped to cell index column 8
-                const cellA = (rowA.cells && rowA.cells[8]) ? rowA.cells[8].innerText.trim() : 'None';
-                const cellB = (rowB.cells && rowB.cells[8]) ? rowB.cells[8].innerText.trim() : 'None';
+            <h4>🧠 Advanced Research Metrics</h4>
+            <ul>
+                <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">{ai_critical_ratio}%</span></li>
+                <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{ai_defect_concentration} bugs/Vulnerable PR</span></li>
+                <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{ai_dismissal_rate}%</span></li>
+                <li style="display: block; padding: 10px 0; border-bottom: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
+                        <span class="metric-value">{ai_cwe_breadth} types</span>
+                    </div>
+                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                        {ai_cwe_html_list}
+                    </div>
+                </li>
+            </ul>
+        </div>
 
-                const hasCweA = (cellA.includes('CWE-') || (cellA !== 'None' && cellA !== ''));
-                const hasCweB = (cellB.includes('CWE-') || (cellB !== 'None' && cellB !== ''));
+        <!-- 👨‍💻 Human Pull Requests Card -->
+        <div class="card human-card">
+            <h3>👨‍💻 Human Pull Requests</h3>
+            
+            <h4>📈 General Size & Metrics</h4>
+            <ul>
+                <li><span>Total Pull Requests Audited:</span> <span class="metric-value">{total_human_prs}</span></li>
+                <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">{total_human_loc:,} lines</span></li>
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">{vulnerable_human_prs} PRs Flagged</span></li>
+            </ul>
 
-                if (cweSortToggleState) {{
-                    if (hasCweA && !hasCweB) return -1;
-                    if (!hasCweA && hasCweB) return 1;
-                    return cellA.localeCompare(cellB);
-                }} else {{
-                    if (!hasCweA && hasCweB) return -1;
-                    if (hasCweA && !hasCweB) return 1;
-                    return cellB.localeCompare(cellA);
-                }}
-            }});
+            <h4>🔄 PR Lifecycle Status Distribution</h4>
+            <ul>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">{human_open}</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">{human_merged}</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">{human_closed}</span></li>
+            </ul>
 
-            mainRows.forEach((mainRow) => {{
-                tableBody.appendChild(mainRow);
-                const detailsId = mainRow.getAttribute('data-details-id');
-                if (detailsId) {{
-                    const detailRowEl = document.getElementById(detailsId);
-                    if (detailRowEl) {{
-                        tableBody.appendChild(detailRowEl);
-                    }}
-                }}
-            }});
-        }}
-    </script></head><body>
-    <h1>📊 {report_title}</h1>
-    <div class="card">
-        <h3>📈 Executive Summary</h3>
-        <ul>
-            <li><strong>Total PRs Scanned:</strong> {total_scanned}</li>
-            <li><strong>Total LOC Scanned:</strong> {total_loc_scanned} lines</li>
-            <li><strong>PRs with Issues:</strong> <span class="badge badge-vuln">{vulnerable_count} Vulnerable</span> | <span class="badge badge-clean">{total_scanned - vulnerable_count} Clean</span></li>
-            <li><strong>Lifecycle Status Breakdown:</strong> 🟢 Open: {open_count} | 🟣 Merged: {merged_count} | 🔴 Closed: {closed_count}</li>
-        </ul>
+            <h4>⚖️ Security Alert Breakdown</h4>
+            <ul>
+                <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">{total_human_issues} defects</span></li>
+                <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">{human_density:.6f}</span></li>
+                <li><span>Average Defect Rate (Total Defects / Total PRs):</span> <span class="metric-value">{human_avg_defect_rate} defects/PR</span></li>
+                <li><span>Global Merged Rate (Merged PRs / Total PRs):</span> <span class="metric-value">{human_global_merge_rate}%</span></li>
+            </ul>
+            <div class="severity-track">
+                <div class="severity-item sev-h">🔴 High: {human_high}</div>
+                <div class="severity-item sev-m">🟡 Medium: {human_medium}</div>
+                <div class="severity-item sev-l">🔵 Low: {human_low}</div>
+            </div>
+
+            <h4>🧠 Advanced Research Metrics</h4>
+            <ul>
+                <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">{human_critical_ratio}%</span></li>
+                <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">{human_defect_concentration} bugs/Vulnerable PR</span></li>
+                <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">{human_dismissal_rate}%</span></li>
+                <li style="display: block; padding: 10px 0; border-bottom: none;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span>
+                        <span class="metric-value">{human_cwe_breadth} types</span>
+                    </div>
+                    <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 150px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                        {human_cwe_html_list}
+                    </div>
+                </li>
+            </ul>
+        </div>
     </div>
-    <h3>🔍 Detailed Scan Records Ledger</h3>
-    <table style="width: 100%; border-collapse: collapse; background: transparent; table-layout: fixed;">
-        <thead>
-            <tr style="font-size: 13px; font-weight: 600; background: transparent;">
-                <th style="width: 11%; padding: 12px; text-align: left; background: transparent;">Security Alert Status</th>
-                <th style="width: 15%; padding: 12px; text-align: left; background: transparent;">Repository Target</th>
-                
-                <!-- 🎯 HEADER COMPLIANCE COLUMN #3: Injected Repository Stars directly next to target repo -->
-                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Repository Stars</th>
-                
-                <th style="width: 9%; padding: 12px; text-align: left; background: transparent; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">PR Reference Link</th>
-                <th style="width: 8%; padding: 12px; text-align: left; background: transparent;">Status</th>
-                <th style="width: 11%; padding: 12px; text-align: left; background: transparent;">AI Tool Engine</th>
-                <th style="width: 9%; padding: 12px; text-align: left; background: transparent;">Language</th>
-                <th style="width: 5%; padding: 12px; text-align: left; background: transparent;">LOC</th>
-                <th onclick="sortCweColumn(this)" style="width: 12%; padding: 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; background: transparent;">
-                    CWE Discovered <span class="sort-indicator" style="margin-left: 4px; font-weight: bold; color: #64748b; font-size: 10px; letter-spacing: -1px;">▲▼</span>
-                </th>
-                <th style="width: 3%; padding: 12px; text-align: center; background: transparent;">🔴</th>
-                <th style="width: 3%; padding: 12px; text-align: center; background: transparent;">🟡</th>
-                <th style="width: 3%; padding: 12px; text-align: center; background: transparent;">🔵</th>
-                <th style="width: 9%; padding: 12px; text-align: left; background: transparent;">Total Issues (Files)</th>
-            </tr>
-        </thead>
-        <tbody id="tableBodyContainer">
-    """
 
-    body_html = ""
-    row_index_counter = 0
-    for r in records_list:
-        row_index_counter += 1
-        row_id = f"drawer_row_idx_{row_index_counter}"
-        
-        repo = str(r.get('repo', 'Unknown'))
-        
-        # 🎯 THE PRODUCTION FIX: Clean up any trailing bracket wrappers so the link resolves to a true web URL
-        raw_db_url = str(r.get('link', '#')).strip()
-        pr_display_num = str(r.get('pr_num', 'Link'))
-        
-        # If the database string contains Markdown characters, strip them down to the clean web address
-        if '](' in raw_db_url:
-            raw_db_url = raw_db_url.split('](')[-1].rstrip(')')
-            
-        anchor_tag = f'<a href="{raw_db_url}" target="_blank" style="text-decoration: none; color: #0969da; font-weight: 500; white-space: nowrap;">#{pr_display_num} ↗</a>'
-        
-        tool = str(r.get('tool', 'CodeQL'))
-        lang = str(r.get('lang', 'Unknown'))
-        loc = str(r.get('loc', '0'))
-        cwes_found = str(r.get('cwes', 'None'))
-        status = str(r.get('status', '🟣 Merged'))
-        issues_files = str(r.get('issues_files', '0 (0)'))
-        
-        has_flaw = r.get('has_issues_bool', False)
-        findings_list = r.get('findings_details', [])
-        repo_stars_value = r.get('stars', 0)
+    <div class="summary-box">
+        <h3>🔍 Quick Thesis Observation Note</h3>
+        <p>AI Defect Density is <strong>{ai_density:.6f}</strong> vs Human Defect Density of <strong>{human_density:.6f}</strong>.</p>
+        <p>This side-by-side distribution maps out your entire security analysis framework cleanly for your research defense slides.</p>
+    </div>
 
-        if has_flaw:
-            row_class = ' class="vulnerable-row"'
-            alert_prefix = f'<button class="toggle-btn" onclick="toggleDetails(\'{row_id}\', this)">▶ View Details</button>'
-        else:
-            row_class = ''
-            alert_prefix = '<span class="badge badge-clean">✅ Clean Pass</span>'
+</body>
+</html>
+"""
 
-        sub_table_rows = ""
-        if has_flaw and findings_list:
-            for bug in findings_list:
-                vuln_title = bug.get('vulnerability', 'Unknown Rule')
-
-                raw_text = str(bug.get('description', '')).strip()
-
-                # Step 1: Strip the CodeQL brackets and numbers [text](num) -> text
-                clean_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', raw_text)
-
-                # Step 2: Split into sentences, deduplicate them while preserving order, and rebuild
-                sentences = re.split(r'(?<=[.!?])\s+', clean_text.strip())
-                unique_sentences = list(dict.fromkeys(sentences))
-                final_text = " ".join(unique_sentences)
-
-                # 🎯 BROWSER RENDERING FIX: Escape HTML angle brackets so the browser prints '<script' as raw text instead of a code tag!
-                desc_body = final_text.replace('<', '&lt;').replace('>', '&gt;')
-                
-                file_line_info = bug.get('file_line', 'File')
-                severity_val = bug.get('severity_label', '🟡 Medium')
-                
-                resolved_cwes = bug.get('cwes', [])
-                cwe_label_suffix = f" ({', '.join(sorted(list(resolved_cwes)))})" if resolved_cwes else " (CWE: N/A)"
-                display_rule_text = f"{vuln_title}{cwe_label_suffix}"
-
-                sub_table_rows += f"""
-                <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><span class="badge" style="background-color: #cf222e; color:white;">{severity_val}</span></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><strong>{display_rule_text}</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;"><code>{file_line_info}</code></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #d0d7de;">{desc_body}</td>
-                </tr>"""
-
-        body_html += f"""
-        <tr{row_class} data-details-id="{row_id}">
-            <td style="padding: 12px; vertical-align: middle;">{alert_prefix}</td>
-            <td style="padding: 12px; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>{repo}</strong></td>
-            
-            <!-- 🎯 CELL DATA COLUMN #3: Repository Stars injected dynamically next to Target Repo -->
-            <td style="padding: 12px; vertical-align: middle; font-weight: 500; color: #57606a;">⭐ {repo_stars_value:,}</td>
-            
-            <td style="padding: 12px; vertical-align: middle;">{anchor_tag}</td>
-            <td style="padding: 12px; vertical-align: middle;">{status}</td>
-            <td style="padding: 12px; vertical-align: middle;">{tool}</td>
-            <td style="padding: 12px; vertical-align: middle;"><code>{lang}</code></td>
-            <td style="padding: 12px; vertical-align: middle;">{loc}</td>
-            <td style="padding: 12px; vertical-align: middle; font-weight: 600;">{cwes_found}</td>
-            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: 500; color: #cf222e;">{r.get('h', 0)}</td>
-            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: 500; color: #d4a724;">{r.get('m', 0)}</td>
-            <td style="padding: 12px; vertical-align: middle; text-align: center; font-weight: 500; color: #0969da;">{r.get('l', 0)}</td>
-            <td style="padding: 12px; vertical-align: middle;">{issues_files}</td>
-        </tr>"""
-
-        if has_flaw and findings_list:
-            body_html += f"""
-            <tr id="{row_id}" class="details-row">
-                <td colspan="13" style="padding: 20px 30px; background-color: #fff8f8; border-left: 4px solid #cf222e;">
-                    <h4 style="margin-top: 0; margin-bottom: 10px;">📋 Discovered Weakness Deep-Dive Evidence (PR CWE Change Density: {r.get('density', 0.0)}):</h4>
-                    <table class="details-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                        <thead>
-                            <tr>
-                                <th style="width:15%; background: #eaecef; padding: 8px; text-align: left;">Security</th>
-                                <th style="width:20%; background: #eaecef; padding: 8px; text-align: left;">Vulnerability Rule</th>
-                                <th style="width:25%; background: #eaecef; padding: 8px; text-align: left;">File Location & Line</th>
-                                <th style="width:40%; background: #eaecef; padding: 8px; text-align: left;">Defect Context Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sub_table_rows}
-                        </tbody>
-                    </table>
-                </td>
-            </tr>"""
-
-    footer_html = "</tbody></table></body></html>"
-    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as out:
-        out.write(header_html + body_html + footer_html)
-    print(f"✨ SUCCESS: Consolidated HTML dashboard successfully generated at: {output_path}")
+        out.write(html_content)
+    print(f"✨ SUCCESS: Consolidated thesis evaluation matrix compiled at: {output_path}")
 
 if __name__ == "__main__":
     main()
