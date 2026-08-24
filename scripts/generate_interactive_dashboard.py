@@ -14,7 +14,7 @@ def main():
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
-    # 🏛️ EXHAUSTIVE MITRE CWE-1000 ARCHITECTURAL ANCESTRY MAP
+    # 🏛️ MASTER MITRE CWE-1000 HIERARCHICAL TREE RELATIONS
     CWE_PARENT_RELATIONS = {
         'CWE-20':  ['CWE-117', 'CWE-1284', 'CWE-1285'],
         'CWE-22':  ['CWE-23', 'CWE-35', 'CWE-36'],
@@ -87,30 +87,31 @@ def main():
             for c in finding_cwe_list:
                 ai_all_unique.add(c)
                 
+            resolved_tokens = []
+            processed_as_child = set()
+            processed_as_parent = set()
+            
             for cwe in finding_cwe_list:
+                if cwe in CWE_PARENT_RELATIONS:
+                    for child_candidate in CWE_PARENT_RELATIONS[cwe]:
+                        if child_candidate in finding_cwe_list:
+                            resolved_tokens.append((child_candidate, cwe, "High"))
+                            processed_as_child.add(child_candidate)
+                            processed_as_parent.add(cwe)
+            
+            for cwe in finding_cwe_list:
+                if cwe in processed_as_child or cwe in processed_as_parent:
+                    continue
                 if cwe in CWE_TOP_25:
-                    if cwe not in ai_cwe_by_severity["High"]:
-                        ai_cwe_by_severity["High"][cwe] = set()
-                    ai_cwe_by_severity["High"][cwe].add(vuln_title)
+                    resolved_tokens.append((cwe, None, "High"))
                 else:
-                    is_parent_of_active_child = False
-                    matching_child_cwe = None
-                    if cwe in CWE_PARENT_RELATIONS:
-                        for child_candidate in CWE_PARENT_RELATIONS[cwe]:
-                            if child_candidate in finding_cwe_list:
-                                is_parent_of_active_child = True
-                                matching_child_cwe = child_candidate
-                                break
+                    resolved_tokens.append((cwe, None, "Medium"))
                     
-                    if is_parent_of_active_child:
-                        nested_cwe_display = f"{matching_child_cwe} ({cwe})"
-                        if nested_cwe_display not in ai_cwe_by_severity["High"]:
-                            ai_cwe_by_severity["High"][nested_cwe_display] = set()
-                        ai_cwe_by_severity["High"][nested_cwe_display].add(vuln_title)
-                    else:
-                        if cwe not in ai_cwe_by_severity["Medium"]:
-                            ai_cwe_by_severity["Medium"][cwe] = set()
-                        ai_cwe_by_severity["Medium"][cwe].add(vuln_title)
+            for child, parent, target_sev in resolved_tokens:
+                display_token = f"{child} ({parent})" if parent else child
+                if display_token not in ai_cwe_by_severity[target_sev]:
+                    ai_cwe_by_severity[target_sev][display_token] = set()
+                ai_cwe_by_severity[target_sev][display_token].add(vuln_title)
 
     ai_cwe_breadth = len(ai_all_unique)
     # --- HUMAN CALCULATIONS ---
@@ -158,30 +159,31 @@ def main():
             for c in finding_cwe_list:
                 human_all_unique.add(c)
                 
+            resolved_tokens = []
+            processed_as_child = set()
+            processed_as_parent = set()
+            
             for cwe in finding_cwe_list:
+                if cwe in CWE_PARENT_RELATIONS:
+                    for child_candidate in CWE_PARENT_RELATIONS[cwe]:
+                        if child_candidate in finding_cwe_list:
+                            resolved_tokens.append((child_candidate, cwe, "High"))
+                            processed_as_child.add(child_candidate)
+                            processed_as_parent.add(cwe)
+            
+            for cwe in finding_cwe_list:
+                if cwe in processed_as_child or cwe in processed_as_parent:
+                    continue
                 if cwe in CWE_TOP_25:
-                    if cwe not in human_cwe_by_severity["High"]:
-                        human_cwe_by_severity["High"][cwe] = set()
-                    human_cwe_by_severity["High"][cwe].add(vuln_title)
+                    resolved_tokens.append((cwe, None, "High"))
                 else:
-                    is_parent_of_active_child = False
-                    matching_child_cwe = None
-                    if cwe in CWE_PARENT_RELATIONS:
-                        for child_candidate in CWE_PARENT_RELATIONS[cwe]:
-                            if child_candidate in finding_cwe_list:
-                                is_parent_of_active_child = True
-                                matching_child_cwe = child_candidate
-                                break
+                    resolved_tokens.append((cwe, None, "Medium"))
                     
-                    if is_parent_of_active_child:
-                        nested_cwe_display = f"{matching_child_cwe} ({cwe})"
-                        if nested_cwe_display not in human_cwe_by_severity["High"]:
-                            human_cwe_by_severity["High"][nested_cwe_display] = set()
-                        human_cwe_by_severity["High"][nested_cwe_display].add(vuln_title)
-                    else:
-                        if cwe not in human_cwe_by_severity["Medium"]:
-                            human_cwe_by_severity["Medium"][cwe] = set()
-                        human_cwe_by_severity["Medium"][cwe].add(vuln_title)
+            for child, parent, target_sev in resolved_tokens:
+                display_token = f"{child} ({parent})" if parent else child
+                if display_token not in human_cwe_by_severity[target_sev]:
+                    human_cwe_by_severity[target_sev][display_token] = set()
+                human_cwe_by_severity[target_sev][display_token].add(vuln_title)
 
     human_cwe_breadth = len(human_all_unique)
 
