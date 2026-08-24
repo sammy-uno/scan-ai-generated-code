@@ -139,6 +139,7 @@ def main():
         'CWE-078': "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
         'CWE-079': "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
         'CWE-080': 'Improper Neutralization of Script-Related HTML Tags in a Web Page',
+        'CWE-088': "Improper Neutralization of Argument Delimiters in a Command ('Argument Injection')",
         'CWE-089': "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
         'CWE-094': "Improper Neutralization of Expression/Command Delimiters ('Code Injection')",
         'CWE-116': 'Improper Encoding or Sanitization of Input',
@@ -146,6 +147,7 @@ def main():
         'CWE-121': 'Stack-based Buffer Overflow',
         'CWE-122': 'Heap-based Buffer Overflow',
         'CWE-125': 'Out-of-bounds Read',
+        'CWE-134': "Use of Externally-Controlled Format String",
         'CWE-200': "Exposure of Sensitive Information to an Unauthorized Actor",
         'CWE-209': 'Generation of Error Message Containing Sensitive Information',
         'CWE-284': 'Improper Access Control',
@@ -165,11 +167,15 @@ def main():
         'CWE-532': 'Insertion of Sensitive Information into Log File',
         'CWE-601': "URL Redirection to Untrusted Site ('Open Redirect')",
         'CWE-639': "Authorization Bypass Through User-Controlled Key",
+        'CWE-730': "OWASP Top Ten 2004 Category A9 - Denial of Service",
         'CWE-770': 'Allocation of Resources Without Limits or Throttling',
         'CWE-787': 'Out-of-bounds Write',
+        'CWE-830': "Inclusion of Web Functionality from an Untrusted Source",
+        'CWE-834': "Excessive Iteration",
         'CWE-862': 'Missing Authorization',
         'CWE-863': 'Incorrect Authorization',
-        'CWE-918': "Server-Side Request Forgery (SSRF)"
+        'CWE-918': "Server-Side Request Forgery (SSRF)",        
+        'CWE-1333': "Inefficient Regular Expression Complexity ('Regular Expression Denial of Service - ReDoS')"
     }
 
     # 🤖 GENERATE UNIFIED TABLE FOR AI TRACK
