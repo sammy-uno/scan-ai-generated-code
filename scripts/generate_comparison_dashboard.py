@@ -14,22 +14,6 @@ def main():
         'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
     ]
 
-    # 🏛️ MASTER MITRE CWE-1000 HIERARCHICAL TREE RELATIONS
-    CWE_PARENT_RELATIONS = {
-        'CWE-20':  ['CWE-117', 'CWE-1284', 'CWE-1285'],
-        'CWE-22':  ['CWE-23', 'CWE-35', 'CWE-36'],
-        'CWE-74':  ['CWE-77', 'CWE-78', 'CWE-79', 'CWE-89', 'CWE-94', 'CWE-502'],
-        'CWE-119': ['CWE-120', 'CWE-121', 'CWE-122', 'CWE-125', 'CWE-787'],
-        'CWE-200': ['CWE-201', 'CWE-209', 'CWE-312', 'CWE-359', 'CWE-532', 'CWE-611'],
-        'CWE-284': ['CWE-285', 'CWE-287', 'CWE-306', 'CWE-862', 'CWE-863', 'CWE-639'],
-        'CWE-311': ['CWE-312', 'CWE-319', 'CWE-327'],
-        'CWE-312': ['CWE-532'],
-        'CWE-400': ['CWE-770', 'CWE-772', 'CWE-404'],
-        'CWE-664': ['CWE-400', 'CWE-404', 'CWE-668'],
-        'CWE-693': ['CWE-327', 'CWE-345', 'CWE-352'],
-        'CWE-707': ['CWE-20', 'CWE-74', 'CWE-116']
-    }
-
     # Load AI dataset records
     ai_data = []
     if os.path.exists(ai_db_path):
@@ -73,10 +57,9 @@ def main():
     ai_vuln_merged = sum(1 for x in ai_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
     ai_dismissal_rate = round((ai_vuln_merged / vulnerable_ai_prs) * 100, 2) if vulnerable_ai_prs > 0 else 0.0
 
-    # 🔬 Global AI Multi-Pass Data Synthesis Engine
+    # 🔬 Un-Nested AI Multi-Pass Data Synthesis Engine
     ai_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     ai_all_unique = set()
-    ai_global_registry = {}
 
     for x in ai_data:
         findings = x.get('findings_details', [])
@@ -88,39 +71,13 @@ def main():
             
             for cwe in finding_cwe_list:
                 ai_all_unique.add(cwe)
-                if cwe not in ai_global_registry:
-                    ai_global_registry[cwe] = {"titles": set(), "co_located": set(finding_cwe_list)}
-                ai_global_registry[cwe]["titles"].add(vuln_title)
-                ai_global_registry[cwe]["co_located"].update(finding_cwe_list)
-    ai_processed_keys = set()
-    for parent_cwe, children_list in CWE_PARENT_RELATIONS.items():
-        if parent_cwe in ai_global_registry:
-            for child_cwe in children_list:
-                if child_cwe in ai_global_registry:
-                    if child_cwe in ai_global_registry[parent_cwe]["co_located"]:
-                        collapsed_label = f"{child_cwe} ({parent_cwe})"
-                        combined_titles = ai_global_registry[parent_cwe]["titles"].union(ai_global_registry[child_cwe]["titles"])
-                        
-                        # 🎯 SEVERITY FIX: Check if the child belongs to your Top 25 whitelist
-                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
-                        
-                        if collapsed_label not in ai_cwe_by_severity[target_sev]:
-                            ai_cwe_by_severity[target_sev][collapsed_label] = set()
-                        ai_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
-                        
-                        ai_processed_keys.add(parent_cwe)
-                        ai_processed_keys.add(child_cwe)
-
-    for cwe, data in ai_global_registry.items():
-        if cwe in ai_processed_keys:
-            continue
-        target_sev = "High" if cwe in CWE_TOP_25 else "Medium"
-        if cwe not in ai_cwe_by_severity[target_sev]:
-            ai_cwe_by_severity[target_sev][cwe] = set()
-        ai_cwe_by_severity[target_sev][cwe].update(data["titles"])
+                target_sev = "High" if cwe in CWE_TOP_25 else "Medium"
+                
+                if cwe not in ai_cwe_by_severity[target_sev]:
+                    ai_cwe_by_severity[target_sev][cwe] = set()
+                ai_cwe_by_severity[target_sev][cwe].add(vuln_title)
 
     ai_cwe_breadth = len(ai_all_unique)
-
     # --- HUMAN CALCULATIONS ---
     total_human_prs = len(human_data)
     vulnerable_human_prs = sum(1 for x in human_data if x.get('has_issues_bool', False))
@@ -129,8 +86,8 @@ def main():
     total_human_issues = 0
     for x in human_data:
         tokens = str(x.get('issues_files', '0')).strip().split()
-        if tokens and tokens[0].isdigit():
-            total_human_issues += int(tokens[0])
+        if tokens and tokens.isdigit():
+            total_human_issues += int(tokens)
             
     human_density = round(total_human_issues / total_human_loc, 6) if total_human_loc > 0 else 0.0
     human_avg_defect_rate = round(total_human_issues / total_human_prs, 2) if total_human_prs > 0 else 0.0
@@ -152,10 +109,10 @@ def main():
     human_vuln_merged = sum(1 for x in human_data if x.get('has_issues_bool', False) and "Merged" in str(x.get('status', '')))
     human_dismissal_rate = round((human_vuln_merged / vulnerable_human_prs) * 100, 2) if vulnerable_human_prs > 0 else 0.0
 
-    # 🔬 Global Human Multi-Pass Data Synthesis Engine
+    # 🔬 Un-Nested Human Multi-Pass Data Synthesis Engine
     human_cwe_by_severity = {"High": {}, "Medium": {}, "Low": {}}
     human_all_unique = set()
-    human_global_registry = {}
+
     for x in human_data:
         findings = x.get('findings_details', [])
         for bug in findings:
@@ -166,40 +123,13 @@ def main():
             
             for cwe in finding_cwe_list:
                 human_all_unique.add(cwe)
-                if cwe not in human_global_registry:
-                    human_global_registry[cwe] = {"titles": set(), "co_located": set(finding_cwe_list)}
-                human_global_registry[cwe]["titles"].add(vuln_title)
-                human_global_registry[cwe]["co_located"].update(finding_cwe_list)
-
-    human_processed_keys = set()
-    for parent_cwe, children_list in CWE_PARENT_RELATIONS.items():
-        if parent_cwe in human_global_registry:
-            for child_cwe in children_list:
-                if child_cwe in human_global_registry:
-                    if child_cwe in human_global_registry[parent_cwe]["co_located"]:
-                        collapsed_label = f"{child_cwe} ({parent_cwe})"
-                        combined_titles = human_global_registry[parent_cwe]["titles"].union(human_global_registry[child_cwe]["titles"])
-                        
-                        # 🎯 SEVERITY FIX: Check if the child belongs to your Top 25 whitelist
-                        target_sev = "High" if child_cwe in CWE_TOP_25 else "Medium"
-                        
-                        if collapsed_label not in human_cwe_by_severity[target_sev]:
-                            human_cwe_by_severity[target_sev][collapsed_label] = set()
-                        human_cwe_by_severity[target_sev][collapsed_label].update(combined_titles)
-                        
-                        human_processed_keys.add(parent_cwe)
-                        human_processed_keys.add(child_cwe)
-
-    for cwe, data in human_global_registry.items():
-        if cwe in human_processed_keys:
-            continue
-        target_sev = "High" if cwe in CWE_TOP_25 else "Medium"
-        if cwe not in human_cwe_by_severity[target_sev]:
-            human_cwe_by_severity[target_sev][cwe] = set()
-        human_cwe_by_severity[target_sev][cwe].update(data["titles"])
+                target_sev = "High" if cwe in CWE_TOP_25 else "Medium"
+                
+                if cwe not in human_cwe_by_severity[target_sev]:
+                    human_cwe_by_severity[target_sev][cwe] = set()
+                human_cwe_by_severity[target_sev][cwe].add(vuln_title)
 
     human_cwe_breadth = len(human_all_unique)
-
     # --- GENERATE NESTED HTML SUB-LISTS WITH 10% / 50% / 40% FORCED COLUMN WIDTHS ---
     import re
     
@@ -237,9 +167,7 @@ def main():
             for code, desc_set in sorted(cwe_dict.items()):
                 rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
                 
-                codes_found = re.findall(r'CWE-\d+', code)
-                title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
-                title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
+                title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
                 
                 ai_cwe_html_list += f"""
                 <tr style='border-bottom:1px solid #d0d7de;'>
@@ -276,9 +204,7 @@ def main():
             for code, desc_set in sorted(cwe_dict.items()):
                 rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
                 
-                codes_found = re.findall(r'CWE-\d+', code)
-                title_pieces = [CWE_TITLES[c] for c in codes_found if c in CWE_TITLES]
-                title_string = " / ".join(title_pieces) if title_pieces else "Unclassified Architectural Weakness"
+                title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
                 
                 human_cwe_html_list += f"""
                 <tr style='border-bottom:1px solid #d0d7de;'>
@@ -298,7 +224,6 @@ def main():
             human_cwe_html_list += "</table></div>"
     if not human_cwe_html_list:
         human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
-        
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -370,11 +295,10 @@ def main():
             </ul>
 
             <h4>🔬 Security Vulnerability Analysis</h4>
-            <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); margin-top: 8px;">
+            <div style="margin-top: 8px;">
                 {ai_cwe_html_list}
             </div>
         </div>
-        
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
@@ -415,7 +339,7 @@ def main():
             </ul>
 
             <h4>🔬 Security Vulnerability Analysis</h4>
-            <div style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; max-height: 250px; overflow-y: auto; text-align: left; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); margin-top: 8px;">
+            <div style="margin-top: 8px;">
                 {human_cwe_html_list}
             </div>
         </div>
