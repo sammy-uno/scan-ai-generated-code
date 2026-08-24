@@ -358,7 +358,7 @@ def main():
                 </li>
             </ul>
         </div>
-"""
+        
         <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
