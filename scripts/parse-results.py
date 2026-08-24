@@ -235,10 +235,10 @@ def main():
     h, m, l = 0, 0, 0
     all_discovered_cwes = set()
     CWE_TOP_25 = [
-        'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
-        'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
-        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
-        'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
+        'CWE-079', 'CWE-089', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-022', 'CWE-416',
+        'CWE-125', 'CWE-078', 'CWE-094', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-020', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-918', 'CWE-077', 'CWE-639', 'CWE-770'
     ]
 
     # 🚀 INJECTED STORAGE ARRAY: Safely builds your line-filtered deep-dive details 
