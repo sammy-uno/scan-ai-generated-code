@@ -200,7 +200,7 @@ def main():
 
     human_cwe_breadth = len(human_all_unique)
 
-    # --- GENERATE NESTED HTML SUB-LISTS WITH FIXED COLUMNS & HIGH SEVERITY ACCENTS ---
+    # --- GENERATE NESTED HTML SUB-LISTS WITH 10% / 50% / 40% FORCED COLUMN WIDTHS ---
     import re
     
     CWE_TITLES = {
@@ -224,7 +224,6 @@ def main():
     ai_cwe_html_list = ""
     for sev_name, cwe_dict in ai_cwe_by_severity.items():
         if cwe_dict:
-            # Theme properties mapping out precise, readable, high-contrast borders and texts
             if sev_name == "High":
                 badge_style = "background-color: #ffeef0; color: #cf222e; border: 1px solid rgba(207, 34, 46, 0.4);"
             else:
@@ -244,16 +243,16 @@ def main():
                 
                 ai_cwe_html_list += f"""
                 <tr style='border-bottom:1px solid #d0d7de;'>
-                    <!-- Column 1: Classification ID (Width locked at 25%) -->
-                    <td style='width:25%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff;'>
-                        <code style='{badge_style} padding:4px 8px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
+                    <!-- Column 1: Classification ID (Forced Width locked at 10%) -->
+                    <td style='width:10%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
+                        <code style='{badge_style} padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>{code}</code>
                     </td>
-                    <!-- Column 2: MITRE Nomenclature (Width locked at 50%) -->
+                    <!-- Column 2: MITRE Nomenclature (Forced Width locked at 50%) -->
                     <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                         {title_string}
                     </td>
-                    <!-- Column 3: Triggering Rules (Width locked at 25%) -->
-                    <td style='width:25%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
+                    <!-- Column 3: Triggering Rules (Forced Width expanded locked at 40%) -->
+                    <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
                         <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
                     </td>
                 </tr>"""
@@ -283,16 +282,16 @@ def main():
                 
                 human_cwe_html_list += f"""
                 <tr style='border-bottom:1px solid #d0d7de;'>
-                    <!-- Column 1: Classification ID (Width locked at 25%) -->
-                    <td style='width:25%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff;'>
-                        <code style='{badge_style} padding:4px 8px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block;'>{code}</code>
+                    <!-- Column 1: Classification ID (Forced Width locked at 10%) -->
+                    <td style='width:10%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
+                        <code style='{badge_style} padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>{code}</code>
                     </td>
-                    <!-- Column 2: MITRE Nomenclature (Width locked at 50%) -->
+                    <!-- Column 2: MITRE Nomenclature (Forced Width locked at 50%) -->
                     <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                         {title_string}
                     </td>
-                    <!-- Column 3: Triggering Rules (Width locked at 25%) -->
-                    <td style='width:25%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
+                    <!-- Column 3: Triggering Rules (Forced Width expanded locked at 40%) -->
+                    <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
                         <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
                     </td>
                 </tr>"""
