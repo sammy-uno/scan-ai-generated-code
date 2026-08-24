@@ -6,12 +6,12 @@ def main():
     ai_db_path = "all-results/accumulated_database.json"
     human_db_path = "all-results/human_accumulated_database.json"
 
-    # 🎯 OFFICIAL 2025 MITRE CWE TOP 25 BASELINE ARRAY
+    # 🎯 STANDARDIZED 2025 MITRE CWE TOP 25 BASELINE ARRAY (MATCHES PATCHED DB)
     CWE_TOP_25 = [
-        'CWE-79', 'CWE-89', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-22', 'CWE-416',
-        'CWE-125', 'CWE-78', 'CWE-94', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
-        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-20', 'CWE-284', 'CWE-200', 'CWE-306',
-        'CWE-918', 'CWE-77', 'CWE-639', 'CWE-770'
+        'CWE-079', 'CWE-089', 'CWE-352', 'CWE-862', 'CWE-787', 'CWE-022', 'CWE-416',
+        'CWE-125', 'CWE-078', 'CWE-094', 'CWE-120', 'CWE-434', 'CWE-476', 'CWE-121',
+        'CWE-502', 'CWE-122', 'CWE-863', 'CWE-020', 'CWE-284', 'CWE-200', 'CWE-306',
+        'CWE-918', 'CWE-077', 'CWE-639', 'CWE-770'
     ]
 
     # Load AI dataset records
@@ -131,24 +131,45 @@ def main():
 
     human_cwe_breadth = len(human_all_unique)
     # --- GENERATE NESTED HTML SUB-LISTS WITH UNIFIED SEVERITY TABLES ---
-    import re
-    
+    # 🏛️ OFFICIAL MITRE CORP. ARCHITECTURAL NOMENCLATURE TITLES (Source: https://mitre.org)
     CWE_TITLES = {
         'CWE-020': 'Improper Input Validation',
+        'CWE-022': "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+        'CWE-077': "Improper Neutralization of Special Elements used in a Command ('Command Injection')",
+        'CWE-078': "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')",
         'CWE-079': "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')",
         'CWE-080': 'Improper Neutralization of Script-Related HTML Tags in a Web Page',
+        'CWE-089': "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+        'CWE-094': "Improper Neutralization of Expression/Command Delimiters ('Code Injection')",
         'CWE-116': 'Improper Encoding or Sanitization of Input',
+        'CWE-120': "Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')",
+        'CWE-121': 'Stack-based Buffer Overflow',
+        'CWE-122': 'Heap-based Buffer Overflow',
+        'CWE-125': 'Out-of-bounds Read',
+        'CWE-200': "Exposure of Sensitive Information to an Unauthorized Actor",
         'CWE-209': 'Generation of Error Message Containing Sensitive Information',
+        'CWE-284': 'Improper Access Control',
+        'CWE-306': 'Missing Authentication for Critical Function',
         'CWE-307': 'Improper Restriction of Excessive Authentication Attempts',
         'CWE-312': 'Cleartext Storage of Sensitive Information',
         'CWE-327': 'Use of a Broken or Risky Cryptographic Algorithm',
         'CWE-328': 'Use of Weak Hash',
+        'CWE-352': "Cross-Site Request Forgery (CSRForgery)",
         'CWE-359': 'Exposure of Private Personal Information ("Privacy Violation")',
         'CWE-400': 'Uncontrolled Resource Consumption',
+        'CWE-416': 'Use After Free',
+        'CWE-434': 'Unrestricted Upload of File with Dangerous Type',
+        'CWE-476': 'NULL Pointer Dereference',
         'CWE-497': 'Exposure of System Information to an Unauthorized Actor',
+        'CWE-502': "Deserialization of Untrusted Data",
         'CWE-532': 'Insertion of Sensitive Information into Log File',
-        'CWE-601': 'URL Redirection to Untrusted Site (\'Open Redirect\')',
-        'CWE-770': 'Allocation of Resources Without Limits or Throttling'
+        'CWE-601': "URL Redirection to Untrusted Site ('Open Redirect')",
+        'CWE-639': "Authorization Bypass Through User-Controlled Key",
+        'CWE-770': 'Allocation of Resources Without Limits or Throttling',
+        'CWE-787': 'Out-of-bounds Write',
+        'CWE-862': 'Missing Authorization',
+        'CWE-863': 'Incorrect Authorization',
+        'CWE-918': "Server-Side Request Forgery (SSRF)"
     }
 
     # 🤖 GENERATE UNIFIED TABLE FOR AI TRACK
@@ -169,7 +190,6 @@ def main():
         for sev_name in ["High", "Medium"]:
             cwe_dict = ai_cwe_by_severity.get(sev_name, {})
             if cwe_dict:
-                # Full-width sub-header section divider row
                 ai_cwe_html_list += f"""
                 <tr style='background:#f6f8fa; border-bottom:1px solid #d0d7de;'>
                     <td colspan='3' style='padding:8px 10px; font-weight:bold; color:#24292f; font-size:12px; letter-spacing:0.3px;'>
@@ -217,7 +237,6 @@ def main():
         for sev_name in ["High", "Medium"]:
             cwe_dict = human_cwe_by_severity.get(sev_name, {})
             if cwe_dict:
-                # Full-width sub-header section divider row
                 human_cwe_html_list += f"""
                 <tr style='background:#f6f8fa; border-bottom:1px solid #d0d7de;'>
                     <td colspan='3' style='padding:8px 10px; font-weight:bold; color:#24292f; font-size:12px; letter-spacing:0.3px;'>
@@ -246,49 +265,6 @@ def main():
         human_cwe_html_list += "</tbody></table></div>"
     else:
         human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
-
-    human_cwe_html_list = ""
-    for sev_name, cwe_dict in human_cwe_by_severity.items():
-        if cwe_dict:
-            if sev_name == "High":
-                badge_style = "background-color: #ffeef0; color: #cf222e; border: 1px solid rgba(207, 34, 46, 0.4);"
-            else:
-                badge_style = "background-color: #fff8e1; color: #bf8700; border: 1px solid rgba(191, 135, 0, 0.4);"
-
-            human_cwe_html_list += f"""
-            <div style='margin-top:14px; margin-bottom:6px; font-size:13px; font-weight:bold; color:#24292f;'>{sev_name} Severities:</div>
-            <div style='border:1px solid #d0d7de; border-radius:6px; margin-bottom:16px; overflow:hidden; background:#ffffff;'>
-                <table style='width:100%; border-collapse:collapse; text-align:left; font-size:12px; table-layout:fixed;'>
-                    <thead>
-                        <tr style='background:#f6f8fa; border-bottom:1px solid #d0d7de; color:#57606a; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;'>
-                            <th style='width:10%; padding:8px 10px; border-right:1px solid #d0d7de;'>CWE ID</th>
-                            <th style='width:50%; padding:8px 10px; border-right:1px solid #d0d7de;'>Architectural Nomenclature</th>
-                            <th style='width:40%; padding:8px 10px; text-align:right;'>Triggering CodeQL Rules</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            """
-            for code, desc_set in sorted(cwe_dict.items()):
-                rule_badges = "".join([f"<span style='background:#f6f8fa; color:#57606a; border:1px solid #d0d7de; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
-                
-                title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
-                
-                human_cwe_html_list += f"""
-                <tr style='border-bottom:1px solid #d0d7de;'>
-                    <td style='width:10%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                        <code style='{badge_style} padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>{code}</code>
-                    </td>
-                    <td style='width:50%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:500; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                        {title_string}
-                    </td>
-                    <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
-                        <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
-                    </td>
-                </tr>"""
-            human_cwe_html_list += "</tbody></table></div>"
-    if not human_cwe_html_list:
-        human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
-
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
