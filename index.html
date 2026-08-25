@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thesis Empirical Hub: AI vs Human Code Security</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f6f8fa;
+            color: #24292f;
+            padding: 40px 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #d0d7de;
+            padding-bottom: 20px;
+        }
+        h1 {
+            font-size: 26px;
+            margin: 0 0 8px 0;
+            color: #24292f;
+        }
+        p.subtitle {
+            font-size: 15px;
+            color: #57606a;
+            margin: 0;
+        }
+        .report-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        .row-item {
+            background: #ffffff;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            gap: 12px;
+        }
+        @media (min-width: 768px) {
+            .row-item {
+                flex-direction: row;
+                align-items: center;
+                gap: 30px;
+            }
+        }
+        .row-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .comparative-row { border-left: 6px solid #6f42c1; } /* Purple accent */
+        .agent-row { border-left: 6px solid #0969da; }       /* Blue accent */
+        .human-row { border-left: 6px solid #2da44e; }       /* Green accent */
+        
+        .content-block {
+            flex-grow: 1;
+        }
+        .report-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            color: #24292f;
+        }
+        .description {
+            font-size: 13.5px;
+            line-height: 1.5;
+            color: #57606a;
+            margin: 0;
+        }
+        .btn-wrapper {
+            flex-shrink: 0;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .btn-wrapper {
+                width: auto;
+            }
+        }
+        .btn {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            font-size: 13.5px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .btn-comparative {
+            background-color: #6f42c1;
+            color: #ffffff;
+        }
+        .btn-comparative:hover { background-color: #5a30a3; }
+        
+        .btn-agent {
+            background-color: #0969da;
+            color: #ffffff;
+        }
+        .btn-agent:hover { background-color: #0c56b3; }
+        
+        .btn-human {
+            background-color: #2da44e;
+            color: #ffffff;
+        }
+        .btn-human:hover { background-color: #24873f; }
+
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #57606a;
+            margin-top: 30px;
+            border-top: 1px solid #d0d7de;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>📊 Thesis Empirical Evaluation Dashboard Index</h1>
+            <p class="subtitle">Security Ingestion Framework Evaluation Asset &bull; Machine Synthesis vs. Human Open-Source Contributions</p>
+        </header>
+
+        <div class="report-list">
+            
+            <!-- ⚖️ Horizontal Row 1: Thesis Empirical Analysis -->
+            <div class="row-item comparative-row">
+                <div class="content-block">
+                    <div class="report-title">Thesis Empirical Analysis: AI vs Human Code Security Summary</div>
+                    <p class="description">
+                        The consolidated core summary evaluation report [C23]. This matrix provides a direct, side-by-side empirical overview of the complete software volume, mapping critical defect densities, advanced concentration factors, lifecycle distributions, and alert dismissal rates across both tracks [C23]. It serves as the primary analytical foundation for the quantitative data findings in your defense slides [C23].
+                    </p>
+                </div>
+                <div class="btn-wrapper">
+                    <a href="THESIS_COMPARATIVE_ANALYSIS.html" class="btn btn-comparative">View Global Summary</a>
+                </div>
+            </div>
+
+            <!-- 🤖 Horizontal Row 2: AI-Generated Pull Requests -->
+            <div class="row-item agent-row">
+                <div class="content-block">
+                    <div class="report-title">AI-Generated Pull Requests - Consolidated Summary Report</div>
+                    <p class="description">
+                        The interactive, single-ledger experimental tracking report dedicated to the 500 AI agent pull requests. This ledger details automated code-generation behavior, mapping multi-rule inputs, file path anomalies, and complex algorithmic failures (such as Inefficient Regular Expression Complexity - ReDoS and Excessive Iteration errors) that occur when engines generate syntax without evaluation mechanisms [C23].
+                    </p>
+                </div>
+                <div class="btn-wrapper">
+                    <a href="GLOBAL_AGENT_INTERACTIVE_REPORT.html" class="btn btn-agent">Open AI Agent Ledger</a>
+                </div>
+            </div>
+
+            <!-- 👨‍💻 Horizontal Row 3: Human Pull Requests -->
+            <div class="row-item human-row">
+                <div class="content-block">
+                    <div class="report-title">Human Pull Requests - Consolidated Summary Report</div>
+                    <p class="description">
+                        The interactive, single-ledger baseline tracking report dedicated to the 500 human developer pull requests. This ledger establishes the comparative control baseline, capturing manual coding patterns, sanitization oversights, and human operational habits—including diagnostic plain-text data logging leaks (CWE-532) and legacy configurations left behind in active repositories [C23].
+                    </p>
+                </div>
+                <div class="btn-wrapper">
+                    <a href="GLOBAL_HUMAN_INTERACTIVE_REPORT.html" class="btn btn-human">Open Human Ledger</a>
+                </div>
+            </div>
+
+        </div>
+
+        <footer>
+            Empirical Code Security Framework &bull; Repository Evaluation Index Asset &bull; 2026 Academic Distribution
+        </footer>
+    </div>
+
+</body>
+</html>
