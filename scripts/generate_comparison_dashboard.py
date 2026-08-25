@@ -392,12 +392,6 @@ def main():
         </div>
     </div>
 
-    <div class="summary-box">
-        <h3>🔍 Quick Thesis Observation Note</h3>
-        <p>AI Defect Density is <strong>{ai_density:.6f}</strong> vs Human Defect Density of <strong>{human_density:.6f}</strong>.</p>
-        <p>This side-by-side distribution maps out your entire security analysis framework cleanly for your research defense slides.</p>
-    </div>
-
 </body>
 </html>
 """
