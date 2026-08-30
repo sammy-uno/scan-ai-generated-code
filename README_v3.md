@@ -25,3 +25,86 @@ The execution loop operates across five precise stages:
 3. **Isolated Parallel Execution:** The platform spawns the inner execution matrix, fanning out the active batch to process 10 PR scans in parallel concurrently on independent standard free-tier virtual machines. Each individual runner initiates an independent CodeQL query suite targeted exclusively at the localized patch lines of the designated repository branch.
 4. **Consolidated Report Stream:** Upon the completion of the 250 parallel matrixed scans, an orchestration script (`consolidate-report.py`) parses the individual scanning outputs. It leverages the CodeQL Static Analysis Results Interchange Format (SARIF) files to compile and display the "Consolidated Final Report Summary" for the executed batch.
 5. **Graduated Loop Transition:** A gateway evaluates the current index pointer against the data boundary. If the processed offset is less than the 1,000 PR requirement (`index < 1000`), the workflow fires a repository dispatch payload (`Scan_Next_Chained_Batch`), triggering the next loop automatically. This condition allows exactly four sequential iterations (offsets 0, 250, 500, and 750) to run, cleanly halting the execution loop once the cumulative 1,000 PR dataset baseline is fully extracted.
+
+
+# 3.4 Persistent Accumulative JSON State-Database Architecture
+
+### Data Persistence Layer
+Because GitHub Actions runners operate in ephemeral environments that discard local state upon job completion, a dedicated persistence layer was engineered to aggregate metrics across decoupled batch runs. To prevent cross-contamination and maintain strict experimental separation across the distinct GitHub Actions workflow tracks (AI versus Human PR scanning), telemetry is routed into two separate databases: `accumulated_database.json` captures evaluation records for the AI-generated PR cohort, whereas `human_accumulated_database.json` maintains the baseline data for the human control group.
+
+The pipeline maintains continuity across all four 250-PR batch executions by operating a strict read-append-write loop. At the start of a batch run, the script hydrates its memory by reading the existing JSON file. As the parallel runners complete their scans, their parsed metrics are appended to the dataset array. Once a batch completes, the memory tree is serialized atomically back to disk.
+
+Every pull request record within these finalized databases adheres to a rigid JSON object structure. The structural blueprint of an ingested pull request record containing verified vulnerabilities is formally specified below, utilizing an extraction of the real-world sample repository pull request [webgptorg/promptbook/pull/276](https://github.com/webgptorg/promptbook/pull/276) as an explicit case example of a scanned JSON PR payload:
+
+```json
+{
+    "repo": "webgptorg/promptbook",
+    "link": "[#276](https://github.com/webgptorg/promptbook/pull/276)",
+    "tool": "Copilot",
+    "lang": "javascript",
+    "loc": 549,
+    "cwes": "CWE-134, CWE-307, CWE-400, CWE-770",
+    "h": 1,
+    "m": 2,
+    "l": 0,
+    "issues_files": "3 (7)",
+    "density": 0.0055,
+    "status": "🟣 Merged",
+    "has_issues_bool": true,
+    "pr_num": "276",
+    "findings_details": [
+        {
+            "vulnerability": "js/tainted-format-string",
+            "severity_label": "🟡 Medium",
+            "file_line": "src/remote-server/startRemoteServer.ts#L427",
+            "description": "Format string depends on a [user-provided value](1).",
+            "cwes": [
+                "CWE-134"
+            ]
+        },
+        {
+            "vulnerability": "js/tainted-format-string",
+            "severity_label": "🟡 Medium",
+            "file_line": "src/remote-server/startRemoteServer.ts#L512",
+            "description": "Format string depends on a [user-provided value](1).",
+            "cwes": [
+                "CWE-134"
+            ]
+        },
+        {
+            "vulnerability": "js/missing-rate-limiting",
+            "severity_label": "🔴 High",
+            "file_line": "src/remote-server/startRemoteServer.ts#L435",
+            "description": "This route handler performs [authorization](1), but is not rate-limited.",
+            "cwes": [
+                "CWE-307",
+                "CWE-400",
+                "CWE-770"
+            ]
+        }
+    ],
+    "stars": 121
+}
+```
+
+### Data Field Metrics Specification
+The data fields inside the accumulative JSON database are strictly computed as follows:
+
+*   **`repo` / `pr_num` / `link`**: Explicit tracking strings mapping the upstream target repository, the pull request tracker index, and its markdown URL link.
+*   **`tool`**: Identifies the generating agent for the AI track (e.g., `Copilot`), or registers human authorship within the human baseline group.
+*   **`lang`**: The programming language profile of the target patch evaluated by the CodeQL language analysis pack (e.g., `javascript`).
+*   **`loc`**: The net lines of code altered within the pull request patch that successfully passed the line-gate filtering engine.
+*   **`cwes`**: A top-level aggregated summary string of all unique Common Weakness Enumeration identifiers flagged within the pull request boundary.
+*   **`h` / `m` / `l`**: Strict integers recording the count of verified High (`h`), Medium (`m`), and Low (`l`) severity vulnerabilities found in the patch.
+*   **`issues_files`**: A formatted summary string capturing the total count of verified vulnerabilities alongside the total number of files changed in the pull request in parentheses—represented as `total_vulnerabilities (total_files_changed in the PR)`.
+*   **`density`**: The normalized defect density value, calculated directly as:
+    $$\text{Defect Density} = \frac{\text{Total Alerts (h + m + l)}}{\text{Lines of Code (loc)}}$$
+*   **`status`**: The current lifecycle resolution branch of the target pull request (e.g., `🟢 Open`, `🟣 Merged`, `🔴 Closed`).
+*   **`has_issues_bool`**: A binary boolean flag (`true`/`false`) establishing whether the pull request contains one or more security findings.
+*   **`findings_details`**: An inner array mapping the explicit tool-specific vulnerability ID (`vulnerability`), severity level (`severity_label`), its precise file tree location and line number (`file_line`), the context description (`description`), and a localized array of corresponding CWE markers (`cwes`).
+*   **`stars`**: An integer record of the target repository's GitHub star telemetry at the time of ingest, serving as a proxy metric for project popularity.
+
+
+
+
+   
