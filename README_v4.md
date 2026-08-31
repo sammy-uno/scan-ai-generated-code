@@ -48,33 +48,33 @@ Mirroring the structural design of the AI interface to maintain absolute empiric
 The "View Comparative Analysis" dashboard evaluates both `accumulated_database.json` and `human_accumulated_database.json` simultaneously to generate real-time, side-by-side comparison charts and metrics summaries. To ensure absolute mathematical transparency, the side-by-side analytical reporting module calculates and renders a dedicated set of macro performance metrics for each 1,000-PR tracking cohort:
 
 *   **Total Lines Changed:** The cumulative summation of the lines of code altered across the complete cohort 1000 PRs set.
-    $$\text{Total LOC} = \sum_{i=1}^{1000} \text{loc}_i$$
-*   **Total Defective Pull Requests:** A summation tracker recording the absolute count of pull requests where the PR json field `has_issues_bool` flag evaluates to true.
-    $$\text{Total Defective PRs} = \sum_{i=1}^{1000} [\text{has\_issues\_bool}_i = \text{true}]$$
-* **PR Lifecycle Status Distribution:** A discrete categorization split showing the exact resolution status sums for open, merged, and closed states across the cohort:
-  $$\text{Total Open} = \sum_{i=1}^{1000} [\text{status}_i = \text{Open}], \quad \text{Total Merged} = \sum_{i=1}^{1000} [\text{status}_i = \text{Merged}], \quad \text{Total Closed} = \sum_{i=1}^{1000} [\text{status}_i = \text{Closed}]$$
+    $$\text{Total LOC} = \sum_{i=1}^{1000} \text{loc}_i$$    
+*   **Total Defective Pull Requests:** A summation tracker recording the absolute count of pull requests where the PR json field `has_issues_bool` flag evaluates to true.<br/>
+  $$\text{Total Defective PRs} = \sum_{i=1}^{1000} (\text{has issues bool}_i = \text{true})$$    
+*   **PR Lifecycle Status Distribution:** A discrete categorization split showing the exact resolution status sums for open, merged, and closed states across the cohort.<br/>
 
-*   **Total Defects Count:** The absolute total volume of individual security findings discovered across all inspected files in the cohort track.
+$$\text{Total Open} = \sum_{i=1}^{1000} (\text{status}_i = \text{Open}) \qquad \text{Total Merged} = \sum_{i=1}^{1000} (\text{status}_i = \text{Merged}) \qquad \text{Total Closed} = \sum_{i=1}^{1000} (\text{status}_i = \text{Closed})$$
+*   **Total Defects Count:** The absolute total volume of individual security findings discovered across all inspected files in the cohort track.<br/>
     $$\text{Total Defects} = \sum_{i=1}^{1000} (h_i + m_i + l_i)$$
-*   **Cohort CWE Defect Density:** The benchmark concentration metric modeling total discovered defects directly against the absolute volumetric footprint of the PRs LOC changes.
+*   **Cohort CWE Defect Density:** The benchmark concentration metric modeling total discovered defects directly against the absolute volumetric footprint of the PRs LOC changes.<br/>
     $$\text{Cohort Defect Density} = \frac{\text{Total Defects}}{\text{Total LOC}}$$
 *   **Average Defect Rate:** Calculates the mean frequency of security issues encountered per submitted pull request file.
     $$\text{Average Defect Rate} = \frac{\text{Total Defects}}{1000}$$
 *   **Global Merge Rate:** The mathematical proportion of contributions that successfully pass development branch review to achieve full lifecycle resolution.
     $$\text{Global Merge Rate} = \frac{\text{Total Merged PRs}}{1000}$$
-*   **Aggregate Vulnerabilities Severity Stack:** The standalone absolute volume of issues separated neatly into their localized threat priority classifications.
+*   **Aggregate Vulnerabilities Severity Stack:** The standalone absolute volume of issues separated neatly into their localized threat priority classifications.<br/>
     $$\text{Aggregate High} = \sum_{i=1}^{1000} h_i, \quad \text{Aggregate Medium} = \sum_{i=1}^{1000} m_i, \quad \text{Aggregate Low} = \sum_{i=1}^{1000} l_i$$
 
 #### 3.5.3.3 Advanced Statistical Research Metrics
 To isolate deeper trends regarding vulnerability distribution profiles, architectural risk ingestion, and code remediation behaviors, the comparative matrix tracks a specialized array of structural research indices:
 
-*   **High Severity Critical Ratio:** Measures the proportional weight of high-priority security findings relative to the total vulnerability discovery pool.
+*   **High Severity Critical Ratio:** Measures the proportional weight of high-priority security findings relative to the total vulnerability discovery pool.<br/>
     $$\text{High Severity Critical Ratio} = \frac{\text{Aggregate High}}{\text{Total Defects}}$$
-*   **Defect Concentration Factor:** Gauges the density of flaws strictly within the subsets of code files containing vulnerabilities.
+*   **Defect Concentration Factor:** Gauges the density of flaws strictly within the subsets of code files containing vulnerabilities.<br/>
     $$\text{Defect Concentration Factor} = \frac{\text{Total Defects}}{\text{Total Defective PRs}}$$
-*   **Alert Dismissal Rate:** Evaluates development risk acceptance by measuring the percentage of compromised pull requests that bypassed remediation gates to achieve full repository merging.
-    $$\text{Alert Dismissal Rate} = \frac{\sum_{i=1}^{1000} [\text{has\_issues\_bool}_i = \text{true} \;\wedge\; \text{status}_i = \text{"Merged"}]}{\text{Total Defective PRs}}$$
-*   **Count of Unique CWE IDs:** A distinct taxonomical tracker that extracts, flattens, and calculates the absolute cardinal count of unique Common Weakness Enumeration identifiers flagged across the cohort.
+*   **Alert Dismissal Rate:** Evaluates development risk acceptance by measuring the percentage of compromised pull requests that bypassed remediation gates to achieve full repository merging.<br/>
+  $$\text{Alert Dismissal Rate} = \frac{\sum_{i=1}^{1000} (\text{has issues bool}_i = \text{true} \;\wedge\; \text{status}_i = \text{Merged})}{\text{Total Defective PRs}}$$
+*   **Count of Unique CWE IDs:** A distinct taxonomical tracker that extracts, flattens, and calculates the absolute cardinal count of unique Common Weakness Enumeration identifiers flagged across the cohort.<br/>
     $$\text{Unique CWE Count} = \left\vert{} \bigcup_{i=1}^{1000} \{\text{cwes}_i\} \right\vert{}$$
 
 #### 3.5.3.4 Security Vulnerability Analysis Data Table
