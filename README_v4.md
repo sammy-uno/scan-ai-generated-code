@@ -19,19 +19,21 @@ The AI Pull Request Dashboard is dedicated entirely to rendering the scanning re
 
 This view isolates and maps the security profiles of the 1,000 AI-generated contributions. It mounts the raw data array into interactive, client-side data tables built upon a structured column grid matching the user interface layout.
 
-*   **Dashboard Table Columns Layout:** The interface projects the raw data into user-facing column headers sorted in the exact sequential order displayed from left to right within the application interface:
-    1.  **Repository** (`repo`): The target repository name path.
-    2.  **Stars** (`stars`): The target project popularity proxy tracking score.
-    3.  **Pull Request Link** (`link`): The clickable tracking number and source code URL indicator.
-    4.  **Status** (`status`): The current development branch lifecycle resolution state.
-    5.  **Tool Used** (`tool`): The generating autonomous agent name.
-    6.  **Language** (`lang`): The target programming language profile scanned.
-    7.  **LOC** (`loc`): The lines of code changed in the PR.
-    8.  **CWE Discovered** (`cwes`): A sortable column displaying the unique CWEs discovered during the scan.
-    9.  **High** (`h`): Numerical summation integer for high-severity findings.
-    10. **Medium** (`m`): Numerical summation integer for medium-severity findings.
-    11. **Low** (`l`): Numerical summation integer for low-severity findings.
-    12. **Total issues (Files)** (`issues_files`): The total count of defects and overall files modified.
+*   **Dashboard Table Columns Layout:** The interface projects the raw data into user-facing column headers sorted in the exact sequential order displayed from left to right within the application interface: 
+    <ol type="1">
+        <li><strong>Repository</strong> (<code>repo</code>): The target repository name path.</li>
+        <li><strong>Stars</strong> (<code>stars</code>): The target repository star count, serving as a proxy metric for project popularity and community adoption.</li>
+        <li><strong>Pull Request Link</strong> (<code>link</code>): The clickable tracking number and source code URL indicator.</li>
+        <li><strong>Status</strong> (<code>status</code>): The current development branch lifecycle resolution state.</li>
+        <li><strong>Tool Used</strong> (<code>tool</code>): The generating autonomous agent name.</li>
+        <li><strong>Language</strong> (<code>lang</code>): The target programming language profile scanned.</li>
+        <li><strong>LOC</strong> (<code>loc</code>): The lines of code changed in the PR.</li>
+        <li><strong>CWE Discovered</strong> (<code>cwes</code>): A sortable column displaying the unique CWEs discovered during the scan.</li>
+        <li><strong>High</strong> (<code>h</code>): Numerical summation integer for high-severity findings.</li>
+        <li><strong>Medium</strong> (<code>m</code>): Numerical summation integer for medium-severity findings.</li>
+        <li><strong>Low</strong> (<code>l</code>): Numerical summation integer for low-severity findings.</li>
+        <li><strong>Total issues (Files)</strong> (<code>issues_files</code>): The total count of defects and overall files modified.</li>
+    </ol>
 
 *   **"View Details" Link:** To facilitate manual defects reviews without table clutter, any PR with defects will have a "View Details" link added to the table row. When clicked, it will open a panel displaying the CWEs discovered stored in the `findings_details` JSON array. For each defect, the severity, the CodeQL vulnerability rule, file path and line location of the defect, and the vulnerability description are displayed. The overall Defect Density value is also calculated and displayed above the sub-table of the list of the vulnerabilities found.
 
@@ -95,7 +97,7 @@ By activating the synthesis routine via the **"View Comparative Analysis"** dash
 | **Cohort CWE Defect Density** | 0.000237 defects/line | 0.000107 defects/line | AI defect concentration is 121.5% higher per line |
 | **Global Merge Rate** | 55.0% (550 / 1000) | 77.5% (775 / 1000) | Human pull requests possess a 22.5% higher merge velocity |
 
-##### Key Insights from the Comparative Cross-Tabulation:
+#### Key Insights from the Comparative Cross-Tabulation:
 1. **Volumetric Severity Escapes:** The cohort severity stacks demonstrate that generative AI tools introduce a significantly higher absolute volume of critical flaws. The AI track generated exactly **9** critical security flaws (High) out of 40 total alerts compared to only **4** for the human baseline. However, because human errors were more heavily concentrated in a small group of high-severity bugs, the human cohort exhibited a slightly higher **High-Severity Critical Ratio** of **25.0%** compared to the AI ratio of **22.5%**. 
 2. **Taxonomical Convergence in Critical Weaknesses (CWE Similarities):** The Security Vulnerability Analysis dashboard views expose a striking structural similarity between authorship tracks: both AI agents and human developers fall victim to the exact same critical security flaws. Both datasets exhibit an overlapping concentration of three specific high-severity weaknesses:
     *   **`CWE-020` (Improper Input Validation):** Both cohorts frequently fail to validate raw inbound data vectors prior to process execution. This reveals that AI models inherit basic human oversights regarding trusting external user inputs blindly.
