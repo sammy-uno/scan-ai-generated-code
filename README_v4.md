@@ -52,9 +52,8 @@ The "View Comparative Analysis" dashboard evaluates both `accumulated_database.j
 *   **Total Defective Pull Requests:** A summation tracker recording the absolute count of pull requests where the PR json field `has_issues_bool` flag evaluates to true.
     $$\text{Total Defective PRs} = \sum_{i=1}^{1000} [\text{has\_issues\_bool}_i = \text{true}]$$
 * **PR Lifecycle Status Distribution:** A discrete categorization split showing the exact resolution status sums for open, merged, and closed states across the cohort:
-  $$Total\_Open = \sum (status = Open)$$
-  $$Total\_Merged = \sum (status = Merged)$$
-  $$Total\_Closed = \sum (status = Closed)$$
+  $$\text{Total Open} = \sum_{i=1}^{1000} [\text{status}_i = \text{Open}], \quad \text{Total Merged} = \sum_{i=1}^{1000} [\text{status}_i = \text{Merged}], \quad \text{Total Closed} = \sum_{i=1}^{1000} [\text{status}_i = \text{Closed}]$$
+
 *   **Total Defects Count:** The absolute total volume of individual security findings discovered across all inspected files in the cohort track.
     $$\text{Total Defects} = \sum_{i=1}^{1000} (h_i + m_i + l_i)$$
 *   **Cohort CWE Defect Density:** The benchmark concentration metric modeling total discovered defects directly against the absolute volumetric footprint of the PRs LOC changes.
