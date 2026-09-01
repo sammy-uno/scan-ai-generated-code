@@ -105,3 +105,71 @@ The data fields inside the accumulative JSON database are strictly computed as f
 *   **`has_issues_bool`**: A binary boolean flag (`true`/`false`) establishing whether the pull request contains one or more security findings.
 *   **`findings_details`**: An inner array mapping the explicit tool-specific vulnerability ID (`vulnerability`), severity level (`severity_label`), its precise file tree location and line number (`file_line`), the context description (`description`), and a localized array of corresponding CWE markers (`cwes`).
 *   **`stars`**: An integer record of the target repository's GitHub star telemetry at the time of ingest, serving as a proxy metric for project popularity.
+
+
+## 2.3 Incremental CodeQL Semantic Analysis and Diff Line Filtering Logic
+
+To accurately contrast the code safety profiles of the two evaluation tracks without capturing pre-existing project repository technical debt, the pipeline implements an incremental, diff-informed code analysis engine. Standard static application security testing (SAST) tools typically scan an entire codebase monolithically, which introduces significant statistical noise when evaluating isolated pull request changes. To eliminate these variables, this framework utilizes the CodeQL Command Line Interface (CLI) bundle configured to run in an active line-gate tracking layer, mapping alerts exclusively to modified lines of code.
+
+The orchestration pipeline handles source ingestion, database compilation, and target patch filtering through an automated four-stage sequence:
+
+```
+                  ┌──────────────────────────────────────────────┐
+                  │ 1. Git Reference Fetching and Local Checkout │
+                  └──────────────────────┬───────────────────────┘
+                                         ▼
+                  ┌──────────────────────────────────────────────┐
+                  │ 2. Monolithic CodeQL Database Extraction     │
+                  └──────────────────────┬───────────────────────┘
+                                         ▼
+                  ┌──────────────────────────────────────────────┐
+                  │ 3. AST Semantic Graph Taint Tracking Queries │
+                  └──────────────────────┬───────────────────────┘
+                                         ▼
+                  ┌──────────────────────────────────────────────┐
+                  │ 4. Git Diff Range Mapping and Line Filtering │
+                  └──────────────────────────────────────────────┘
+```
+
+### 2.3.1 Git Reference Fetching and Local Checkout
+When an orchestration script (`ai-scanner.py` or `human-scanner.py`) processes an active row from the primary queue, it extracts the pull request identifier tracking token (`pr_num`) and repository origin path (`repo`). The virtual environment initializes an isolated branch workspace by executing downstream Git commands:
+1.  **Remote Baseline Identification:** The runner establishes a connection to the upstream repository and executes `git fetch origin pull/{pr_num}/head:pr_{pr_num}` to map the isolated target contribution branch locally.
+2.  **Target Integration Rebase:** To verify that the compiled file tree executes cleanly against contemporary staging dependencies, the runner checks out the branch and performs an automated merge assessment against the default main branch reference (`git checkout pr_{pr_num} && git rebase origin/main`).
+
+### 2.3.2 Monolithic Database Extraction and AST Resolution
+Once the workspace branch is normalized, the system triggers the CodeQL compiler framework using the `build-mode: none` extraction pack for interpreted scripts. CodeQL cannot perform reliable semantic analysis if it is restricted strictly to raw patch files because the engine requires structural visibility into surrounding components to resolve external declarations, functional dependencies, and imported modules.
+
+The pipeline handles database extraction across a dual-stage execution layer:
+*   **Database Initializer:** The pipeline initializes the code capture environment by executing:
+    ```bash
+    codeql database create ./db --language=javascript --source-root=./src
+    ```
+*   **AST Tree Generation:** The extractor maps the entire repository file architecture into an uncompiled source directory zip (`src.zip`), resolving variable scoping, function structures, and conditional blocks into relational Abstract Syntax Tree (AST) definitions.
+
+### 2.3.3 Semantic Graph Taint Tracking Queries
+With the structural relational database hydrated, the engine runs the security-extended CodeQL analysis query suite. Rather than executing simple regex pattern matching, the engine runs structural queries written in object-oriented QL to trace data flow graphs across the AST nodes.
+
+The engine maps security violations by computing explicit taint tracking paths:
+
+$$\text{Dataflow Connection} = \text{Source}_{\text{untrusted}} \longrightarrow \text{Sanitizer}_{\text{omitted}} \longrightarrow \text{Sink}_{\text{vulnerable}}$$
+
+
+The queries identify paths where untrusted, user-controlled inputs (`Source`) navigate through execution routines without safety checks (`Sanitizer`) to trigger dangerous functions (`Sink`), such as passing raw environment data directly into an uncontrolled absolute system shell path.
+
+### 2.3.4 Git Diff Range Mapping and Line Filtering
+The core filtering mechanism runs during the final report compilation phase, converting global alerts into isolated pull request metrics. Left unconstrained, the taint-tracking execution engine outputs all security alerts found anywhere in the host project's repository history. To ensure strict empirical isolation, the script extracts the file additions and line modifications introduced exclusively by that specific pull request patch.
+
+The orchestration framework handles this filtering through a multi-tiered validation function:
+1.  **Extract Patch Range Coordinates:** The script runs an underlying Git diff processing loop against the common branch ancestor:
+    ```bash
+    git diff origin/main...HEAD --unified=0
+    ```
+    This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks:
+  
+$$\text{Diff Range Bucket} = \{ \text{File Path} \, [\text{Line}_{\text{start}} \, \text{Line}_{\text{end}}] \}$$
+    
+2.  **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop: 
+
+$$\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}$$
+
+3.  **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array. If the vulnerability is found on an unchanged line outside the pull request patch boundaries, the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
