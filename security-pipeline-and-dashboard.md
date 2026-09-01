@@ -159,18 +159,25 @@ The queries identify paths where untrusted, user-controlled inputs (`Source`) na
 ### 2.3.4 Git Diff Range Mapping and Line Filtering
 The core filtering mechanism runs during the final report compilation phase, converting global alerts into isolated pull request metrics. Left unconstrained, the taint-tracking execution engine outputs all security alerts found anywhere in the host project's repository history. To ensure strict empirical isolation, the script extracts the file additions and line modifications introduced exclusively by that specific pull request patch.
 
+As demonstrated inside the real-world operational execution environment log captured in Figure 2.1, the framework actively traces independent SARIF rule indicators, validating raw alerts and cross-referencing lines to classify or discard vulnerabilities based on localized delta parameters:
+
+![Figure 2.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log](scanning_line_diff.png)
+<p align="center"><em>Figure 2.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log</em></p><br/>
+
 The orchestration framework handles this filtering through a multi-tiered validation function:
-1.  **Extract Patch Range Coordinates:** The script runs an underlying Git diff processing loop against the common branch ancestor:
-    ```bash
-    git diff origin/main...HEAD --unified=0
-    ```
-    This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks:
-  
-$$\text{Diff Range Bucket} = \{ \text{File Path} \, [\text{Line}_{\text{start}} \, \text{Line}_{\text{end}}] \}$$
-    
-2.  **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop: 
+
+1. **Extract Patch Range Coordinates:** The script runs an underlying Git diff processing loop against the common branch ancestor:
+   ```bash
+   git diff origin/main...HEAD --unified=0
+   ```
+   This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks:
+   $$\text{Diff Range Bucket} = \{ \text{File Path}, \; [\text{Line}_{\text{start}}, \; \text{Line}_{\text{end}}] \}$$
+
+2. **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop:
 
 $$\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}$$
+
+3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array (such as Alert 9, 10, and 12 successfully passing delta gates inside `startRemoteServer.ts` as logged in Figure 2.1). If the vulnerability is found on an unchanged line outside the pull request patch boundaries (such as Alert 2, 3, 4, 6, and 11 being isolated as pre-existing legacy debt), the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
 
 # 3 Client-Side Dashboard and Comparative Analytics Integration
 
@@ -283,4 +290,3 @@ By activating the synthesis routine via the **"View Comparative Analysis"** dash
 4. **Taxonomical Errors and Concentration Factors:** The dashboard's table tracking reveals that generative AI agents introduce tightly packed clusters of structural weaknesses when they fail. When an AI model makes a coding mistake, it tends to replicate errors algorithmically across the same file framework, generating an elevated **Defect Concentration Factor** of **2.67 bugs per vulnerable PR**, whereas the human baseline demonstrated a more distributed concentration factor of **2.0 bugs per vulnerable PR**.
 5. **The Risk Acceptance Paradox:** Cross-referencing database attributes reveals a profound breakdown in open-source development gatekeeping and unmasks a distinct bias in reviewer trust. Out of the 15 AI pull requests flagged with active security issues, the dashboard records an **Alert Dismissal Rate** of **46.67%**, proving that nearly half of the defective AI code additions successfully slipped past manual maintainer reviews to achieve full production repository merging. Conversely, human-authored vulnerable code exhibited a substantially higher Alert Dismissal Rate of **75.0%** (with 6 out of 8 defective PRs merged). This baseline gap mathematically proves that **human-authored pull requests are granted significantly more implicit trust by repository maintainers during code review, allowing defective code from human peers to be dismissed and merged at a far higher frequency than corresponding AI-generated alerts**. This demonstrates that while code review gates across modern repositories fail to block context-dependent software flaws across both tracks, a structural skepticism threshold actively limits the unvetted ingestion of flawed automated code.
 
-3.  **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array. If the vulnerability is found on an unchanged line outside the pull request patch boundaries, the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
