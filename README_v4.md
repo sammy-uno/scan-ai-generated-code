@@ -1,20 +1,20 @@
-# 3.5 Client-Side Dashboard and Comparative Analytics Integration
+# 3 Client-Side Dashboard and Comparative Analytics Integration
 
 To ensure the final empirical findings are fully accessible, transparent, and interactive for evaluation, this study engineered a zero-backend, client-side dashboard interface layer (`index.html`). Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or external database engine dependencies. 
 
 The architecture reads the extracted telemetry files dynamically to populate three focused operational views:
 
 ```
-                      ┌──> [3.5.1 AI PRs Dashboard] ───────> (Reads accumulated_database.json)
+                      ┌──> [3.1 AI PRs Dashboard] ───────> (Reads accumulated_database.json)
                       │
-[index.html Frontend] ├──> [3.5.2 Human PRs Dashboard] ────> (Reads human_accumulated_database.json)
+[index.html Frontend] ├──> [3.2 Human PRs Dashboard] ────> (Reads human_accumulated_database.json)
                       │
-                      └──> [3.5.3 Comparative Dashboard] ──> (Cross-tabulates both datasets)
+                      └──> [3.3 Comparative Dashboard] ──> (Cross-tabulates both datasets)
 ```
 
 ---
 
-### 3.5.1 AI Pull Request Evaluation Dashboard
+### 3.1 AI Pull Request Evaluation Dashboard
 The AI Pull Request Dashboard is dedicated entirely to rendering the scanning results of AI-authored PRs. Upon initialization, the client-side JavaScript engine executes asynchronous fetch routines to stream `accumulated_database.json` directly into local browser memory. 
 
 This view isolates and maps the security profiles of the 1,000 AI-generated contributions. It mounts the raw data array into interactive, client-side data tables built upon a structured column grid matching the user interface layout.
@@ -39,14 +39,14 @@ This view isolates and maps the security profiles of the 1,000 AI-generated cont
 
 ---
 
-### 3.5.2 Human Pull Request Baseline Dashboard
+### 3.2 Human Pull Request Baseline Dashboard
 The Human Pull Request Baseline Dashboard renders the scanning results of human-authored PRs. The interface triggers an independent asynchronous routine targeting `human_accumulated_database.json` database to display the Human PR scanning results.
 
 Mirroring the structural design of the AI interface to maintain absolute empirical pairing, this dashboard visualizes the behavior of the 1,000 human-authored control pull requests. It leverages the identical column grid used as the AI dashboard. It also presents CWE Discovered as a sortable column, providing reviewers with an identical functional feature set. This incorporates the exact same "View Details" Link panel details rendering the `findings_details` defects array sub-table and displaying the calculated Defect Density value above the sub-table.
 
 ---
 
-### 3.5.3 Inter-Cohort Comparative Reporting Dashboard
+### 3.3 Inter-Cohort Comparative Reporting Dashboard
 The "View Comparative Analysis" dashboard evaluates both `accumulated_database.json` and `human_accumulated_database.json` simultaneously to generate real-time, side-by-side comparison charts and metrics summaries. To ensure absolute mathematical transparency, the side-by-side analytical reporting module calculates and renders a dedicated set of macro performance metrics for each 1,000-PR tracking cohort:
 
 *   **Total Lines Changed:** The cumulative summation of the lines of code altered across the complete cohort 1000 PRs set.
@@ -67,7 +67,7 @@ $$\text{Total Open} = \sum_{i=1}^{1000} (\text{status}_i = \text{Open}) \qquad \
 *   **Aggregate Vulnerabilities Severity Stack:** The standalone absolute volume of issues separated neatly into their localized threat priority classifications.<br/>
     $$\text{Aggregate High} = \sum_{i=1}^{1000} h_i, \quad \text{Aggregate Medium} = \sum_{i=1}^{1000} m_i, \quad \text{Aggregate Low} = \sum_{i=1}^{1000} l_i$$
 
-#### 3.5.3.3 Advanced Statistical Research Metrics
+#### 3.3.1 Advanced Statistical Research Metrics
 To isolate deeper trends regarding vulnerability distribution profiles, architectural risk ingestion, and code remediation behaviors, the comparative matrix tracks a specialized array of structural research indices:
 
 *   **High Severity Critical Ratio:** Measures the proportional weight of high-priority security findings relative to the total vulnerability discovery pool.<br/>
@@ -79,14 +79,14 @@ To isolate deeper trends regarding vulnerability distribution profiles, architec
 *   **Count of Unique CWE IDs:** A distinct taxonomical tracker that extracts, flattens, and calculates the absolute cardinal count of unique Common Weakness Enumeration identifiers flagged across the cohort.<br/>
     $$\text{Unique CWE Count} = \left\vert{} \bigcup_{i=1}^{1000} \{\text{cwes}_i\} \right\vert{}$$
 
-#### 3.5.3.4 Security Vulnerability Analysis Data Table
+#### 3.3.2 Security Vulnerability Analysis Data Table
 To map the concrete security defects found during scanning into an actionable engineering taxonomy, the comparative dashboard displays a dedicated **Security Vulnerability Analysis** data table. This reporting table aggregates raw alerts from both the AI and human database files, extracting and rendering rows composed of exactly three structural columns:
 
 1.  **CWE ID:** The unique numerical classification key assigned by the MITRE Corporation to identify the core category of the flaw (e.g., `CWE-079` or `CWE-770`).
 2.  **Architectural Nomenclature from MITRE:** The standardized, formal dictionary name mapping the precise semantic description of the design weakness (e.g., *"Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')" or "Allocation of Resources Without Limits or Throttling"*).
 3.  **Triggering CodeQL Rule:** The explicit application check pack identifier string executed by the CodeQL static analyzer to parse and trigger that unique defect alert block (e.g., `js/xss-through-dom` or `js/missing-rate-limiting`).
 
-#### 3.5.3.5 Empirical Security Analysis Summary (AI vs. Human Baseline)
+#### 3.3.3 Empirical Security Analysis Summary (AI vs. Human Baseline)
 By activating the synthesis routine via the **"View Comparative Analysis"** dashboard view, the framework aggregates metrics across both completed 1,000-PR databases to isolate macro-level behavior profiles between autonomous AI engines and the human developer control baseline:
 
 | Strategic Evaluative Metric | AI-Authored PRs Track (`accumulated_database.json`) | Human-Authored PRs Track (`human_accumulated_database.json`) | Empirical Imbalance / Comparative Variance |
