@@ -1,4 +1,5 @@
 repo_name,number,title,primary_language,agent_name,repo_stars
+webgptorg/promptbook,276,Fix Facebook connection pending infinitely - implement OAuth support and improved timeouts,javascript,Copilot,121
 PostHog/posthog,40357,feat: add query log to debug scene,python,Cursor,29815
 airbytehq/airbyte,68649,fix: make connector ignore patterns more specific to avoid filtering docs,python,Devin,19888
 fern-api/fern,10079,fix(cli): prevent path traversal vulnerability in docs dev legacy server,javascript,Devin,3377
@@ -2331,7 +2332,8 @@ Budibase/budibase,17088,[17034] Enable saving schema changes without extra edits
 epam/ketcher,8033,Refactor: #8030 - Deprecated APIs should not be used (part 1),javascript,OpenAI_Codex,664
 epam/ketcher,8031,Refactor: #8028 - This assertion is unnecessary since it does not change the type of the expression (part 3),javascript,OpenAI_Codex,664
 xynehq/xyne,1055,[WIP] what is this PR about?,javascript,Copilot,614
-liam-hq/liam,3709,fix(schema): Handle estrict command from PostgreSQL 16.10+ pg_dump,javascript,Devin,4374
+liam-hq/liam,3709,fix(schema): Handle 
+estrict command from PostgreSQL 16.10+ pg_dump,javascript,Devin,4374
 ray-project/ray,57263,Review and suggest PR improvements,python,Cursor,39554
 epam/ketcher,8029,Refactor: #8027 - This assertion is unnecessary since it does not change the type of the expression (part 2),javascript,OpenAI_Codex,664
 marin-community/levanter,1238,Infer KV page count from HBM utilization,python,OpenAI_Codex,672
