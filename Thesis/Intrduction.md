@@ -1,5 +1,5 @@
 ## 1.3 Research Questions (RQs)
-To systematically evaluate the security profiles of automated workflows compared to traditional engineering, this thesis anchors its empirical investigation on the following four core research questions:
+To achieve the empirical objectives of our comparative security analysis, we structure our evaluation of vulnerabilities in agentic and human-centric pull requests within the AIDev dataset around four foundational research questions:
 
 * **RQ1:** Utilizing an automated Static Application Security Testing (SAST) tool, how do agentic and human pull requests quantitatively compare across core security metrics—specifically total defect volume, vulnerable pull request frequency, mean lines of code (LOC) modified, and normalized defect density?
 * **RQ2:** Utilizing the MITRE CWE Top 25 classification framework, how do agentic and human pull requests qualitatively differ across vulnerability severity profiles, and which track presents a statistically higher concentration of critical software security flaws?
