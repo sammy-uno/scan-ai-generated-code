@@ -1,7 +1,7 @@
-# Chapter 3: Methodology
+# Chapter 3: Automated Security Scanning and Telemetry Extraction Methodology
 
-## 3.1 Distributed Cloud Orchestration Architecture
-To execute large-scale semantic security analysis across two distinct authorship cohorts while operating under modern DevOps platform constraints, this study engineered a distributed static application security testing (SAST) execution pipeline built on **GitHub Actions virtualized infrastructures**. The architecture is designed to enforce absolute experimental isolation, routing the AI-agent track and the human developer track into entirely separate, asynchronous execution loops orchestrated by `ai-scanner.py` and `human-scanner.py` respectively.
+## 3.1 Large-Scale Automated Ingestion and Cloud Orchestration Architecture
+To empirically analyze the security profiles of AI-generated and human-authored code within the AIDev framework while operating under modern DevOps platform constraints, this study engineered a static application security testing (SAST) execution pipeline built on GitHub Actions virtualized infrastructures.
 
 The implementation of a linear chunk-slicing and repository-dispatch model was strictly required due to specific platform engineering constraints. First, GitHub Actions imposes a rigid workflow concurrency ceiling that restricts a dynamic build matrix to a maximum of 256 parallel execution jobs per run. Attempting to scan a monolithic selection of 1,000 pull requests (PRs) simultaneously causes immediate deployment failures. Second, the platform enforces a strict 6-hour runtime execution cap per individual job. High-throughput security tools like CodeQL exceed these boundaries when executing thousands of deep semantic scans sequentially on a single runner.
 
