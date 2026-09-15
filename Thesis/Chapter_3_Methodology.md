@@ -96,7 +96,7 @@ The data fields inside the accumulative JSON database are strictly computed as f
 * **`h` / `m` / `l`**: Strict integers recording the count of verified High (`h`), Medium (`m`), and Low (`l`) severity vulnerabilities found in the patch.
 * **`issues_files`**: A formatted summary string capturing the total count of verified vulnerabilities alongside the total number of files changed in the pull request in parentheses—represented as `total_vulnerabilities (total_files_changed in the PR)`.
 * **`density`**: The normalized defect density value, calculated directly as:
-$$	ext{Defect Density} = rac{	ext{Total Alerts (h + m + l)}}{	ext{Lines of Code (loc)}}$$
+    $$\text{Defect Density} = \frac{\text{Total Alerts (h + m + l)}}{\text{Lines of Code (loc)}}$$
 * **`status`**: The current lifecycle resolution branch of the target pull request (e.g., `🟢 Open`, `🟣 Merged`, `🔴 Closed`).
 * **`has_issues_bool`**: A binary boolean flag (`true`/`false`) establishing whether the pull request contains one or more security findings.
 * **`findings_details`**: An inner array mapping the explicit tool-specific vulnerability ID (`vulnerability`), severity level (`severity_label`), its precise file tree location and line number (`file_line`), the context description (`description`), and a localized array of corresponding CWE markers (`cwes`).
@@ -138,28 +138,41 @@ The pipeline handles database extraction across a dual-stage execution layer:
   ```bash
   codeql database create ./db --language=javascript --source-root=./src
   ```
+  *The language flag in this initialization command is dynamically configured at runtime based on the target repository language specified in the data queue.*
+  
 * **AST Tree Generation:** The extractor maps the entire repository file architecture into an uncompiled source directory zip (`src.zip`), resolving variable scoping, function structures, and conditional blocks into relational Abstract Syntax Tree (AST) definitions.
 
 ### 3.3.3 Semantic Graph Taint Tracking Queries
 With the structural relational database hydrated, the engine runs the security-extended CodeQL analysis query suite. Rather than executing simple regex pattern matching, the engine runs structural queries written in object-oriented QL to trace data flow graphs across the AST nodes.
 
 The engine maps security violations by computing explicit taint tracking paths:
-$$	ext{Dataflow Connection} = 	ext{Source}_{	ext{untrusted}} \longrightarrow 	ext{Sanitizer}_{	ext{omitted}} \longrightarrow 	ext{Sink}_{	ext{vulnerable}}$$
+
+$$\text{Dataflow Connection} = \text{Source}_{\text{untrusted}} \longrightarrow \text{Sanitizer}_{\text{omitted}} \longrightarrow \text{Sink}_{\text{vulnerable}}$$
+
 The queries identify paths where untrusted, user-controlled inputs (`Source`) navigate through execution routines without safety checks (`Sanitizer`) to trigger dangerous functions (`Sink`), such as passing raw environment data directly into an uncontrolled absolute system shell path.
 
 ### 3.3.4 Git Diff Range Mapping and Line Filtering
 The core filtering mechanism runs during the final report compilation phase, converting global alerts into isolated pull request metrics. Left unconstrained, the taint-tracking execution engine outputs all security alerts found anywhere in the host project's repository history. To ensure strict empirical isolation, the script extracts the file additions and line modifications introduced exclusively by that specific pull request patch.
 
-The framework actively traces independent SARIF rule indicators, validating raw alerts and cross-referencing lines to classify or discard vulnerabilities based on localized delta parameters. The orchestration framework handles this filtering through a multi-tiered validation function:
+As demonstrated inside the real-world operational execution environment log captured in Figure 2.1, the framework actively traces independent SARIF rule indicators, validating raw alerts and cross-referencing lines to classify or discard vulnerabilities based on localized delta parameters:
+
+![Figure 3.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log](scanning_line_diff.png)
+<p align="center"><em>Figure 2.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log</em></p><br/>
+
+The orchestration framework handles this filtering through a multi-tiered validation function:
+
 1. **Extract Patch Range Coordinates:** The script runs an underlying Git diff processing loop against the common branch ancestor:
    ```bash
    git diff origin/main...HEAD --unified=0
    ```
    This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks:
-   $$	ext{Diff Range Bucket} = \{ 	ext{File Path}, \; [	ext{Line}_{	ext{start}}, \; 	ext{Line}_{	ext{end}}] \}$$
+   $$\text{Diff Range Bucket} = \{ \text{File Path}, \; [\text{Line}_{\text{start}}, \; \text{Line}_{\text{end}}] \}$$
+
 2. **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop:
-$$	ext{Alert Validated} = egin{cases} 	ext{if } (	ext{Alert}_{	ext{file}} = 	ext{Diff}_{	ext{file}}) \ \wedge \ (	ext{Alert}_{	ext{line}} \in [	ext{Line}_{	ext{start}}, \, 	ext{Line}_{	ext{end}}]) & \implies 	ext{True} \ 	ext{otherwise} & \implies 	ext{False} \end{cases}$$
-3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array. If the vulnerability is found on an unchanged line outside the pull request patch boundaries, the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
+
+$$\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}$$
+
+3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array (such as Alert 9, 10, and 12 successfully passing delta gates inside `startRemoteServer.ts` as logged in Figure 2.1). If the vulnerability is found on an unchanged line outside the pull request patch boundaries (such as Alert 2, 3, 4, 6, and 11 being isolated as pre-existing legacy debt), the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
 
 ## 3.4 Client-Side Dashboard and Comparative Analytics Integration
 To ensure the final empirical findings are fully accessible, transparent, and interactive for evaluation, this study engineered a zero-backend, client-side dashboard interface layer (`index.html`). Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or external database engine dependencies. The architecture reads the extracted telemetry files dynamically to populate three focused operational views: the AI Pull Request Dashboard (which streams `accumulated_database.json`), the Human Pull Request Baseline Dashboard (which streams `human_accumulated_database.json`), and the Inter-Cohort Comparative Reporting Dashboard, which cross-tabulates both datasets in local browser memory.
