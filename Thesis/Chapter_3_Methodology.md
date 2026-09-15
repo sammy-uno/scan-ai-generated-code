@@ -157,7 +157,7 @@ The core filtering mechanism runs during the final report compilation phase, con
 As demonstrated inside the real-world operational execution environment log captured in Figure 2.1, the framework actively traces independent SARIF rule indicators, validating raw alerts and cross-referencing lines to classify or discard vulnerabilities based on localized delta parameters:
 
 ![Figure 3.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log](scanning_line_diff.png)
-<p align="center"><em>Figure 2.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log</em></p><br/>
+<p align="center"><em>Figure 3.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log</em></p><br/>
 
 The orchestration framework handles this filtering through a multi-tiered validation function:
 
@@ -166,11 +166,12 @@ The orchestration framework handles this filtering through a multi-tiered valida
    git diff origin/main...HEAD --unified=0
    ```
    This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks:
-   $$\text{Diff Range Bucket} = \{ \text{File Path}, \; [\text{Line}_{\text{start}}, \; \text{Line}_{\text{end}}] \}$$
+   
+$$\text{Diff Range Bucket} = \lbrace \text{File Path}, [\text{Line}_{\text{start}}, \text{Line}_{\text{end}}] \rbrace$$
 
-2. **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop:
+3. **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop:
 
-$$\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}$$
+$$\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}$$
 
 3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array (such as Alert 9, 10, and 12 successfully passing delta gates inside `startRemoteServer.ts` as logged in Figure 2.1). If the vulnerability is found on an unchanged line outside the pull request patch boundaries (such as Alert 2, 3, 4, 6, and 11 being isolated as pre-existing legacy debt), the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
 
