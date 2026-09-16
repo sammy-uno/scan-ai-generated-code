@@ -6,13 +6,12 @@ To isolate macro-level behavior profiles between autonomous AI engines and the h
 * **Total Volumetric Footprint (Lines of Code):** Calculated as the cumulative summation of the net lines of code altered across the complete cohort of 1,000 pull requests:
 $$\text{Total LOC} = \sum_{i=1}^{1000} \text{loc}_i$$
 
-* **Total Defective Pull Requests:** A summation tracker recording the absolute count of individual pull requests where the security flag evaluates to true:
-$$\text{Total Defective PRs} = \sum_{i=1}^{1000} (\text{has\_issues\_bool}_i = \text{true})$$
+* **Total Defective Pull Requests:** A summation tracker recording the absolute count of pull requests where the PR json field `has_issues_bool` flag evaluates to true.<br/>
+  $$\text{Total Defective PRs} = \sum_{i=1}^{1000} (\text{has issues bool}_i = \text{true})$$
 
-* **Pull Request Lifecycle Status Distribution:** Discretely quantifies the absolute volume of pull requests that reside within the three primary lifecycle resolution states:
-$$\text{Total Open} = \sum_{i=1}^{1000} (\text{status}_i = \text{Open})$$
-$$\text{Total Merged} = \sum_{i=1}^{1000} (\text{status}_i = \text{Merged})$$
-$$\text{Total Closed} = \sum_{i=1}^{1000} (\text{status}_i = \text{Closed})$$
+* **Pull Request Lifecycle Status Distribution:** A discrete categorization split showing the exact resolution status sums for open, merged, and closed states across the cohort.<br/>
+
+$$\text{Total Open} = \sum_{i=1}^{1000} (\text{status}_i = \text{Open}) \qquad \text{Total Merged} = \sum_{i=1}^{1000} (\text{status}_i = \text{Merged}) \qquad \text{Total Closed} = \sum_{i=1}^{1000} (\text{status}_i = \text{Closed})$$
 
 * **Total Defects Output Volume:** Establishes the absolute volume of unique security findings discovered across all inspected files within the tracking cohort:
 $$\text{Total Defects} = \sum_{i=1}^{1000} (h_i + m_i + l_i)$$
@@ -49,8 +48,8 @@ $$\text{High Severity Critical Ratio} = \frac{\text{Aggregate High}}{\text{Total
 * **Defect Concentration Factor:** Gauges the density of flaws strictly within the isolated subsets of code files that contain active vulnerabilities:
 $$\text{Defect Concentration Factor} = \frac{\text{Total Defects}}{\text{Total Defective PRs}}$$
 
-* **Alert Dismissal Rate:** Evaluates open-source development risk acceptance by measuring the percentage of compromised pull requests that bypassed remediation gates to achieve full repository merging:
-$$\text{Alert Dismissal Rate} = \frac{\sum_{i=1}^{1000} (\text{has\_issues\_bool}_i = \text{true} \;\wedge\; \text{status}_i = \text{Merged})}{\text{Total Defective PRs}}$$
+* **Alert Dismissal Rate:** Evaluates development risk acceptance by measuring the percentage of compromised pull requests that bypassed remediation gates to achieve full repository merging.<br/>
+  $$\text{Alert Dismissal Rate} = \frac{\sum_{i=1}^{1000} (\text{has issues bool}_i = \text{true} \;\wedge\; \text{status}_i = \text{Merged})}{\text{Total Defective PRs}}$$
 
 * **Count of Unique CWE IDs:** A distinct taxonomical tracker that extracts, flattens, and calculates the absolute cardinal count of unique Common Weakness Enumeration identifiers flagged across the cohort:
 $$\text{Unique CWE Count} = \left\vert{} \bigcup_{i=1}^{1000} \{\text{cwes}_i\} \right\vert{}$$
