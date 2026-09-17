@@ -130,6 +130,16 @@ When an orchestration script (`ai-scanner.py` or `human-scanner.py`) processes a
 1. **Remote Baseline Identification:** The runner establishes a connection to the upstream repository and executes `git fetch origin pull/{pr_num}/head:pr_{pr_num}` to map the isolated target contribution branch locally.
 2. **Target Integration Rebase:** To verify that the compiled file tree executes cleanly against contemporary staging dependencies, the runner checks out the branch and performs an automated merge assessment against the default main branch reference (`git checkout pr_{pr_num} && git rebase origin/main`).
 
+### 3.3.1 Git Reference Fetching and Local Checkout
+When an orchestration script (`ai-scanner.py` or `human-scanner.py`) processes an active row from the primary queue, it extracts the pull request identifier tracking token (`pr_num`) and repository origin path (`repo`). The virtual environment initializes an isolated branch workspace by executing downstream Git commands:
+
+* **Remote Baseline Identification:** The runner establishes a connection to the upstream repository and executes `git fetch origin pull/{pr_num}/head:pr_{pr_num}` to map the isolated target contribution branch locally.
+* **Target Integration Rebase:** To verify that the compiled file tree executes cleanly against contemporary staging dependencies, the runner checks out the branch and performs an automated merge assessment against the default main branch reference (`git checkout pr_{pr_num} && git rebase origin/main`). As visually demonstrated within the target branch delta context in **Figure 3.1**, this baseline normalization process isolates specific file updates—such as the line changes flagged inside `packages/server/lib/routes.private.ts`—mapping clean, hunk-level diff footprints (+17 lines added) to establish the precise evaluation bounds for the downstream filtering gate.
+
+![Figure 3.1: Hunk-Level Line Differential and Target Branch Checkout Metrics Interface](pr_line_diff.png)
+<p align="center"><em>Figure 3.1: Hunk-Level Line Differential and Target Branch Checkout Metrics Interface</em></p>
+
+
 ### 3.3.2 Monolithic Database Extraction and AST Resolution
 Once the workspace branch is normalized, the system triggers the CodeQL compiler framework using the `build-mode: none` extraction pack for interpreted scripts. CodeQL cannot perform reliable semantic analysis if it is restricted strictly to raw patch files because the engine requires structural visibility into surrounding components to resolve external declarations, functional dependencies, and imported modules.
 
