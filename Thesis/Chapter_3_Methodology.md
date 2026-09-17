@@ -127,18 +127,9 @@ The orchestration pipeline handles source ingestion, database compilation, and t
 
 ### 3.3.1 Git Reference Fetching and Local Checkout
 When an orchestration script (`ai-scanner.py` or `human-scanner.py`) processes an active row from the primary queue, it extracts the pull request identifier tracking token (`pr_num`) and repository origin path (`repo`). The virtual environment initializes an isolated branch workspace by executing downstream Git commands:
-1. **Remote Baseline Identification:** The runner establishes a connection to the upstream repository and executes `git fetch origin pull/{pr_num}/head:pr_{pr_num}` to map the isolated target contribution branch locally.
-2. **Target Integration Rebase:** To verify that the compiled file tree executes cleanly against contemporary staging dependencies, the runner checks out the branch and performs an automated merge assessment against the default main branch reference (`git checkout pr_{pr_num} && git rebase origin/main`).
-
-### 3.3.1 Git Reference Fetching and Local Checkout
-When an orchestration script (`ai-scanner.py` or `human-scanner.py`) processes an active row from the primary queue, it extracts the pull request identifier tracking token (`pr_num`) and repository origin path (`repo`). The virtual environment initializes an isolated branch workspace by executing downstream Git commands:
 
 * **Remote Baseline Identification:** The runner establishes a connection to the upstream repository and executes `git fetch origin pull/{pr_num}/head:pr_{pr_num}` to map the isolated target contribution branch locally.
-* **Target Integration Rebase:** To verify that the compiled file tree executes cleanly against contemporary staging dependencies, the runner checks out the branch and performs an automated merge assessment against the default main branch reference (`git checkout pr_{pr_num} && git rebase origin/main`). As visually demonstrated within the target branch delta context in **Figure 3.1**, this baseline normalization process isolates specific file updates—such as the line changes flagged inside `packages/server/lib/routes.private.ts`—mapping clean, hunk-level diff footprints (+17 lines added) to establish the precise evaluation bounds for the downstream filtering gate.
-
-![Figure 3.1: Hunk-Level Line Differential and Target Branch Checkout Metrics Interface](pr_line_diff.png)
-<p align="center"><em>Figure 3.1: Hunk-Level Line Differential and Target Branch Checkout Metrics Interface</em></p>
-
+* **Target Integration Rebase:** To verify that the compiled file tree executes cleanly against contemporary staging dependencies, the runner checks out the branch and performs an automated merge assessment against the default main branch reference (`git checkout pr_{pr_num} && git rebase origin/main`). 
 
 ### 3.3.2 Monolithic Database Extraction and AST Resolution
 Once the workspace branch is normalized, the system triggers the CodeQL compiler framework using the `build-mode: none` extraction pack for interpreted scripts. CodeQL cannot perform reliable semantic analysis if it is restricted strictly to raw patch files because the engine requires structural visibility into surrounding components to resolve external declarations, functional dependencies, and imported modules.
@@ -164,10 +155,13 @@ The queries identify paths where untrusted, user-controlled inputs (`Source`) na
 ### 3.3.4 Git Diff Range Mapping and Line Filtering
 The core filtering mechanism runs during the final report compilation phase, converting global alerts into isolated pull request metrics. Left unconstrained, the taint-tracking execution engine outputs all security alerts found anywhere in the host project's repository history. To ensure strict empirical isolation, the script extracts the file additions and line modifications introduced exclusively by that specific pull request patch.
 
-As demonstrated inside the real-world operational execution environment log captured in Figure 3.1, the framework actively traces independent SARIF rule indicators, validating raw alerts and cross-referencing lines to classify or discard vulnerabilities based on localized delta parameters:
+As demonstrated inside the target branch diff hunk view captured in **Figure 3.1**, the pipeline isolates specific file additions and line coordinate windows. The framework then feeds these parameters into a multi-tiered validation function to match individual tool rule indicators, as documented inside the live execution console log in **Figure 3.2**, filtering out pre-existing security technical debt.
 
-![Figure 3.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log](scanning_line_diff.png)
-<p align="center"><em>Figure 3.1: Automated Line-Level Gate Filtering and Telemetry Execution Console Log</em></p><br/>
+![Figure 3.1: Target Branch Diff Hunk and Code Coordinate Inspection UI](pr_line_diff.png)
+<p align="center"><em>Figure 3.1: Target Branch File Diff Hunk</em></p>
+
+![Figure 3.2: Automated Line-Level Gate Filtering and Telemetry Execution Console Log](scanning_line_diff.png)
+<p align="center"><em>Figure 3.2: Automated Line-Level Gate Filtering and Telemetry Execution Console Log</em></p><br/>
 
 The orchestration framework handles this filtering through a multi-tiered validation function:
 
@@ -175,15 +169,14 @@ The orchestration framework handles this filtering through a multi-tiered valida
    ```bash
    git diff origin/main...HEAD --unified=0
    ```
-   This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks:
-   
-$$\text{Diff Range Bucket} = \lbrace \text{File Path}, [\text{Line}_{\text{start}}, \text{Line}_{\text{end}}] \rbrace$$
+   This outputs every modified hunk, isolating the target file path and the exact starting and ending line index coordinates for added or edited blocks (such as mapping lines 216 through 220 inside `packages/server/lib/routes.private.ts` as logged in Figure 3.1):
+   \[\text{Diff Range Bucket} = \lbrace \text{File Path}, \; [\text{Line}_{\text{start}}, \; \text{Line}_{\text{end}}] \rbrace\]
 
-3. **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop:
+2. **SARIF Location Cross-Tabulation:** The script invokes the CodeQL reporting parser, specifying the output formatting as a Static Analysis Results Interchange Format (SARIF) schema file. The script then executes a strict coordinate cross-matching loop:
+\[\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}\]
 
-$$\text{Alert Validated} = \begin{cases} \text{if } (\text{Alert}_{\text{file}} = \text{Diff}_{\text{file}}) \ \wedge \ (\text{Alert}_{\text{line}} \in [\text{Line}_{\text{start}}, \text{Line}_{\text{end}}]) & \implies \text{True} \\ \text{otherwise} & \implies \text{False} \end{cases}$$
+3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array (such as Alert 9, 10, and 12 successfully passing delta gates inside `startRemoteServer.ts` as logged in Figure 3.2). If the vulnerability is found on an unchanged line outside the pull request patch boundaries (such as Alert 2, 3, 4, 6, and 11 being isolated as legacy debt), the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
 
-3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array (such as Alert 9, 10, and 12 successfully passing delta gates inside `startRemoteServer.ts` as logged in Figure 3.1). If the vulnerability is found on an unchanged line outside the pull request patch boundaries (such as Alert 2, 3, 4, 6, and 11 being isolated as pre-existing legacy debt), the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
 
 ## 3.4 Client-Side Dashboard and Comparative Analytics Integration
 To ensure the final empirical findings are fully accessible, transparent, and interactive for evaluation, this study engineered a zero-backend, client-side dashboard interface layer (`index.html`). Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or external database engine dependencies. The architecture reads the extracted telemetry files dynamically to populate three focused operational views: the AI Pull Request Dashboard (which streams `accumulated_database.json`), the Human Pull Request Baseline Dashboard (which streams `human_accumulated_database.json`), and the Inter-Cohort Comparative Reporting Dashboard, which cross-tabulates both datasets in local browser memory.
