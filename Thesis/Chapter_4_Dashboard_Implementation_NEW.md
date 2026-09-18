@@ -3,12 +3,12 @@
 To ensure the final empirical findings are fully accessible, transparent, and interactive for evaluation, this study engineered a zero-backend, client-side dashboard interface layer (`index.html`). Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or external database engine dependencies.
 
 ## 4.1 Central Routing Architecture and Gateway Interface
-The primary entry point to the visualization system is established via a unified routing gateway interface (`index.html`). This centralized controller provides an intuitive, non-technical pathway for code reviewers and evaluation committees to navigate between the discrete data tracking tracks of the study.
+The primary entry point to the visualization system is established via a unified routing gateway interface (`index.html`). This centralized controller provides an intuitive, non-technical pathway for code reviewers and evaluation committees to navigate between the discrete evaluation tracks of the study.
 
-As visually captured in the live deployment interface in **Figure 4.1**, the landing page implements a high-contrast card grid framework that isolates the analytical views into self-contained operational blocks.
+As shown in **Figure 4.1**, the landing page uses a clean grid layout that separates the analytical views into distinct panels.
 
-![Figure 4.1: Unified Synthesis Landing Page and Central Routing Gateway Interface](image_VXYvqk.png)
-<p align="center"><em>Figure 4.1: Unified Synthesis Landing Page and Central Routing Gateway Interface</em></p><br/>
+![Figure 4.1: Analytical Dashboard Routing Interface](dashboard_index_landing.png)
+<p align="center"><em>Figure 4.1: Analytical Dashboard Routing Interface</em></p><br/>
 
 Each navigation block features an explicit abstract detailing the underlying dataset parameters alongside a dedicated, color-coded call-to-action (CTA) trigger element to initialize the browser routing cycle:
 *   **Symmetric Cross-Track Synthesis Card:** Anchored by a purple routing button, this option dynamically mounts the split-pane inter-cohort reporting dashboard to evaluate comparative patterns simultaneously.
@@ -20,7 +20,7 @@ The AI Pull Request Dashboard is dedicated entirely to rendering the scanning re
 
 As visually documented in **Figure 4.2**, the dashboard workspace initializes an independent "Executive Summary" high-level metric container directly above the primary data grid.
 
-![Figure 4.2: AI-Generated Pull Requests Consolidated Summary Report Interface](image_W6WKBT.png)
+![Figure 4.2: AI-Generated Pull Requests Consolidated Summary Report Interface](dashboard_ai_track.png)
 <p align="center"><em>Figure 4.2: AI-Generated Pull Requests Consolidated Summary Report Interface</em></p><br/>
 
 The ledger layout projects the raw data into thirteen user-facing column headers sorted in the exact sequential order displayed from left to right within the application interface:
@@ -43,7 +43,7 @@ Mirroring the structural design of the AI interface to maintain absolute empiric
 
 As visually presented in **Figure 4.3**, the frontend layout maintains strict structural consistency by initializing an identical "Executive Summary" container directly above the human data ledger, exposing baseline balances (8 Vulnerable, 992 Clean).
 
-![Figure 4.3: Human Pull Requests Consolidated Summary Report Interface](image_Jajv81.png)
+![Figure 4.3: Human Pull Requests Consolidated Summary Report Interface](dashboard_human_track.png)
 <p align="center"><em>Figure 4.3: Human Pull Requests Consolidated Summary Report Interface</em></p><br/>
 
 The ledger layout incorporates the exact same thirteen sorting columns mapping from left to right, ensuring reviewers enjoy an identical functional feature set. For pull request rows that successfully cleared the line-filtering gate without triggering active security warnings, the system programmatically mounts a bright green "Clean Pass" badge inside the primary interaction column. Conversely, compromised rows receive the blue text "View Details" trigger link, providing identical access to expansion sub-tables and automated Defect Density computations to guarantee an completely unbiased visual comparison between evaluation tracks.
@@ -53,7 +53,7 @@ The comparative summary panel evaluates both `accumulated_database.json` and `hu
 
 As visually documented in **Figure 4.4**, the user interface implements a symmetric, dual-pane grid framework that locks the evaluation cohorts into parallel view containers.
 
-![Figure 4.4: Inter-Cohort Side-by-Side Comparative Summary Interface](image_TGnVJ7.png)
+![Figure 4.4: Inter-Cohort Side-by-Side Comparative Summary Interface](dashboard_global_summary.png)
 <p align="center"><em>Figure 4.4: Inter-Cohort Side-by-Side Comparative Summary Interface</em></p><br/>
 
 This centralized dashboard view parses both datasets on the client-side to generate instant vertical metrics stacks separated into four standardized diagnostic categories: General Size & Metrics, PR Lifecycle Status Distribution, Security Alert Breakdown, and Advanced Research Metrics (such as displaying the 52.5% vs 43.75% High-Severity Critical Ratio splits).
