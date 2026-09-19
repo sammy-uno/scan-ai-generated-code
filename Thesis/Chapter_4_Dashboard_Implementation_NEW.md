@@ -1,19 +1,18 @@
 # Chapter 4: Client-Side Analytical Dashboard Artifact Implementation
-
-To ensure the final empirical findings are fully accessible, transparent, and interactive for evaluation, this study engineered a zero-backend, client-side dashboard interface layer (`index.html`). Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or external database engine dependencies.
+To facilitate open evaluation of the research data, a zero-backend, client-side dashboard interface layer was established via a central (`index.html`) file. This file functions as a unified entry point, allowing users to seamlessly browse and interact with the distinct analytical dashboards generated during the study. Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or dependencies on external database engines.
 
 ## 4.1 Central Routing Architecture and Gateway Interface
-The primary entry point to the visualization system is established via a unified routing gateway interface (`index.html`). This centralized controller provides an intuitive, non-technical pathway for code reviewers and evaluation committees to navigate between the discrete evaluation tracks of the study.
+The primary entry point to the visualization system is established via a unified landing portal (`index.html`). This centralized hub provides an intuitive pathway for code reviewers and evaluation committees to navigate between the discrete evaluation tracks of the study.
 
 As shown in **Figure 4.1**, the landing page uses a clean grid layout that separates the analytical views into distinct panels.
 
 ![Figure 4.1: Analytical Dashboard Routing Interface](dashboard_index_landing.png)
 <p align="center"><em>Figure 4.1: Analytical Dashboard Routing Interface</em></p><br/>
 
-Each navigation block features an explicit abstract detailing the underlying dataset parameters alongside a dedicated, color-coded call-to-action (CTA) trigger element to initialize the browser routing cycle:
-*   **Symmetric Cross-Track Synthesis Card:** Anchored by a purple routing button, this option dynamically mounts the split-pane inter-cohort reporting dashboard to evaluate comparative patterns simultaneously.
-*   **AI-Generated Evaluation Ledger Card:** Anchored by a blue routing button, this pathway initializes the asynchronous ingestion of the autonomous agent scanning database.
-*   **Human Baseline Control Ledger Card:** Anchored by a green routing button, this option routes the browser to the empirical control dataset containing human contributor records.
+Each navigation panel summarizes its respective dataset and includes a clear, color-coded button to access that specific view:
+* **Thesis Empirical Analysis Panel:** Features a purple button (**"View Comparative Analysis"**) to open the side-by-side comparative dashboard.
+* **AI-Generated Pull Requests Panel:** Features a blue button (**"Open AI Agent Ledger"**) to view the comprehensive data table for AI-authored submissions.
+* **Human Pull Requests Panel:** Features a green button (**"Open Human Ledger"**) to access the baseline data table for the human control group.
 
 ## 4.2 AI Pull Request Evaluation Dashboard
 The AI Pull Request Dashboard is dedicated entirely to rendering the scanning results of AI-authored PRs. Upon initialization, the client-side JavaScript engine executes asynchronous fetch routines to stream `accumulated_database.json` directly into local browser memory. This view isolates and maps the security profiles of the 1,000 AI-generated contributions, mounting the raw data array into interactive data tables built upon a structured column grid matching the user interface layout.
