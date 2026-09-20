@@ -64,3 +64,7 @@ This centralized dashboard view parses both datasets on the client-side to gener
 
 The Security Vulnerability Analysis panel provides a deep-dive evaluation into the technical taxonomy and distributions of the flagged weaknesses. This layer automatically aggregates and groups individual security findings by their designated Common Weakness Enumeration (CWE) profiles, calculating the absolute volume and relative proportion of specific defect types across both cohorts. By cross-referencing individual CodeQL rules with specific source files, this analysis isolates precisely which code modules or folders are responsible for the highest concentration of security flaws, revealing clear vulnerability patterns (such as input validation omissions or injection vectors) between the AI-generated code and the human control baseline.
 
+A comprehensive, detailed analysis of these cross-tabulated metrics, along with the broader statistical findings of this study, is presented in **Chapter 5 (Empirical Results & Discussion)**.
+
+
+
