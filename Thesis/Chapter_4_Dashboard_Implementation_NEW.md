@@ -17,13 +17,17 @@ Each navigation panel summarizes its respective dataset and includes a clear, co
 ## 4.2 AI Pull Request Evaluation Dashboard
 The AI Pull Request Dashboard is dedicated entirely to rendering the scanning results of AI-authored PRs. Upon initialization, the client-side JavaScript engine executes asynchronous fetch routines to stream `accumulated_database.json` directly into local browser memory. This view isolates and maps the security profiles of the 1,000 AI-generated contributions, mounting the raw data array into interactive data tables built upon a structured column grid matching the user interface layout.
 
-As visually documented in **Figure 4.2**, the dashboard workspace initializes an independent "Executive Summary" high-level metric container directly above the primary data grid.
+As shown in **Figure 4.2**, the dashboard workspace initializes an "Executive Summary" container directly above the primary data grid, displaying the aggregate metrics for the AI cohort (15 Vulnerable, 985 Clean).
 
 ![Figure 4.2: AI-Generated Pull Requests Consolidated Summary Report Interface](dashboard_ai_track.png)
 <p align="center"><em>Figure 4.2: AI-Generated Pull Requests Consolidated Summary Report Interface</em></p><br/>
 
 The ledger layout projects the raw data into thirteen user-facing column headers sorted in the exact sequential order displayed from left to right within the application interface:
-1. **Security Alert Status:** Actionable link that handles detail row expansion toggle triggers.
+1. **Security Alert Status:** For pull requests with identified vulnerabilities, it displays a blue "View Details" text link that acts as an accordion toggle trigger. Clicking this link expands a nested dropdown panel directly beneath the parent row, parsing and rendering the underlying findings array into four sub-columns:
+    *   **Severity:** Shows the risk level of the vulnerability (High, Medium, or Low). It uses a simple color code: red for High, yellow for Medium, and blue for Low, so you can see the risk level right away.
+    *   **Vulnerability Rule:** Shows the specific CodeQL rule that flagged the vulnerability, along with its official CWE security classification number (for example: `py/incomplete-url-substring-sanitization [CWE-020]`).
+    *   **File Location & Line:** Points directly to the precise file system pathway and line number in the source code where the vulnerability was flagged (e.g., `tests/test_search_api.py:104`).
+    *   **Defect Context Description:** Renders a targeted, plain-text diagnostic summary explaining the structural nature and security implications of the discovered weakness (e.g., *“The string ://github.com may be at an arbitrary position in the sanitized URL.”*).
 2. **Repository Target** (`repo`): The target repository name path.
 3. **Repository Stars** (`stars`): Proxy metric for project popularity and community adoption.
 4. **PR Reference Link** (`link`): Clickable tracking number linking to the source code repository.
@@ -40,7 +44,7 @@ The ledger layout projects the raw data into thirteen user-facing column headers
 ## 4.3 Human Pull Request Baseline Dashboard
 Mirroring the structural design of the AI interface to maintain absolute empirical pairing, the Human Pull Request Baseline Dashboard executes independent asynchronous web routines targeting the `human_accumulated_database.json` data store. This view projects the behavioral profiles of the 1,000 human-authored control pull requests onto an identical user interface column layout.
 
-As visually presented in **Figure 4.3**, the frontend layout maintains strict structural consistency by initializing an identical "Executive Summary" container directly above the human data ledger, exposing baseline balances (8 Vulnerable, 992 Clean).
+As shown in **Figure 4.3**, the dashboard workspace initializes an identical "Executive Summary" container directly above the primary data grid, mirroring the layout of the AI workspace to display the aggregate metrics for the human cohort (8 Vulnerable, 992 Clean).
 
 ![Figure 4.3: Human Pull Requests Consolidated Summary Report Interface](dashboard_human_track.png)
 <p align="center"><em>Figure 4.3: Human Pull Requests Consolidated Summary Report Interface</em></p><br/>
