@@ -178,19 +178,7 @@ The orchestration framework handles this filtering through a multi-tiered valida
 3. **Metrics Array Serialization:** If a vulnerability's file track location matches an entry in the diff range bucket, the alert is classified as an authentic authorship failure and appended to the tracking array (such as Alert 9, 10, and 12 successfully passing delta gates inside `startRemoteServer.ts` as logged in Figure 3.2). If the vulnerability is found on an unchanged line outside the pull request patch boundaries (such as Alert 2, 3, 4, 6, and 11 being isolated as legacy debt), the line filtering gate drops the alert entirely. This ensures that pre-existing repository flaws do not contaminate the empirical tracking results of the evaluation cohorts.
 
 
-## 3.4 Client-Side Dashboard and Comparative Analytics Integration
-To ensure the final empirical findings are fully accessible, transparent, and interactive for evaluation, this study engineered a zero-backend, client-side dashboard interface layer (`index.html`). Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or external database engine dependencies. The architecture reads the extracted telemetry files dynamically to populate three focused operational views: the AI Pull Request Dashboard (which streams `accumulated_database.json`), the Human Pull Request Baseline Dashboard (which streams `human_accumulated_database.json`), and the Inter-Cohort Comparative Reporting Dashboard, which cross-tabulates both datasets in local browser memory.
-
-The client-side visualization application routes telemetry data through a clear frontend interface flow:
-```
-                      ┌──> [3.4.1 AI PRs Dashboard] ───────> (Reads accumulated_database.json)
-                      │
-[index.html Frontend] ├──> [3.4.2 Human PRs Dashboard] ────> (Reads human_accumulated_database.json)
-                      │
-                      └──> [3.4.3 Comparative Dashboard] ──> (Cross-tabulates both datasets)
-```
-
-### 3.4 Data Delivery and Reporting Architecture
+## 3.4 Data Delivery and Reporting Architecture
 To ensure the final empirical findings are fully accessible and transparent, and interactive for evaluation, this study incorporates a zero-backend, client-side dashboard reporting architecture. Because the automated pipeline outputs fully structured, standardized JSON datasets, data analysis can be processed entirely within the user's web browser without the need for server-side processing runtimes or external database engine dependencies. This architecture reads the extracted telemetry files dynamically to populate three focused operational views: the AI Pull Request Dashboard (which streams `accumulated_database.json`), the Human Pull Request Baseline Dashboard (which streams `human_accumulated_database.json`), and the Inter-Cohort Comparative Reporting Dashboard, which cross-tabulates both datasets in local browser memory. A comprehensive breakdown of the frontend interface implementation, including individual dashboard layouts, sorting columns, and interactive inspection panels, is detailed extensively in **Chapter 4 (Dashboard Implementation)**.
 
 
