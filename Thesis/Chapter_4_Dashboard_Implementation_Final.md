@@ -2,12 +2,24 @@
 To facilitate open evaluation of the research data, a zero-backend, client-side dashboard interface layer was established via a central (`index.html`) file. This file functions as a unified entry point, allowing users to seamlessly browse and interact with the distinct analytical dashboards generated during the study. Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or dependencies on external database engines.
 
 ## 4.1 Central Routing Architecture and Gateway Interface
-The primary entry point to the visualization system is established via a unified landing portal (`index.html`). This centralized hub provides an intuitive pathway for code reviewers and evaluation committees to navigate between the discrete evaluation tracks of the study.
+The primary entry point to the visualization system is established via a unified landing portal (`index.html`). This centralized hub provides an intuitive pathway for code reviewers and evaluation committees to navigate between the discrete evaluation tracks of the study. 
 
-As shown in **Figure 4.1**, the landing page uses a clean grid layout that separates the analytical views into distinct panels.
+As illustrated in the structural schematic in Figure 4.1, the frontend application reads the static data payloads entirely within local browser memory, splitting the system entry point into three specialized diagnostic environments.
 
-![Figure 4.1: Analytical Dashboard Routing Interface](dashboard_index_landing.png)
-<p align="center"><em>Figure 4.1: Analytical Dashboard Routing Interface</em></p><br/>
+```text
+                      ┌──> [AI PRs Dashboard] ───────────> (Reads accumulated_database.json)
+                      │
+[index.html Frontend] ├──> [Human PRs Dashboard] ────────> (Reads human_accumulated_database.json)
+                      │
+                      └──> [Comparative Dashboard] ──────> (Cross-tabulates both datasets)
+```
+
+**Figure 4.1:** *Client-Side Frontend Telemetry Data Routing Schematic.*
+
+As shown in **Figure 4.2**, the landing page user interface uses a clean grid layout that separates these underlying analytical views into distinct panels.
+
+![Figure 4.2: Analytical Dashboard Routing Interface](dashboard_index_landing.png)
+<p align="center"><em>Figure 4.2: Analytical Dashboard Routing Interface</em></p><br/>
 
 Each navigation panel summarizes its respective dataset and includes a clear, color-coded button to access that specific view:
 * **Thesis Empirical Analysis Panel:** Features a purple button (**"View Comparative Analysis"**) to open the side-by-side comparative dashboard.
