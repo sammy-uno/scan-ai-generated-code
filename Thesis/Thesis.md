@@ -3,8 +3,10 @@
 > Under the **Software Engineering 3.0 (SE 3.0)** paradigm, artificial intelligence tools are transitioning from passive autocomplete assistants into independent engineering partners capable of autonomously authoring and submitting entire pull requests (PRs). While these Large Language Model (LLM) agents drastically accelerate development velocity, their broader security implications remain underexplored. This thesis presents a large-scale comparative empirical analysis of **AI-generated versus human-authored PRs**. Leveraging a curated subset of **2,000 balanced PRs** (1,000 per track) from the open-source AIDev-pop repositories, we engineered an automated **CodeQL static analysis pipeline** integrated into a GitHub Actions workflow. To classify security findings into High, Medium, and Low severity tiers, this pipeline maps vulnerabilities to the industry-standard **MITRE CWE Top 25** framework, employing a patch-coordinate filtering layer to isolate flaws strictly within the modified code diff.
 > 
 > Empirical results reveal that AI agents generated **87.5% more vulnerable patches** (15 vs. 8) and increased total vulnerability output by **150.0%** (40 vs. 16), yielding a cohort defect density **121.5% higher** per line of code than the human baseline. While both tracks exhibit taxonomic CWE convergence across common validation flaws—specifically CWE-20 (Improper Input Validation), CWE-79 (Cross-Site Scripting), and CWE-770 (Allocation of Resources)—their specialized failure profiles diverge significantly. Agentic vulnerabilities frequently occur within algorithmic complexities like **CWE-1333 (Regex DoS)**, whereas human errors typically stem from contextual omissions like information exposure (**CWE-209**) and broken cryptography. Despite these specific Medium-risk clusters, the overall severity profiles differ; agentic flaws show a higher concentration of dangerous vulnerabilities, resulting in a **52.5% High-Severity ratio**, whereas human errors yield a lower **43.75% High-Severity ratio**. Furthermore, agent-authored vulnerabilities exhibit high spatial localization, resulting in an elevated defect concentration factor (**2.67 vs. 2.0 defects per vulnerable PR**). Finally, evaluation of the **"Risk Acceptance Paradox"** exposes a distinct reviewer bias: human defective PRs resulted in a **75.0% unremediated merge rate**, compared to just **46.67%** for flawed AI code. These findings establish a rigorous baseline for securing next-generation agentic pipelines.
->
-> # Chapter 1: Introduction
+
+<br/>
+
+# Chapter 1: Introduction
 
 ## 1.1 Context and Background: The SE 3.0 Paradigm Shift
 The software development landscape is undergoing a fundamental paradigm shift. Under the Software Engineering 1.0 (SE 1.0) and 2.0 (SE 2.0) models, code generation remained explicitly human-centric, utilizing tooling primarily for compilation, syntax highlighting, or localized autocomplete functionalities. Conversely, the emergence of the Software Engineering 3.0 (SE 3.0) era marks a transition from passive, developer-driven assistance to autonomous, intent-centric partnerships.
@@ -37,6 +39,8 @@ From a behavioral and operational perspective, this thesis exposes a systemic vu
 
 ### 1.4.3 Empirical Validation via the AIDev Repository Ecosystem
 On a methodological level, this investigation validates the utility of large-scale repository mining within standardized software datasets. By engineering an automated CodeQL static analysis pipeline utilizing a patch-coordinate filtering layer, this thesis establishes a scalable methodology for future researchers. This provides a repeatable framework for isolating vulnerabilities introduced exclusively within patch diff boundaries, separating legacy architectural debt from contemporary code modifications. Ultimately, this study transitions the discourse surrounding LLM code safety from generic, out-of-context synthetic benchmarks to an execution-focused analysis of real-world, open-source software contributions.
+
+<br/>
 
 # Chapter 2: Literature Review
 
@@ -84,6 +88,8 @@ Conversely, when dealing with the Agent "Confidence Trap," this psychological ba
 Despite the breadth of these recent studies, a major methodological deficit persists in how AI code safety is empirically measured. Standard static application security testing (SAST) tools like CodeQL or SonarQube parse code layers at a file or project-wide scope. When evaluating incoming pull requests within existing codebases, these tools inevitably flag legacy technical debt—security vulnerabilities that existed in the repository long before the current pull request diff patch was generated.
 
 **Abujadallah, Arabat, and Sayagh (2026)** demonstrated that 46.41% of the code fixes proposed by automated agents in the AIDev dataset are actively rejected by developers, with incorrect implementations and continuous integration test failures serving as primary catalysts. However, evaluating the security sub-layers of these rejections remains severely hindered by standard scanning methodologies. Current software engineering literature lacks a standardized, open-source architecture designed to parse raw SAST alert logs and programmatically filter them using exact line-by-line git diff coordinates. This thesis directly fills this methodological gap by engineering a custom patch-coordinate filtering layer within a GitHub Actions infrastructure, ensuring that discovered vulnerabilities are attributed strictly to the author of the new patch diff rather than legacy technical debt.
+
+<br/>
 
 # Chapter 3: Automated Security Scanning and Telemetry Extraction Methodology
 
@@ -268,6 +274,8 @@ The orchestration framework handles this filtering through a multi-tiered valida
 ## 3.4 Data Delivery and Reporting Architecture
 To ensure the final empirical findings are fully accessible and transparent, and interactive for evaluation, this study incorporates a zero-backend, client-side dashboard reporting architecture. Because the automated pipeline outputs fully structured, standardized JSON datasets, data analysis can be processed entirely within the user's web browser without the need for server-side processing runtimes or external database engine dependencies. This architecture reads the extracted telemetry files dynamically to populate three focused operational views: the AI Pull Request Dashboard (which streams `accumulated_database.json`), the Human Pull Request Baseline Dashboard (which streams `human_accumulated_database.json`), and the Inter-Cohort Comparative Reporting Dashboard, which cross-tabulates both datasets in local browser memory. A comprehensive breakdown of the frontend interface implementation, including individual dashboard layouts, sorting columns, and interactive inspection panels, is detailed extensively in **Chapter 4 (Dashboard Implementation)**.
 
+<br/>
+
 # Chapter 4: Client-Side Analytical Dashboard Artifact Implementation
 To facilitate open evaluation of the research data, a zero-backend, client-side dashboard interface layer was established via a central (`index.html`) file. This file functions as a unified entry point, allowing users to seamlessly browse and interact with the distinct analytical dashboards generated during the study. Because the data ingestion pipeline outputs completely structured, standardized JSON data arrays, the frontend application operates entirely within the user's web browser, removing the need for server-side processing runtimes or dependencies on external database engines.
 
@@ -347,6 +355,8 @@ This centralized dashboard view parses both datasets on the client-side to gener
 The Security Vulnerability Analysis panel provides a deep-dive evaluation into the technical taxonomy and distributions of the flagged weaknesses. This layer automatically aggregates and groups individual security findings by their designated Common Weakness Enumeration (CWE) profiles, calculating the absolute volume and relative proportion of specific defect types across both cohorts. By cross-referencing individual CodeQL rules with specific source files, this analysis isolates precisely which code modules or folders are responsible for the highest concentration of security flaws, revealing clear vulnerability patterns (such as input validation omissions or injection vectors) between the AI-generated code and the human control baseline.
 
 A comprehensive, detailed analysis of these cross-tabulated metrics, along with the broader statistical findings of this study, is presented in **Chapter 5 (Empirical Results & Discussion)**.
+
+<br/>
 
 # Chapter 5: Empirical Results & Discussion
 
