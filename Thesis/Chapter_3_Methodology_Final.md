@@ -190,7 +190,8 @@ The client-side visualization application routes telemetry data through a clear 
                       └──> [3.4.3 Comparative Dashboard] ──> (Cross-tabulates both datasets)
 ```
 
-### 3.4.1 AI and Human Dashboard Interface Layouts
-Both cohort-specific dashboards display their respective 1,000 pull request rows across an identical column grid sorted in the exact sequential order displayed from left to right within the application interface: Repository (`repo`), Stars (`stars`), Pull Request Link (`link`), Status (`status`), Tool Used (`tool`), Language (`lang`), LOC (`loc`), CWE Discovered (`cwes`), High (`h`), Medium (`m`), Low (`l`), and Total issues (Files) (`issues_files`). 
+### 3.4 Data Delivery and Reporting Architecture
+To ensure the final empirical findings are fully accessible and transparent, and interactive for evaluation, this study incorporates a zero-backend, client-side dashboard reporting architecture. Because the automated pipeline outputs fully structured, standardized JSON datasets, data analysis can be processed entirely within the user's web browser without the need for server-side processing runtimes or external database engine dependencies. This architecture reads the extracted telemetry files dynamically to populate three focused operational views: the AI Pull Request Dashboard (which streams `accumulated_database.json`), the Human Pull Request Baseline Dashboard (which streams `human_accumulated_database.json`), and the Inter-Cohort Comparative Reporting Dashboard, which cross-tabulates both datasets in local browser memory. A comprehensive breakdown of the frontend interface implementation, including individual dashboard layouts, sorting columns, and interactive inspection panels, is detailed extensively in **Chapter 4 (Dashboard Implementation)**.
 
-To facilitate manual defect reviews without table clutter, any pull request containing active vulnerabilities displays a "View Details" link that maps the target row to an independent display panel. This configuration parses the underlying `findings_details` array to render the explicit vulnerability rule, severity label, precise file path with line numbers (`file_line`), and contextual description, while programmatically outputting the normalized Defect Density score directly above the sub-table component.
+
+
