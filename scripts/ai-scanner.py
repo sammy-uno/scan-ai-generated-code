@@ -19,7 +19,7 @@ def main():
     # --- CONFIGURATION ---
     INPUT_CSV = "aidev_scan_list.csv"
     MAX_PR_LINES = 1000 
-    SCAN_LIMIT = 1     # Pure maximum slots per batch pass
+    SCAN_LIMIT = 250     # Pure maximum slots per batch pass
     
     # 🚀 CHUNK OFFSET AND EXTRACTION COUNTER INGESTION
     try:
