@@ -176,7 +176,6 @@ def main():
         'CWE-918': "Server-Side Request Forgery (SSRF)",        
         'CWE-1333': "Inefficient Regular Expression Complexity ('Regular Expression Denial of Service - ReDoS')"
     }
-
     # 🤖 GENERATE UNIFIED TABLE FOR AI TRACK
     ai_has_content = any(ai_cwe_by_severity.get(s) for s in ["High", "Medium"])
     if ai_has_content:
@@ -223,7 +222,6 @@ def main():
         ai_cwe_html_list += "</tbody></table></div>"
     else:
         ai_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
-
     # 👨‍💻 GENERATE UNIFIED TABLE FOR HUMAN TRACK
     human_has_content = any(human_cwe_by_severity.get(s) for s in ["High", "Medium"])
     if human_has_content:
@@ -263,13 +261,13 @@ def main():
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                             {title_string}
                         </td>
-        """
-            human_cwe_html_list += ""
-        else:
-            human_cwe_html_list = "No CWE mappings registered."
-
-### **Part 4 of 4: Dashboard Template Compilation**
-```python
+                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
+                            <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
+                        </td>
+                    </tr>"""
+        human_cwe_html_list += "</tbody></table></div>"
+    else:
+        human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -301,6 +299,7 @@ def main():
 <body>
     <h1>📊 Thesis Empirical Analysis: AI vs Human Code Security Summary</h1>
     <div class="comparison-grid">
+        <!-- 🤖 AI-Generated Pull Requests Card -->
         <div class="card ai-card">
             <h3>🤖 AI-Generated Pull Requests</h3>
             
@@ -344,6 +343,8 @@ def main():
                 {ai_cwe_html_list}
             </div>
         </div>
+        
+        <!-- 👨‍💻 Human Pull Requests Card -->
         <div class="card human-card">
             <h3>👨‍💻 Human Pull Requests</h3>
             
@@ -388,7 +389,6 @@ def main():
             </div>
         </div>
     </div>
-
 </body>
 </html>
 """
@@ -399,4 +399,4 @@ def main():
     print(f"✨ SUCCESS: Consolidated thesis evaluation matrix compiled at: {output_path}")
 
 if __name__ == "__main__":
-    main()   
+    main()
