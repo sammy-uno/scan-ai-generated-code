@@ -204,8 +204,8 @@ def main():
                 badge_style = "background-color: #ffcccc; color: #990000; border: 1px solid #ff6666;" if sev_name == "High" else "background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33;"
                 
                 for code, desc_set in sorted(cwe_dict.items()):
-                    # Updated to remove background block styling, matching 'Architectural Nomenclature'
-                    rule_badges = "".join([f"<span style='color:#24292f; font-weight:bold; font-family:monospace; font-size:11px; padding:4px 6px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
+                    # Match exact typography rules of Architectural Nomenclature column
+                    rule_badges = ", ".join([f"<span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>{r.strip()}</span>" for r in desc_set])
                     title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
                     
                     ai_cwe_html_list += f"""
@@ -216,13 +216,14 @@ def main():
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                             {title_string}
                         </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
-                            <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
+                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
+                            {rule_badges}
                         </td>
                     </tr>"""
         ai_cwe_html_list += "</tbody></table></div>"
     else:
         ai_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
+
     # 👨‍💻 GENERATE UNIFIED TABLE FOR HUMAN TRACK
     human_has_content = any(human_cwe_by_severity.get(s) for s in ["High", "Medium"])
     if human_has_content:
@@ -251,8 +252,8 @@ def main():
                 badge_style = "background-color: #ffcccc; color: #990000; border: 1px solid #ff6666;" if sev_name == "High" else "background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33;"
                 
                 for code, desc_set in sorted(cwe_dict.items()):
-                    # Updated to match the formatting of the Architectural Nomenclature column
-                    rule_badges = "".join([f"<span style='color:#24292f; font-weight:bold; font-family:monospace; font-size:11px; padding:4px 6px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
+                    # Match exact typography rules of Architectural Nomenclature column
+                    rule_badges = ", ".join([f"<span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>{r.strip()}</span>" for r in desc_set])
                     title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
                     
                     human_cwe_html_list += f"""
@@ -263,13 +264,14 @@ def main():
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                             {title_string}
                         </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff;'>
-                            <div style='display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px;'>{rule_badges}</div>
+                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
+                            {rule_badges}
                         </td>
                     </tr>"""
         human_cwe_html_list += "</tbody></table></div>"
     else:
         human_cwe_html_list = "<div style='font-size:12px; color:#57606a;'>No CWE mappings registered.</div>"
+
     # --- COMPILE HTML GRID TEMPLATE ---
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
