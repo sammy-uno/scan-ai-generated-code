@@ -130,7 +130,7 @@ def main():
                 human_cwe_by_severity[target_sev][cwe].add(vuln_title)
 
     human_cwe_breadth = len(human_all_unique)
-    # 🏛️ OFFICIAL MITRE CORP. ARCHITECTURAL NOMENCLATURE TITLES
+    # 🏛️ OFFICIAL MITRE CORP. ARCHITECTURAL NOMENCLATURE TITLES (Source: https://mitre.org)
     CWE_TITLES = {
         'CWE-020': 'Improper Input Validation',
         'CWE-022': "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
@@ -204,7 +204,8 @@ def main():
                 badge_style = "background-color: #ffcccc; color: #990000; border: 1px solid #ff6666;" if sev_name == "High" else "background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33;"
                 
                 for code, desc_set in sorted(cwe_dict.items()):
-                    rule_badges = "".join([f"<span style='background:#f0f3f6; color:#24292f; border:1px solid #cfd6dc; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; font-weight:bold; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
+                    # Updated to remove background block styling, matching 'Architectural Nomenclature'
+                    rule_badges = "".join([f"<span style='color:#24292f; font-weight:bold; font-family:monospace; font-size:11px; padding:4px 6px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
                     title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
                     
                     ai_cwe_html_list += f"""
@@ -250,7 +251,8 @@ def main():
                 badge_style = "background-color: #ffcccc; color: #990000; border: 1px solid #ff6666;" if sev_name == "High" else "background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33;"
                 
                 for code, desc_set in sorted(cwe_dict.items()):
-                    rule_badges = "".join([f"<span style='background:#f0f3f6; color:#24292f; border:1px solid #cfd6dc; border-radius:3px; padding:3px 6px; margin:2px; font-family:monospace; font-size:11px; font-weight:bold; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
+                    # Updated to match the formatting of the Architectural Nomenclature column
+                    rule_badges = "".join([f"<span style='color:#24292f; font-weight:bold; font-family:monospace; font-size:11px; padding:4px 6px; display:inline-block; white-space:nowrap;'>{r.strip()}</span>" for r in desc_set])
                     title_string = CWE_TITLES.get(code, "Unclassified Architectural Weakness")
                     
                     human_cwe_html_list += f"""
