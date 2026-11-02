@@ -34,37 +34,37 @@
             
             <h4>📈 General Size & Metrics</h4>
             <ul>
-                <li><span>Total Pull Requests Audited:</span> <span class="metric-value">749</span></li>
-                <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">132,129 lines</span></li>
-                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">13 PRs Flagged</span></li>
+                <li><span>Total Pull Requests Audited:</span> <span class="metric-value">1000</span></li>
+                <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">169,106 lines</span></li>
+                <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">15 PRs Flagged</span></li>
             </ul>
 
             <h4>🔄 PR Lifecycle Status Distribution</h4>
             <ul>
-                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">66</span></li>
-                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">366</span></li>
-                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">317</span></li>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">95</span></li>
+                <li><span>🟣 Merged Production Code:</span> <span class="metric-value">550</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">355</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
             <ul>
-                <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">31 defects</span></li>
-                <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">0.000235</span></li>
+                <li><span>Total Security Deficiencies Found:</span> <span class="metric-value">40 defects</span></li>
+                <li><span>CWE Defect Density (Issues/LOC):</span> <span class="metric-value">0.000237</span></li>
                 <li><span>Average Defect Rate (Total Defects / Total PRs):</span> <span class="metric-value">0.04 defects/PR</span></li>
-                <li><span>Global Merged Rate (Merged PRs / Total PRs):</span> <span class="metric-value">48.87%</span></li>
+                <li><span>Global Merged Rate (Merged PRs / Total PRs):</span> <span class="metric-value">55.0%</span></li>
             </ul>
             <div class="severity-track">
-                <div class="severity-item sev-h">🔴 High: 12</div>
+                <div class="severity-item sev-h">🔴 High: 21</div>
                 <div class="severity-item sev-m">🟡 Medium: 19</div>
                 <div class="severity-item sev-l">🔵 Low: 0</div>
             </div>
 
             <h4>🧠 Advanced Research Metrics</h4>
             <ul>
-                <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">38.71%</span></li>
-                <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">2.38 bugs/Vulnerable PR</span></li>
-                <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">30.77%</span></li>
-                <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">24 types</span></li>
+                <li><span>High-Severity Critical Ratio (High Defects / Total Defects):</span> <span class="metric-value">52.5%</span></li>
+                <li><span>Defect Concentration Factor (Total Defects / Vulnerable PRs):</span> <span class="metric-value">2.67 bugs/Vulnerable PR</span></li>
+                <li><span>Alert Dismissal Rate (Vulnerable Merged PRs / Total Vulnerable PRs):</span> <span class="metric-value">46.67%</span></li>
+                <li><span>Unique CWE Landscape Breadth (Count of Unique CWE IDs):</span> <span class="metric-value">15 types</span></li>
             </ul>
 
             <h4>🔬 Security Vulnerability Analysis</h4>
@@ -95,7 +95,7 @@
                             Improper Input Validation
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-url-substring-sanitization</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-url-substring-sanitization</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-sanitization</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/double-escaping</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/incomplete-url-substring-sanitization</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -106,7 +106,7 @@
                             Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/path-injection</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/path-injection</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/zipslip</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -122,24 +122,13 @@
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
                         <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffcccc; color: #990000; border: 1px solid #ff6666; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-089</code>
+                            <code style='background-color: #ffcccc; color: #990000; border: 1px solid #ff6666; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-079</code>
                         </td>
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
+                            Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/sql-injection</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffcccc; color: #990000; border: 1px solid #ff6666; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-352</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Cross-Site Request Forgery (CSRForgery)
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-token-validation</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/xss-through-dom</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/xss</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -161,35 +150,13 @@
                 
                     <tr style='border-bottom:1px solid #d0d7de;'>
                         <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-023</code>
+                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-080</code>
                         </td>
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Unclassified Architectural Weakness
+                            Improper Neutralization of Script-Related HTML Tags in a Web Page
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/path-injection</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/path-injection</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-036</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Unclassified Architectural Weakness
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/path-injection</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/path-injection</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-073</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Unclassified Architectural Weakness
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/path-injection</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/path-injection</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-sanitization</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -205,13 +172,13 @@
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
                         <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-099</code>
+                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-116</code>
                         </td>
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Unclassified Architectural Weakness
+                            Improper Encoding or Sanitization of Input
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/path-injection</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/path-injection</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/xss-through-dom</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/xss</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/double-escaping</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-sanitization</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -249,79 +216,13 @@
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
                         <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-312</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Cleartext Storage of Sensitive Information
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/clear-text-logging-sensitive-data</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-327</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Use of a Broken or Risky Cryptographic Algorithm
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/weak-sensitive-data-hashing</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-328</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Use of Weak Hash
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/weak-sensitive-data-hashing</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-359</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Exposure of Private Personal Information ("Privacy Violation")
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/clear-text-logging-sensitive-data</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
                             <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-400</code>
                         </td>
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
                             Uncontrolled Resource Consumption
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-rate-limiting</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/polynomial-redos</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-532</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Insertion of Sensitive Information into Log File
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/clear-text-logging-sensitive-data</span>
-                        </td>
-                    </tr>
-                    <tr style='border-bottom:1px solid #d0d7de;'>
-                        <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-601</code>
-                        </td>
-                        <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            URL Redirection to Untrusted Site ('Open Redirect')
-                        </td>
-                        <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/url-redirection</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/polynomial-redos</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-rate-limiting</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -332,29 +233,29 @@
                             OWASP Top Ten 2004 Category A9 - Denial of Service
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/polynomial-redos</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/polynomial-redos</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/loop-bound-injection</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
                         <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-916</code>
+                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-830</code>
                         </td>
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Unclassified Architectural Weakness
+                            Inclusion of Web Functionality from an Untrusted Source
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>py/weak-sensitive-data-hashing</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/insufficient-password-hash</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/functionality-from-untrusted-source</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
                         <td style='width:15%; padding:12px 10px; border-right:1px solid #d0d7de; vertical-align:middle; background:#ffffff; overflow:hidden;'>
-                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-942</code>
+                            <code style='background-color: #ffe699; color: #805c00; border: 1px solid #ffcc33; padding:4px 6px; border-radius:4px; font-weight:bold; font-size:11px; font-family:monospace; display:inline-block; white-space:nowrap;'>CWE-834</code>
                         </td>
                         <td style='width:45%; padding:12px 10px; border-right:1px solid #d0d7de; color:#24292f; font-weight:bold; line-height:1.4; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            Unclassified Architectural Weakness
+                            Excessive Iteration
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/cors-permissive-configuration</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/loop-bound-injection</span>
                         </td>
                     </tr></tbody></table></div>
             </div>
@@ -367,15 +268,15 @@
             <h4>📈 General Size & Metrics</h4>
             <ul>
                 <li><span>Total Pull Requests Audited:</span> <span class="metric-value">1000</span></li>
-                <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">150,035 lines</span></li>
+                <li><span>Total Lines of Code (LOC):</span> <span class="metric-value">149,837 lines</span></li>
                 <li><span>Vulnerable PR Footprint:</span> <span class="badge-vuln-flag">8 PRs Flagged</span></li>
             </ul>
 
             <h4>🔄 PR Lifecycle Status Distribution</h4>
             <ul>
-                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">15</span></li>
+                <li><span>🟢 Active Open Branches:</span> <span class="metric-value">17</span></li>
                 <li><span>🟣 Merged Production Code:</span> <span class="metric-value">775</span></li>
-                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">210</span></li>
+                <li><span>🔴 Closed / Rejected Code:</span> <span class="metric-value">208</span></li>
             </ul>
 
             <h4>⚖️ Security Alert Breakdown</h4>
@@ -449,7 +350,7 @@
                             Allocation of Resources Without Limits or Throttling
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-rate-limiting</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/resource-exhaustion</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/resource-exhaustion</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-rate-limiting</span>
                         </td>
                     </tr>
                 <tr style='background:#f6f8fa; border-bottom:1px solid #d0d7de;'>
@@ -477,7 +378,7 @@
                             Improper Encoding or Sanitization of Input
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-multi-character-sanitization</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/xss-through-dom</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/xss-through-dom</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/incomplete-multi-character-sanitization</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
@@ -554,7 +455,7 @@
                             Uncontrolled Resource Consumption
                         </td>
                         <td style='width:40%; padding:12px 10px; text-align:right; vertical-align:middle; background:#ffffff; word-wrap:break-word;'>
-                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-rate-limiting</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/resource-exhaustion</span>
+                            <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/resource-exhaustion</span>, <span style='color:#24292f; font-weight:bold; font-size:12px; line-height:1.4;'>js/missing-rate-limiting</span>
                         </td>
                     </tr>
                     <tr style='border-bottom:1px solid #d0d7de;'>
